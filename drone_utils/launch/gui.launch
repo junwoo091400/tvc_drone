@@ -4,7 +4,7 @@
     </group>
 
     <node name="GUI_interface" pkg="real_time_simulator" type="GUI_interface" />
-    <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find drone_utils)/GUI/rosbag_replay_GUI.perspective"/>
+    <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find drone_simulator_interface)/GUI/drone_GUI.perspective"/>
 </launch>
 
 

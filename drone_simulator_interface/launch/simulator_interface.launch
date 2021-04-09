@@ -12,11 +12,6 @@
         <rosparam file="$(find drone_simulator_interface)/config/perturbations_parameters.yaml"/>
     </group>
 
-    <group ns="visualization">
-        <rosparam file="$(find drone_simulator_interface)/config/visualization_parameters.yaml"/>
-    </group>
-
-
     <node name="simulator_interface" pkg="drone_simulator_interface" type="simulator_interface" cwd = "node" />
 
     <!-- node that converts DroneState messages to State messages -->
@@ -25,10 +20,8 @@
 <!--          &#45;&#45;import tvc_simulator"/>-->
 
     <node name="aerodynamic" pkg="real_time_simulator" type="aerodynamic.py" cwd = "node" />
-    <node name="disturbance" pkg="real_time_simulator" type="disturbance.py" cwd = "node"/>
+<!--    <node name="disturbance" pkg="real_time_simulator" type="disturbance.py" cwd = "node"/>-->
     <node name="integrator" pkg="real_time_simulator" type="integrator" cwd = "node" output ="screen"/>
-    <node name="GUI_interface" pkg="real_time_simulator" type="GUI_interface" />
-    <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find drone_simulator_interface)/GUI/drone_GUI.perspective"/>
 
 </launch>
 

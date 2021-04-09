@@ -108,13 +108,13 @@ int main(int argc, char **argv) {
     ros::Subscriber drone_control_sub = nh.subscribe("/drone_control", 10, publishConvertedControl);
 
     // Create control publisher
-    rocket_control_pub = nh.advertise<real_time_simulator::Control>("/simu_rocket_control", 10);
+    rocket_control_pub = nh.advertise<real_time_simulator::Control>("/control_pub", 10);
 
     // Subscribe to rocket state
-    ros::Subscriber rocket_state_sub = nh.subscribe("/simu_rocket_state", 10, publishConvertedState);
+    ros::Subscriber rocket_state_sub = nh.subscribe("/rocket_state", 10, publishConvertedState);
 
     // Create drone state publisher
-    drone_state_pub = nh.advertise<drone_gnc::DroneState>("/drone_state", 10);
+    drone_state_pub = nh.advertise<drone_gnc::DroneState>("/simu_drone_state", 10);
 
     // Automatic callback of service and publisher from here
     ros::spin();
