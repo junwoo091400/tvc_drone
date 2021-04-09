@@ -1,0 +1,8 @@
+<launch>
+    <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
+    <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
+
+    <node pkg="rosbag" type="record" name="recorder" args="record -a -O $(find drone_utils)/log/log.bag"/>
+</launch>
+
+

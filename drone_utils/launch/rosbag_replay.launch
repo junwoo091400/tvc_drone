@@ -1,0 +1,41 @@
+<launch>
+
+    <group ns="rocket">
+        <rosparam file="$(find tvc_simulator)/config/prototypes/drone/rocket_parameters.yaml"/>
+    </group>
+
+    <group ns="environment">
+        <rosparam file="$(find tvc_simulator)/config/prototypes/drone/environment_parameters.yaml"/>
+    </group>
+
+    <group ns="perturbation">
+        <rosparam file="$(find tvc_simulator)/config/perturbations_parameters.yaml"/>
+    </group>
+
+    <group ns="visualization">
+        <rosparam file="$(find tvc_simulator)/config/prototypes/drone/visualization_parameters.yaml"/>
+    </group>
+
+    <group ns="mpc">
+        <rosparam file="$(find tvc_simulator)/config/prototypes/drone/mpc_parameters.yaml"/>
+    </group>
+
+    <group ns="filter">
+        <rosparam file="$(find tvc_simulator)/config/prototypes/drone/filter_parameters.yaml"/>
+    </group>
+
+<!--    <remap from="/simu_rocket_state" to="/kalman_rocket_state"/>-->
+<!--    <remap from="/simu_rocket_control" to="/kalman_rocket_control"/>-->
+    <node name="visualization" pkg="tvc_simulator" type="visualization"/>
+
+    <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui"
+          args="--perspective-file $(find tvc_simulator)/rviz/rosbag_replay_GUI.perspective"/>
+
+    <!--    <node name="control_interface" pkg="tvc_simulator" type="control_interface" cwd = "node" output ="screen"/>-->
+    <!--    <node name="control" pkg="tvc_simulator" type="drone_control" output ="screen"/>-->
+    <!--    <node name="time_keeper" pkg="tvc_simulator" type="time_keeper" cwd = "node"/>-->
+
+    <!--    <node pkg="rosbag" type="play" name="player" output="screen" args="$(find tvc_simulator)/postProcess/replay_analysis/test_02_04_21_bags/bags/log4_f.bag &#45;&#45;topics /rocket_state"/>-->
+</launch>
+
+

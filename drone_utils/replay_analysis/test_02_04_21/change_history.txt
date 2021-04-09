@@ -1,0 +1,24 @@
+log 1-4:
+	state_costs:
+	  x: 1.0e+5
+	  dx: 1.0e+1
+	  z: 1.0e+5
+	  dz: 1.0e+1
+	  att: 1.0e+1
+	  datt: 1.0e+3
+	  droll: 1.0e+3
+	input_costs:
+	  servo: 1.0e+2
+	  thrust: 1.0e+2
+
+before log 5:
+	->z: 1.0e+4
+	->droll: 1.0e+3
+	->datt: 1.0e+2
+	
+before log 6:
+	->z: 1.0e+4
+	->servo: 1.0e+3
+	->thrust: 1.0e+1
+
+before log6: change attitude target from 0 0 0 1 to 0 0 0 -1
