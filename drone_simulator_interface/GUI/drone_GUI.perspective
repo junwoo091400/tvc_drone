@@ -76,15 +76,15 @@
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "[u'/kalman_drone_state/twist/linear/x', u'/drone_state/twist/linear/x']"
+                  "repr": "[u'/drone_state/twist/linear/x', u'/simu_drone_state/twist/linear/x']"
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[-4.105291716713716, 0.9525979945305374]"
+                  "repr": "[-4.105291716713716, 1.511968194389176]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[78.98462986946106, 79.98462986946106]"
+                  "repr": "[77.38615489006042, 78.38615489006042]"
                 }
               },
               "groups": {}
@@ -311,15 +311,15 @@
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "[u'/drone_state/twist/angular/x', u'/kalman_rocket_state/twist/angular/x']"
+                  "repr": "[u'/simu_drone_state/twist/angular/x', u'/drone_state/twist/angular/x']"
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[-1.0489163556097459e-05, 1.0]"
+                  "repr": "[-0.6014622325474149, 1.0]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[79.244145154953, 80.244145154953]"
+                  "repr": "[77.66001296043396, 78.66001296043396]"
                 }
               },
               "groups": {}

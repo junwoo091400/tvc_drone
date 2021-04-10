@@ -9,7 +9,7 @@
         <machine name="raspberrypi" address="raspberrypi.local" user="pi" password="ert2021" timeout="10"
                  env-loader="/home/pi/catkin_ws/devel/remote_env_loader.sh"/>
         <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
-        <node name="avionic_bridge" pkg="tvc_simulator" type="avionic_bridge.py"/>
+        <node name="avionic_bridge" pkg="tvc_simulator" type="avionic_bridge_node.py"/>
         <node name="optitrack_client" pkg="tvc_simulator" type="optitrack_client"/>
     </group>
 
