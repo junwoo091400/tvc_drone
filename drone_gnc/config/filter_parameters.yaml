@@ -1,0 +1,14 @@
+# MPC parameters
+predict_vars:
+  x: 0.5
+  z: 0.5
+  dx: 500
+  dz: 500
+  att: 0.05
+  datt: 50000
+
+update_vars:
+  gyro: 0
+  accel_x: 0
+  accel_z: 0
+  baro: 0
