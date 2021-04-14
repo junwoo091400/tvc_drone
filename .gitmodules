@@ -1,6 +1,3 @@
-[submodule "drone_gnc"]
-	path = drone_gnc
-	url = https://github.com/EPFLRocketTeam/drone_gnc
 [submodule "real_time_simulator"]
 	path = real_time_simulator
 	url = https://github.com/EPFLRocketTeam/real_time_simulator
