@@ -40,9 +40,10 @@ def convert_horizon_to_array(horizon):
     for waypoint in horizon.trajectory:
         waypoint_array = np.array([waypoint.time, waypoint.position.x, waypoint.position.y, waypoint.position.z])
         horizon_array = np.vstack((horizon_array, waypoint_array))
+    print(horizon_array)
     plt.cla()
-    plt.plot(state_history[:, 1], state_history[:, 3], label="integrator")
-    plt.plot(horizon_array[:, 1], horizon_array[:, 3], label="mpc horizon")
+    plt.plot(state_history[:, 0]-state_history[0, 0], state_history[:, 1], label="integrator")
+    plt.plot(horizon_array[:, 0] + state_history[-1, 0]-state_history[0, 0], horizon_array[:, 1], label="mpc horizon")
     plt.draw()
     plt.pause(0.00000000001)
 
@@ -99,10 +100,11 @@ if __name__ == '__main__':
     t_start = rospy.get_time()
 
 
+    time.sleep(1)
     command_pub.publish("Launch")
     i = 0
     # Node rate in Hz
-    rate = rospy.Rate(1/mpc_period)
+    rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         # drone_control_pub.publish(drone_control_list[i])
         i += 1

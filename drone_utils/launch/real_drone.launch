@@ -1,5 +1,4 @@
 <launch>
-    <machine name="local" address="localhost"/>
 
     <group ns="visualization">
         <rosparam file="$(find drone_simulator_interface)/config/visualization_parameters.yaml"/>
@@ -9,22 +8,23 @@
         <machine name="raspberrypi" address="raspberrypi.local" user="pi" password="ert2021" timeout="10"
                  env-loader="/home/pi/catkin_ws/devel/remote_env_loader.sh"/>
         <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
-        <node name="avionic_bridge" pkg="tvc_simulator" type="avionic_bridge_node.py"/>
-        <node name="optitrack_client" pkg="tvc_simulator" type="optitrack_client"/>
+        <node name="avionic_bridge" pkg="drone_gnc" type="avionic_bridge_node.py"/>
+        <node name="optitrack_client" pkg="drone_gnc" type="optitrack_client"/>
     </group>
 
     <!-- local interface -->
     <group>
+        <machine name="local" address="localhost"/>
         <!-- transform drone_kalman to rocket state for visualization-->
-        <node machine="local" name="drone_to_rocket_state" pkg="topic_tools" type="transform" args="/drone_state /simu_rocket_state tvc_simulator/State
+        <node name="drone_to_rocket_state" pkg="topic_tools" type="transform" args="/drone_state /simu_rocket_state tvc_simulator/State
               'tvc_simulator.msg.State(twist=m.twist, pose=m.pose, propeller_mass=0)'
               --import tvc_simulator"/>
 
         <!-- <node machine="raspberrypi" name="optitrack_client" pkg="tvc_simulator" type="optitrack_client"/> -->
-        <node machine="local" name="visualization" pkg="tvc_simulator" type="visualization"/>
-        <node machine="local" name="rqt_gui" pkg="rqt_gui" type="rqt_gui"
-              args="--perspective-file $(find tvc_simulator)/rviz/drone_remote_control_GUI.perspective"/>
-        <node machine="local" pkg="rosbag" type="record" name="recorder"
+        <node name="visualization" pkg="tvc_simulator" type="visualization"/>
+        <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui"
+              args="--perspective-file $(find drone_utils)/rviz/drone_remote_control_GUI.perspective"/>
+        <node pkg="rosbag" type="record" name="recorder"
               args="record -a -O $(find drone_utils)/log/log.bag"/>
     </group>
 
