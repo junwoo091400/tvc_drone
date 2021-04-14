@@ -33,17 +33,20 @@ def convert_state_to_array(state):
 state_history = np.empty((0, 14))
 
 horizon_array = None
+horizon_count = 0
 def convert_horizon_to_array(horizon):
-    global horizon_array
-    # if horizon_array is None:
-    horizon_array = np.empty((0, 4))
-    for waypoint in horizon.trajectory:
-        waypoint_array = np.array([waypoint.time, waypoint.position.x, waypoint.position.y, waypoint.position.z])
-        horizon_array = np.vstack((horizon_array, waypoint_array))
-    print(horizon_array)
+    global horizon_array, horizon_count
+    horizon_count += 1
+    if horizon_count == 10:
+        horizon_array = np.empty((0, 4))
+        for waypoint in horizon.trajectory:
+            waypoint_array = np.array([waypoint.time+ state_history[-1, 0]-state_history[0, 0], waypoint.position.x, waypoint.position.y, waypoint.position.z])
+            horizon_array = np.vstack((horizon_array, waypoint_array))
+
     plt.cla()
-    plt.plot(state_history[:, 0]-state_history[0, 0], state_history[:, 1], label="integrator")
-    plt.plot(horizon_array[:, 0] + state_history[-1, 0]-state_history[0, 0], horizon_array[:, 1], label="mpc horizon")
+    plt.plot(state_history[:, 0]-state_history[0, 0], state_history[:, 3], label="integrator")
+    if horizon_array is not None:
+        plt.plot(horizon_array[:, 0], horizon_array[:, 3], label="mpc horizon")
     plt.draw()
     plt.pause(0.00000000001)
 
@@ -78,7 +81,6 @@ if __name__ == '__main__':
     command_pub = rospy.Publisher('commands', String, queue_size=10)
 
     info_pub = rospy.Publisher('info_pub', String, queue_size=10)
-    rospy.Subscriber("mpc_horizon", Trajectory, convert_horizon_to_array)
 
     plt.ion()
     plt.show()
@@ -102,6 +104,7 @@ if __name__ == '__main__':
 
     time.sleep(1)
     command_pub.publish("Launch")
+    rospy.Subscriber("mpc_horizon", Trajectory, convert_horizon_to_array)
     i = 0
     # Node rate in Hz
     rate = rospy.Rate(10)

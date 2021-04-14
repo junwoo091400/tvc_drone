@@ -34,8 +34,8 @@ Isp: -1
 minPropellerSpeed: 35
 maxPropellerSpeed: 80
 
-maxServo1Angle: 0.3
-maxServo2Angle: 0.3
+maxServo1Angle: 0.1
+maxServo2Angle: 0.1
 CM_to_thrust_distance: 0.205
 Cd:
   - 2

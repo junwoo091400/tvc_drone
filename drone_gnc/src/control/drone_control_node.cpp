@@ -53,11 +53,12 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh("control");
 
     // Subscribers
-    ros::Subscriber rocket_state_sub = nh.subscribe("/simu_drone_state", 100, stateCallback);
+    ros::Subscriber rocket_state_sub = nh.subscribe("/drone_state", 100, stateCallback);
     ros::Subscriber target_sub = nh.subscribe("/target_apogee", 100, targetCallback);
 
     // Publishers
     ros::Publisher MPC_horizon_pub = nh.advertise<drone_gnc::Trajectory>("/mpc_horizon", 10);
+    ros::Publisher drone_control_pub = nh.advertise<drone_gnc::DroneControl>("/drone_control", 10);
 
     // Service clients
     ros::ServiceClient client_fsm = nh.serviceClient<drone_gnc::GetFSM>("/getFSM_gnc");
@@ -70,8 +71,8 @@ int main(int argc, char **argv) {
     DroneMPC drone_mpc(nh);
 
     // Create interpolation service server
-    ros::ServiceServer interpolation_service = nh.advertiseService("/interpolateControlSpline",
-                                                                   &DroneMPC::interpolateControlSplineService, &drone_mpc);
+//    ros::ServiceServer interpolation_service = nh.advertiseService("/interpolateControlSpline",
+//                                                                   &DroneMPC::interpolateControlSplineService, &drone_mpc);
 
 
     std::vector<double> initial_target_apogee;
@@ -94,7 +95,16 @@ int main(int argc, char **argv) {
     std::vector<double> average_y_error;
     std::vector<double> average_z_error;
 
-    double mpc_period = 0.04;
+    int ff_index = 0;
+    ros::Timer low_level_control_thread = nh.createTimer(ros::Duration(0.02), [&](const ros::TimerEvent &) {
+        if (ff_index<4){
+            drone_gnc::DroneControl drone_control = drone_mpc.interpolateControlSplineService();
+            drone_control_pub.publish(drone_control);
+            ff_index++;
+        }
+    });
+
+    double mpc_period = 0.1;
     // Thread to compute control. Duration defines interval time in seconds
     ros::Timer control_thread = nh.createTimer(ros::Duration(mpc_period), [&](const ros::TimerEvent &) {
 
@@ -147,6 +157,12 @@ int main(int argc, char **argv) {
 //                mpc.x_guess(x0.replicate(13, 1));
             }
 
+            low_level_control_thread.stop();
+            drone_gnc::DroneControl drone_control = drone_mpc.interpolateControlSplineService();
+            drone_control_pub.publish(drone_control);
+            ff_index=0;
+            low_level_control_thread.start();
+
             // Send optimal trajectory computed by control. Send only position for now
             drone_gnc::Trajectory trajectory_msg;
             for (int i = 0; i < drone_mpc.mpc.ocp().NUM_NODES; i++) {
@@ -191,7 +207,7 @@ int main(int argc, char **argv) {
     });
 
     // Start spinner on a different thread to allow spline evaluation while a new solution is computed
-    ros::AsyncSpinner spinner(2);
+    ros::AsyncSpinner spinner(3);
     spinner.start();
     ros::waitForShutdown();
 

@@ -6,7 +6,7 @@
 
 #include <string>
 
-#define CONTROL_HORIZON 2// In seconds
+#define CONTROL_HORIZON 1// In seconds
 
 #include <chrono>
 
@@ -78,7 +78,7 @@ public:
                     0, 0, 0, 0,
                     datt_cost, datt_cost, droll_cost;
             R << servo_cost, servo_cost, thrust_cost, thrust_cost;
-            QN << 10*Q;
+            QN << 5*Q;
             attitude_cost = att_cost;
 
             drone = d;

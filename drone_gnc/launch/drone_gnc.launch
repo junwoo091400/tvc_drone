@@ -15,7 +15,7 @@
         <rosparam param="target_apogee">[0,0,1]</rosparam>
     </node>
 
-    <node name="low_level_control" pkg="drone_gnc" type="low_level_control_node.py" output="screen"/>
+<!--    <node name="low_level_control" pkg="drone_gnc" type="low_level_control_node.py" output="screen"/>-->
 
     <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" cwd="node">
         <rosparam param="initial_state">"Idle"</rosparam>

@@ -39,8 +39,8 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
     //quaternion representing the rotation of the servos around the Y-axis followed by the rotation around the X-axis
     Eigen::Quaterniond
             thrust_rotation(
-            AngleAxisd(servo1, Vector3d::UnitY()) *
-            AngleAxisd(servo2, Vector3d::UnitX())
+            AngleAxisd(drone_control->servo1, Vector3d::UnitY()) *
+            AngleAxisd(drone_control->servo2, Vector3d::UnitX())
     );
 
     //rotated thrust vector, in body frame

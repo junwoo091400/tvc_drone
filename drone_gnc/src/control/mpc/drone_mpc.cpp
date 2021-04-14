@@ -1,7 +1,5 @@
 #include "drone_mpc.h"
 
-#define CONTROL_HORIZON 2
-
 DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
     // Initialize rocket class with useful parameters
     drone = make_shared<Drone>();
@@ -63,36 +61,27 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
 }
 
 
-bool DroneMPC::interpolateControlSplineService(drone_gnc::InterpolateControlSpline::Request &req,
-                                               drone_gnc::InterpolateControlSpline::Response &res) {
-    if (solution_time != 0) {
-        //TODO
-        float interp_time = ros::Time::now().toSec() - solution_time;
-        ROS_INFO_STREAM(interp_time);
+drone_gnc::DroneControl DroneMPC::interpolateControlSplineService() {
+    float interp_time = ros::Time::now().toSec() - solution_time;
+    ROS_INFO_STREAM(interp_time);
+    control interpolated_control = mpc.solution_u_at((double) interp_time);
+    drone->unScaleControl(interpolated_control);
 
-        control interpolated_control = mpc.solution_u_at((double) interp_time);
-        drone->unScaleControl(interpolated_control);
-        res.drone_control.servo1 = interpolated_control(0);
-        res.drone_control.servo2 = interpolated_control(1);
-        res.drone_control.bottom = interpolated_control(2);
-        res.drone_control.top = interpolated_control(3);
+    drone_gnc::DroneControl drone_control;
+    drone_control.servo1 = interpolated_control(0);
+    drone_control.servo2 = interpolated_control(1);
+    drone_control.bottom = interpolated_control(2);
+    drone_control.top = interpolated_control(3);
 
-        res.drone_control.servo1 = std::min(std::max(res.drone_control.servo1, -drone->maxServo1Angle),
-                                            drone->maxServo1Angle);
-        res.drone_control.servo2 = std::min(std::max(res.drone_control.servo2, -drone->maxServo2Angle),
-                                            drone->maxServo2Angle);
-        res.drone_control.top = std::min(std::max(res.drone_control.top, drone->minPropellerSpeed),
-                                         drone->maxPropellerSpeed);
-        res.drone_control.bottom = std::min(std::max(res.drone_control.bottom, drone->minPropellerSpeed),
-                                            drone->maxPropellerSpeed);
-    } else {
-        res.drone_control.servo1 = 0;
-        res.drone_control.servo2 = 0;
-        res.drone_control.bottom = 0;
-        res.drone_control.top = 0;
-    }
-
-    return true;
+    drone_control.servo1 = std::min(std::max(drone_control.servo1, -drone->maxServo1Angle),
+                                        drone->maxServo1Angle);
+    drone_control.servo2 = std::min(std::max(drone_control.servo2, -drone->maxServo2Angle),
+                                        drone->maxServo2Angle);
+    drone_control.top = std::min(std::max(drone_control.top, drone->minPropellerSpeed),
+                                     drone->maxPropellerSpeed);
+    drone_control.bottom = std::min(std::max(drone_control.bottom, drone->minPropellerSpeed),
+                                        drone->maxPropellerSpeed);
+    return drone_control;
 }
 
 
@@ -131,10 +120,28 @@ void DroneMPC::warmStart() {
 }
 
 void DroneMPC::solve(state &x0) {
-    double saved_solution_time = ros::Time::now().toSec();
-    mpc.initial_conditions(x0);
-    warmStart();
+    const double mpc_period = 0.1;
+//    double saved_solution_time = ros::Time::now().toSec();
+//    ROS_INFO_STREAM("x0     " <<x0.transpose().head(6)*100);
+    state predicted_x0;
+    integrateX0(x0, predicted_x0);
+//    ROS_INFO_STREAM("predicted x0 " <<predicted_x0.transpose().head(6)*100);
+    mpc.initial_conditions(predicted_x0);
+//    warmStart();
+    ros::Duration(0.085).sleep();
     mpc.solve();
-    solution_time = saved_solution_time;
+
+    solution_time = ros::Time::now().toSec();
+}
+
+void DroneMPC::integrateX0(const state x0, state &new_x0){
+    const double mpc_period = 0.1;
+    const double low_level_period = 0.02;
+    new_x0 = x0;
+    for(int i = 0; i<5; i++){
+        control interpolated_control = mpc.solution_u_at(low_level_period*i);
+        drone->unScaleControl(interpolated_control);
+        drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
+    }
 }
 

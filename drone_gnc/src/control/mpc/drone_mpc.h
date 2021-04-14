@@ -25,10 +25,11 @@ public:
 
     void solve(state &x0);
 
-    bool interpolateControlSplineService(drone_gnc::InterpolateControlSpline::Request &req,
-                                         drone_gnc::InterpolateControlSpline::Response &res);
+    drone_gnc::DroneControl interpolateControlSplineService();
 
     void setTarget(state &target_state, control &target_control);
+
+    void integrateX0(const state x0, state &new_x0);
 
 private:
     void warmStart();
