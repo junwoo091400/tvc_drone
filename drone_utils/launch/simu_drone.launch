@@ -1,4 +1,5 @@
 <launch>
+    <machine name="gnc_machine" address="localhost"/>
     <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
     <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
     <include file="$(find drone_utils)/launch/gui.launch"/>

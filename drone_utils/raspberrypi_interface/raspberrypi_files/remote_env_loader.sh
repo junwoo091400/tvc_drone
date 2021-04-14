@@ -1,9 +1,9 @@
 #!/bin/bash
 
-export ROS_IP=192.168.0.196
-export ROS_MASTER_URI=http://192.168.0.196:11311
+export ROS_IP=$(hostname -I | cut -d' ' -f1) #automatically set to local ip address
+export ROS_MASTER_URI=http://$(hostname -I | cut -d' ' -f1):11311 #automatically set to local ip address
 #export ROSLAUNCH_SSH_UNKNOWN=1
 
-source /home/pi/catkin_ws/devel/setup.bash
+source /home/pi/drone_ws/devel/setup.bash
 
 exec "$@"
