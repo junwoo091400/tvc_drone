@@ -10,5 +10,8 @@ state_costs:
 input_costs:
   servo: 5.0e-2
   thrust: 1.0e-2
-max_iter: 5
+max_iter: 3
 line_search_max_iter: 4
+mpc_period: 0.1
+feedforward_period: 0.02
+

@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     std::vector<double> average_z_error;
 
     int ff_index = 0;
-    ros::Timer low_level_control_thread = nh.createTimer(ros::Duration(0.02), [&](const ros::TimerEvent &) {
+    ros::Timer low_level_control_thread = nh.createTimer(ros::Duration(drone_mpc.feedforward_period), [&](const ros::TimerEvent &) {
         if (ff_index < 4) {
             drone_gnc::DroneControl drone_control = drone_mpc.interpolateControlSplineService();
             drone_control_pub.publish(drone_control);
@@ -108,9 +108,8 @@ int main(int argc, char **argv) {
         }
     });
 
-    double mpc_period = 0.1;
     // Thread to compute control. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(mpc_period), [&](const ros::TimerEvent &) {
+    ros::Timer control_thread = nh.createTimer(ros::Duration(drone_mpc.mpc_period), [&](const ros::TimerEvent &) {
 
         // Get current FSM and time
         if (client_fsm.call(srv_fsm)) {

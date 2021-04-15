@@ -6,7 +6,7 @@ predict_vars:
   dz: 500
   att: 0.05
   datt: 50000
-  thrust_scaling: 1
+  thrust_scaling: 10
 
 update_vars:
   gyro: 0

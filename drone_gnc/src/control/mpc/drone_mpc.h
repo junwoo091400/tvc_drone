@@ -31,10 +31,11 @@ public:
 
     void integrateX0(const state x0, state &new_x0);
     std::shared_ptr<Drone> drone;
+    double mpc_period;
+    double feedforward_period;
 
 private:
     void warmStart();
-
 
     double solution_time;
 };

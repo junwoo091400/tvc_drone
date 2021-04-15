@@ -8,6 +8,9 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
     int max_iter, line_search_max_iter;
     nh.getParam("/mpc/max_iter", max_iter);
     nh.getParam("/mpc/line_search_max_iter", line_search_max_iter);
+    nh.getParam("/mpc/mpc_period", mpc_period);
+    nh.getParam("/mpc/feedforward_period", feedforward_period);
+
     mpc.settings().max_iter = max_iter;
     mpc.settings().line_search_max_iter = line_search_max_iter;
 
@@ -120,7 +123,6 @@ void DroneMPC::warmStart() {
 }
 
 void DroneMPC::solve(state &x0) {
-    const double mpc_period = 0.1;
 //    double saved_solution_time = ros::Time::now().toSec();
 //    ROS_INFO_STREAM("x0     " <<x0.transpose().head(6)*100);
     state predicted_x0;
@@ -128,18 +130,15 @@ void DroneMPC::solve(state &x0) {
 //    ROS_INFO_STREAM("predicted x0 " <<predicted_x0.transpose().head(6)*100);
     mpc.initial_conditions(predicted_x0);
 //    warmStart();
-    ros::Duration(0.085).sleep();
+    ros::Duration(0.093).sleep();
     mpc.solve();
-
     solution_time = ros::Time::now().toSec();
 }
 
 void DroneMPC::integrateX0(const state x0, state &new_x0){
-    const double mpc_period = 0.1;
-    const double low_level_period = 0.02;
     new_x0 = x0;
     for(int i = 0; i<5; i++){
-        control interpolated_control = mpc.solution_u_at(low_level_period*i);
+        control interpolated_control = mpc.solution_u_at(feedforward_period*i);
         drone->unScaleControl(interpolated_control);
         drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
     }
