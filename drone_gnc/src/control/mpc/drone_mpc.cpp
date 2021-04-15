@@ -130,13 +130,17 @@ void DroneMPC::solve(state &x0) {
 //    ROS_INFO_STREAM("predicted x0 " <<predicted_x0.transpose().head(6)*100);
     mpc.initial_conditions(predicted_x0);
 //    warmStart();
+//    ros::Duration(0.048).sleep();
     mpc.solve();
     solution_time = ros::Time::now().toSec();
 }
 
 void DroneMPC::integrateX0(const state x0, state &new_x0){
     new_x0 = x0;
-    for(int i = 0; i<5; i++){
+
+    int max_ff_index = std::round(mpc_period/feedforward_period);
+
+    for(int i = 0; i<max_ff_index; i++){
         control interpolated_control = mpc.solution_u_at(feedforward_period*i);
         drone->unScaleControl(interpolated_control);
         drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);

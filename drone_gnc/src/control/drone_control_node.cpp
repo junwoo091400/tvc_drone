@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     std::vector<double> average_y_error;
     std::vector<double> average_z_error;
 
-    int max_ff_index = std::round(drone_mpc.mpc_period/drone_mpc.feedforward_period);
+    int max_ff_index = std::round(drone_mpc.mpc_period/drone_mpc.feedforward_period)-1;
 
     int ff_index = 0;
     ros::Timer low_level_control_thread = nh.createTimer(ros::Duration(drone_mpc.feedforward_period), [&](const ros::TimerEvent &) {
