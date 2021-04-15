@@ -12,6 +12,6 @@ input_costs:
   thrust: 1.0e-2
 max_iter: 3
 line_search_max_iter: 4
-mpc_period: 0.1
+mpc_period: 0.06
 feedforward_period: 0.02
 

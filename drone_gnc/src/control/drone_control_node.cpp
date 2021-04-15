@@ -99,9 +99,11 @@ int main(int argc, char **argv) {
     std::vector<double> average_y_error;
     std::vector<double> average_z_error;
 
+    int max_ff_index = std::round(drone_mpc.mpc_period/drone_mpc.feedforward_period);
+
     int ff_index = 0;
     ros::Timer low_level_control_thread = nh.createTimer(ros::Duration(drone_mpc.feedforward_period), [&](const ros::TimerEvent &) {
-        if (ff_index < 4) {
+        if (ff_index < max_ff_index) {
             drone_gnc::DroneControl drone_control = drone_mpc.interpolateControlSplineService();
             drone_control_pub.publish(drone_control);
             ff_index++;

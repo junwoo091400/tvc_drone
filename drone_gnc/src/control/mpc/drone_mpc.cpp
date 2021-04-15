@@ -130,7 +130,6 @@ void DroneMPC::solve(state &x0) {
 //    ROS_INFO_STREAM("predicted x0 " <<predicted_x0.transpose().head(6)*100);
     mpc.initial_conditions(predicted_x0);
 //    warmStart();
-    ros::Duration(0.093).sleep();
     mpc.solve();
     solution_time = ros::Time::now().toSec();
 }
