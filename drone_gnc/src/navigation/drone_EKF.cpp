@@ -1,4 +1,3 @@
-#include <armadillo>
 #include "drone_EKF.h"
 
 void DroneEKF::init_EKF(ros::NodeHandle &nh) {
