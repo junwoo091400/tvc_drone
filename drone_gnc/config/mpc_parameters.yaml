@@ -1,6 +1,6 @@
 # MPC parameters
 state_costs:
-  x: 5.0e+1
+  x: 1.0e+3
   dx: 1.0e-3
   z: 5.0e+1
   dz: 1.0e+2

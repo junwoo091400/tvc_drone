@@ -7,9 +7,9 @@
     <group>
         <machine name="gnc_machine" address="raspberrypi.local" user="pi" password="ert2021" timeout="10"
                  env-loader="/home/pi/drone_ws/devel/remote_env_loader.sh"/>
-        <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
         <node machine="gnc_machine" name="avionic_bridge" pkg="drone_gnc" type="avionic_bridge_node.py"/>
         <node machine="gnc_machine" name="optitrack_client" pkg="drone_gnc" type="optitrack_client"/>
+        <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
     </group>
 
     <!-- local interface -->
@@ -17,7 +17,7 @@
         <machine name="local" address="localhost"/>
         <!-- transform drone_kalman to rocket state for visualization-->
         <node name="drone_to_rocket_state" pkg="topic_tools" type="transform" machine="local" 
-        args="/drone_state /simu_rocket_state real_time_simulator/State
+        args="/drone_state /rocket_state real_time_simulator/State
               'real_time_simulator.msg.State(twist=m.twist, pose=m.pose, propeller_mass=0)'
               --import real_time_simulator"/>
 

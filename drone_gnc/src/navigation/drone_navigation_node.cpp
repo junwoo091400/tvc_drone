@@ -68,8 +68,8 @@ int main(int argc, char **argv) {
 
     ros::Subscriber sensor_sub;
     if (DRONE_DOME) {
-        sensor_sub = nh.subscribe("/simu_drone_state", 100, rocket_stateCallback);
-//        sensor_sub = nh.subscribe("/optitrack_client/Kite/optitrack_pose", 100, optitrackCallback);
+        // sensor_sub = nh.subscribe("/simu_drone_state", 100, rocket_stateCallback);
+       sensor_sub = nh.subscribe("/optitrack_client/Kite/optitrack_pose", 100, optitrackCallback);
     } else {
         sensor_sub = nh.subscribe("/sensors", 100, sensorCallback);
     }

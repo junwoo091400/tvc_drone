@@ -5,7 +5,7 @@ predict_vars:
   dx: 500
   dz: 500
   att: 0.05
-  datt: 50000
+  datt: 500
   thrust_scaling: 10
 
 update_vars:

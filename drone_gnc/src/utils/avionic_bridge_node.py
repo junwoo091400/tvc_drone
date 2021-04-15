@@ -27,7 +27,7 @@ def control_callback(control):
     bottom_motor_cmd = min(max(bottom_motor_cmd, 0), 80)
 
     # convert to PWM
-    servo1_DC = ((control.servo1/(np.pi/2)) + 1.453)*1000
+    servo1_DC = ((-control.servo1/(np.pi/2)) + 1.453)*1000
     servo2_DC = ((-control.servo2/(np.pi/2)) + 1.47)*1000
 
     top_motor_DC = top_motor_cmd*10 + 1000
@@ -89,8 +89,15 @@ if __name__ == '__main__':
 
     pi.set_servo_pulsewidth(top_motor_pin, 1000)
     pi.set_servo_pulsewidth(bottom_motor_pin, 1000)
+    time.sleep(1)
  
-
+    control = DroneControl()
+    control.servo1 = 0
+    control.servo2 = 0
+    control.top = 0
+    control.bottom = 0
+    control_callback(control)
+    
     # Config Rpi
     ser = serial.Serial('/dev/serial0', 115200)  # open serial port
     
