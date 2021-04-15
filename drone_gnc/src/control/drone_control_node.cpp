@@ -36,10 +36,14 @@ drone_gnc::FSM current_fsm;
 
 geometry_msgs::Vector3 target_apogee;
 
+bool received_state = false;
+
 // Callback function to store last received state
 void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
     current_state.pose = rocket_state->pose;
     current_state.twist = rocket_state->twist;
+    current_state.thrust_scaling = rocket_state->thrust_scaling;
+    received_state = true;
 }
 
 // Callback function to store last received state
@@ -97,7 +101,7 @@ int main(int argc, char **argv) {
 
     int ff_index = 0;
     ros::Timer low_level_control_thread = nh.createTimer(ros::Duration(0.02), [&](const ros::TimerEvent &) {
-        if (ff_index<4){
+        if (ff_index < 4) {
             drone_gnc::DroneControl drone_control = drone_mpc.interpolateControlSplineService();
             drone_control_pub.publish(drone_control);
             ff_index++;
@@ -131,14 +135,15 @@ int main(int argc, char **argv) {
                     0, 0, 0,
                     0, 0, 0, 1,
                     0, 0, 0;
-            target_control<< 0, 0, 0, 0;
+            target_control << 0, 0, 0, 0;
         }
 
         drone_mpc.setTarget(target_state, target_control);
 
 
         // State machine ------------------------------------------
-        if (current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) {
+        if ((current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) &&
+            received_state) {
             double time_now = ros::Time::now().toSec();
             DroneMPC::state x0;
             x0 << current_state.pose.position.x / 100, current_state.pose.position.y / 100,
@@ -147,8 +152,7 @@ int main(int argc, char **argv) {
                     current_state.twist.linear.z / 100,
                     current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
                     current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
-
-
+            drone_mpc.drone->setThrustScaling(current_state.thrust_scaling);
             drone_mpc.solve(x0);
 
             //TODO
@@ -157,11 +161,14 @@ int main(int argc, char **argv) {
 //                mpc.x_guess(x0.replicate(13, 1));
             }
 
-            low_level_control_thread.stop();
-            drone_gnc::DroneControl drone_control = drone_mpc.interpolateControlSplineService();
-            drone_control_pub.publish(drone_control);
-            ff_index=0;
-            low_level_control_thread.start();
+
+            if (current_fsm.state_machine.compare("Launch") == 0) {
+                low_level_control_thread.stop();
+                drone_gnc::DroneControl drone_control = drone_mpc.interpolateControlSplineService();
+                drone_control_pub.publish(drone_control);
+                ff_index = 0;
+                low_level_control_thread.start();
+            }
 
             // Send optimal trajectory computed by control. Send only position for now
             drone_gnc::Trajectory trajectory_msg;

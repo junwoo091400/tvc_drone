@@ -22,7 +22,7 @@
     </node>
 
     <node name="navigation" pkg="drone_gnc" type="drone_navigation" cwd="node" output="screen">
-        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
+        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0, 1]</rosparam>
         <rosparam param="drone_dome">true</rosparam>
     </node>
 </launch>

@@ -1,7 +1,3 @@
-//
-// Created by raphlins on 10.04.21.
-//
-
 #ifndef SRC_DRONE_EKF_H
 #define SRC_DRONE_EKF_H
 
@@ -11,12 +7,14 @@
 #include "Eigen/Geometry"
 
 #include <autodiff/AutoDiffScalar.h>
+#include <drone_model.hpp>
+#include <drone_gnc/DroneControl.h>
 
 using namespace Eigen;
 
 class DroneEKF {
 public:
-    static const int NX = 13;
+    static const int NX = 14;
     static const int NU = 4;
     // Autodiff dor state
     template<typename scalar_t>
@@ -53,6 +51,8 @@ public:
 
     void optitrack_update_step(optitrack_sensor_t<double> z);
 
+    void update_current_control(const drone_gnc::DroneControl::ConstPtr &drone_control);
+
 private:
     state_matrix Q;
     Matrix<double, 6, 6> R;
@@ -65,7 +65,9 @@ private:
     Matrix<double, 6, NX> H;
     Matrix<double, 7, NX> H_optitrack;
 
-
+    Drone drone;
+    drone_gnc::DroneControl current_control;
+    bool received_control;
 };
 
 

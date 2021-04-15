@@ -13,6 +13,7 @@ public:
 
     float maxServo1Angle;
     float maxServo2Angle;
+    float thrust_scaling;
 
     void init(ros::NodeHandle &n) {
         Rocket::init(n);
@@ -28,6 +29,7 @@ public:
         J_inv[0] = 1 / dry_Inertia[0];
         J_inv[1] = 1 / dry_Inertia[1];
         J_inv[2] = 1 / dry_Inertia[2];
+        thrust_scaling = 1;
     }
 
     template<typename T>
@@ -36,6 +38,10 @@ public:
         u(1) = maxServo2Angle * u(1);
         u(2) = 0.5 * (u(2) + 1) * (maxPropellerSpeed - minPropellerSpeed) + minPropellerSpeed;
         u(3) = 0.5 * (u(3) + 1) * (maxPropellerSpeed - minPropellerSpeed) + minPropellerSpeed;
+    }
+
+    void setThrustScaling(double scaling){
+        thrust_scaling = scaling;
     }
 
     template<typename T, typename state>
@@ -50,7 +56,7 @@ public:
         T bottom = input(2);
         T top = input(3);
 
-        T thrust = getThrust(bottom, top);
+        T thrust = getThrust(bottom, top) * thrust_scaling;
         T torque = getTorque(bottom, top);
 
         // servomotors thrust vector rotation (see drone_interface for equivalent quaternion implementation)

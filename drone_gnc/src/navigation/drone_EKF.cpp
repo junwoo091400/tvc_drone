@@ -2,13 +2,14 @@
 #include "drone_EKF.h"
 
 void DroneEKF::init_EKF(ros::NodeHandle &nh) {
-    double x_var, dx_var, z_var, dz_var, att_var, datt_var, gyro_var, accel_x_var, accel_z_var, baro_var;
+    double x_var, dx_var, z_var, dz_var, att_var, datt_var, gyro_var, accel_x_var, accel_z_var, baro_var, thrust_scaling_var;
     if (nh.getParam("/filter/predict_vars/x", x_var) &&
         nh.getParam("/filter/predict_vars/dz", dx_var) &&
         nh.getParam("/filter/predict_vars/z", z_var) &&
         nh.getParam("/filter/predict_vars/dz", dz_var) &&
         nh.getParam("/filter/predict_vars/att", att_var) &&
         nh.getParam("/filter/predict_vars/datt", datt_var) &&
+        nh.getParam("/filter/predict_vars/thrust_scaling", thrust_scaling_var) &&
         nh.getParam("/filter/update_vars/gyro", gyro_var) &&
         nh.getParam("/filter/update_vars/accel_x", accel_x_var) &&
         nh.getParam("/filter/update_vars/accel_z", accel_z_var) &&
@@ -23,9 +24,10 @@ void DroneEKF::init_EKF(ros::NodeHandle &nh) {
         Q.diagonal() << x_var, x_var, z_var,
                 dx_var, dx_var, dz_var,
                 att_var, att_var, att_var, att_var,
-                datt_var, datt_var, datt_var;
+                datt_var, datt_var, datt_var,
+                thrust_scaling_var;
 
-        P = Q;
+        P.setZero();
 
         R.setZero();
         R.diagonal() << accel_x_var, accel_x_var, accel_z_var,
@@ -44,10 +46,22 @@ void DroneEKF::init_EKF(ros::NodeHandle &nh) {
         H_optitrack.topLeftCorner(3, 3).setIdentity();
         H_optitrack.block(3, 6, 4, 4).setIdentity();
 
+        drone.init(nh);
+
+        current_control.servo1 = 0;
+        current_control.servo2 = 0;
+        current_control.top = 0;
+        current_control.bottom = 0;
+        received_control = false;
     } else {
         ROS_ERROR("Failed to get kalman filter parameter");
     }
 
+}
+
+void DroneEKF::update_current_control(const drone_gnc::DroneControl::ConstPtr &drone_control) {
+    current_control = *drone_control;
+    received_control = true;
 }
 
 template<typename T>
@@ -64,13 +78,36 @@ inline void DroneEKF::state_dynamics(const state_t<T> &x, state_t<T> &xdot) {
     xdot.segment(0, 3) = x.segment(3, 3);
 
     double g0 = 9.81;
+
+
     // Speed variation is acceleration
-    xdot.segment(3, 3) << 0.0, 0.0, 0.0;
+
+    if(received_control){
+        double mass = drone.dry_mass;
+        T thrust = drone.getThrust(current_control.bottom, current_control.top);
+        Eigen::Matrix<T, 3, 1> thrust_direction;
+        thrust_direction << cos(current_control.servo2) * sin(current_control.servo1),
+                -sin(current_control.servo2),
+                cos(current_control.servo1) * cos(current_control.servo2);
+        T thrust_scaling = x(13);
+        Eigen::Matrix<T, 3, 1> thrust_vector = thrust_direction * thrust * thrust_scaling;
+        Eigen::Vector<T, 3> gravity;
+        gravity << (T) 0.0, (T) 0.0, g0 * mass;
+        Eigen::Vector<T, 3> total_force;
+        total_force = attitude._transformVector(thrust_vector) - gravity;
+
+        xdot.segment(3, 3) << total_force / mass;
+    }
+    else{
+        xdot.segment(3, 3) << 0.0, 0.0, 0.0;
+    }
 
     // Quaternion variation is 0.5*w◦q
     xdot.segment(6, 4) = 0.5 * (attitude * omega_quat).coeffs();
 
     xdot.segment(10, 3) << 0.0, 0.0, 0.0;
+
+    xdot.segment(13, 1) << 0.0;
 }
 
 void DroneEKF::RK4(const state_t<double> &X, double dT, state_t<double> &Xnext) {
@@ -111,6 +148,7 @@ void DroneEKF::predict_step() {
         ADx(i).derivatives() = state_t<double>::Unit(div_size, derivative_idx);
         derivative_idx++;
     }
+
     //propagate xdot autodiff scalar at current x
     ad_state_t Xdot;
     state_dynamics(ADx, Xdot);
@@ -119,7 +157,6 @@ void DroneEKF::predict_step() {
     for (int i = 0; i < X.size(); i++) {
         F.row(i) = Xdot(i).derivatives();
     }
-
     //predict
     RK4(X, dT, X);
     RK4_P(P, dT, P);

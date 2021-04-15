@@ -62,6 +62,10 @@ int main(int argc, char **argv) {
     // Subscribe to time_keeper for fsm and time
     ros::Subscriber fsm_sub = nh.subscribe("/gnc_fsm_pub", 100, fsmCallback);
 
+
+    // Subscribe to time_keeper for fsm and time
+    ros::Subscriber control_sub = nh.subscribe("/drone_control", 100, &DroneEKF::update_current_control, &kalman);
+
     ros::Subscriber sensor_sub;
     if (DRONE_DOME) {
         sensor_sub = nh.subscribe("/simu_drone_state", 100, rocket_stateCallback);
@@ -106,15 +110,9 @@ int main(int argc, char **argv) {
             Matrix<double, 7, 1> new_data;
             new_data.segment(0, 3) = position;
             new_data.segment(3, 4) = orientation.coeffs();
+
             kalman.predict_step();
             kalman.optitrack_update_step(new_data);
-        }
-
-        // State machine ------------------------------------------
-        if (current_fsm.state_machine.compare("Idle") == 0) {
-            // Do nothing
-
-        } else {
         }
 
         // Parse kalman state and publish it on the /kalman_pub topic
@@ -136,6 +134,8 @@ int main(int argc, char **argv) {
         kalman_state.twist.angular.x = kalman.X(10);
         kalman_state.twist.angular.y = kalman.X(11);
         kalman_state.twist.angular.z = kalman.X(12);
+
+        kalman_state.thrust_scaling = kalman.X(13);
 
         kalman_pub.publish(kalman_state);
 

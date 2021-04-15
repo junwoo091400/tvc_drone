@@ -30,11 +30,11 @@ public:
     void setTarget(state &target_state, control &target_control);
 
     void integrateX0(const state x0, state &new_x0);
+    std::shared_ptr<Drone> drone;
 
 private:
     void warmStart();
 
-    std::shared_ptr<Drone> drone;
 
     double solution_time;
 };
