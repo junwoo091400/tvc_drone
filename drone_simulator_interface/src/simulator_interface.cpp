@@ -54,7 +54,7 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
 
 
     converted_control.torque.x = thrust_vector.y() * CM_to_thrust_distance + propeller_torque.x();
-    converted_control.torque.y = thrust_vector.x() * CM_to_thrust_distance + propeller_torque.y() - CM_OFFSET_X*thrust_vector.z();
+    converted_control.torque.y = -thrust_vector.x() * CM_to_thrust_distance + propeller_torque.y() - CM_OFFSET_X*thrust_vector.z();
     converted_control.torque.z = torque + propeller_torque.z() + CM_OFFSET_X*thrust_vector.y();
 
     converted_control.force.x = thrust_vector.x();

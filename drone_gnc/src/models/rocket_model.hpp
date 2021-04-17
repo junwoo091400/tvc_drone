@@ -135,7 +135,7 @@ public:
         // X, Y force and Z torque in body frame
         Eigen::Vector<T, 3> rocket_torque;
         rocket_torque << thrust_vector(1) * total_CM + torque(0),
-                thrust_vector(0) * total_CM + torque(1),
+                -thrust_vector(0) * total_CM + torque(1),
                 torque(2);
 
         // -------------- Differential equations ---------------------
