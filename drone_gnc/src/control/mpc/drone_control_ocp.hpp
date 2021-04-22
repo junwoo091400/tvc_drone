@@ -95,8 +95,15 @@ public:
         Eigen::Matrix<T, 13, 1> x_drone = x.segment(0, 13);
         Eigen::Matrix<T, 4, 1> u_drone = u.segment(0, 4);
 
+        Eigen::Matrix<T, 4, 1> params;
+
+        drone->getParams(params);
+
+
         drone->unScaleControl(u_drone);
-        drone->state_dynamics(x_drone, u_drone, xdot);
+        drone->state_dynamics(x_drone, u_drone, params, xdot);
+//        drone->scaleState(xdot);
+        xdot.segment(3, 3) = (T)1e-2*xdot.segment(3, 3);
     }
 
 //    template<typename T>

@@ -13,7 +13,8 @@ public:
 
     float maxServo1Angle;
     float maxServo2Angle;
-    float thrust_scaling;
+
+    double thrust_scaling;
 
     void init(ros::NodeHandle &n) {
         Rocket::init(n);
@@ -29,7 +30,6 @@ public:
         J_inv[0] = 1 / dry_Inertia[0];
         J_inv[1] = 1 / dry_Inertia[1];
         J_inv[2] = 1 / dry_Inertia[2];
-        thrust_scaling = 1;
     }
 
     template<typename T>
@@ -40,13 +40,10 @@ public:
         u(3) = 0.5 * (u(3) + 1) * (maxPropellerSpeed - minPropellerSpeed) + minPropellerSpeed;
     }
 
-    void setThrustScaling(double scaling){
-        thrust_scaling = scaling;
-    }
-
     template<typename T, typename state>
-    inline void state_dynamics(const Eigen::Matrix<T, 13, 1> x,
-                               const Eigen::Matrix<T, 4, 1> u,
+    inline void state_dynamics(const Eigen::Matrix<T, 13, 1> &x,
+                               const Eigen::Matrix<T, 4, 1> &u,
+                               const Eigen::Matrix<T, 4, 1> &params,
                                state &xdot) const {
         Eigen::Matrix<T, 4, 1> input;
         input << u(0), u(1), u(2), u(3);
@@ -55,6 +52,9 @@ public:
         T servo2 = input(1);
         T bottom = input(2);
         T top = input(3);
+
+        T thrust_scaling = params(0);
+        Eigen::Matrix<T, 3, 1> dist_torque = params.segment(1, 3);
 
         T thrust = getThrust(bottom, top) * thrust_scaling;
         T torque = getTorque(bottom, top);
@@ -72,8 +72,7 @@ public:
         Eigen::Matrix<T, 13, 1> x_body = x.segment(0, 13);
         Eigen::Ref<Eigen::Matrix<T, 13, 1>> xdot_body = xdot.segment(0, 13);
 
-
-        Rocket::generic_rocket_dynamics(x_body, thrust_vector, propeller_torque, xdot_body);
+        Rocket::generic_rocket_dynamics(x_body, thrust_vector, (propeller_torque + dist_torque).eval(), xdot_body);
     }
 
     //thrust 3rd order model
@@ -109,15 +108,35 @@ public:
         return torque;
     }
 
+    void setParams(const double thrust_scaling_val){
+        thrust_scaling = thrust_scaling_val;
+    }
+
+    template<typename T>
+    inline void getParams(Eigen::Matrix<T, 4, 1> &params){
+        params << (T)thrust_scaling, (T)0.0, (T)0.0, (T)0.0;
+    }
+
 
     void stepRK4(const Eigen::Matrix<double, 13, 1> x0, const Eigen::Matrix<double, 4, 1> u, double dT,
              Eigen::Matrix<double, 13, 1> &x_next) {
         Eigen::Matrix<double, 13, 1> k1, k2, k3, k4;
 
-        state_dynamics(x0, u, k1);
-        state_dynamics((x0 + k1 * dT / 2).eval(), u, k2);
-        state_dynamics((x0 + k2 * dT / 2).eval(), u, k3);
-        state_dynamics((x0 + k3 * dT).eval(), u, k4);
+        Eigen::Matrix<double, 4, 1> params;
+        getParams(params);
+
+        state_dynamics(x0, u, params, k1);
+        //TODO
+        k1.segment(3, 3) = 1e-2*k1.segment(3, 3);
+        state_dynamics((x0 + k1 * dT / 2).eval(), u, params, k2);
+        //TODO
+        k2.segment(3, 3) = 1e-2*k2.segment(3, 3);
+        state_dynamics((x0 + k2 * dT / 2).eval(), u, params, k3);
+        //TODO
+        k3.segment(3, 3) = 1e-2*k3.segment(3, 3);
+        state_dynamics((x0 + k3 * dT).eval(), u, params, k4);
+        //TODO
+        k4.segment(3, 3) = 1e-2*k4.segment(3, 3);
 
         x_next = x0 + (k1 + 2 * k2 + 2 * k3 + k4) * dT / 6;
     }

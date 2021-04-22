@@ -68,7 +68,7 @@ public:
                 current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
                 current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
 
-        drone_mpc.drone->setThrustScaling(current_state.thrust_scaling);
+        drone_mpc.drone->setParams(current_state.thrust_scaling);
 
         drone_mpc.solve(x0);
 
@@ -181,8 +181,6 @@ private:
     std::vector<double> average_x_error;
     std::vector<double> average_y_error;
     std::vector<double> average_z_error;
-
-
 };
 
 
@@ -226,11 +224,11 @@ int main(int argc, char **argv) {
             current_fsm = srv_fsm.response.fsm;
         }
 
-        droneControlNode.fetchNewTarget();
-
         // State machine ------------------------------------------
         if ((current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) &&
             droneControlNode.received_state) {
+
+            droneControlNode.fetchNewTarget();
 
             droneControlNode.computeControl();
 

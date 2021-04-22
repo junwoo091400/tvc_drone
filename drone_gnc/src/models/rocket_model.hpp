@@ -144,7 +144,7 @@ public:
         xdot.head(3) = x.segment(3, 3);
 
         // Speed variation is Force/mass
-        xdot.segment(3, 3) = (T) 1e-2 * total_force / mass;
+        xdot.segment(3, 3) = total_force / mass;
 
         // Quaternion variation is 0.5*q◦w (if w in body frame)
         xdot.segment(6, 4) = (T) 0.5 * (attitude*omega_quat).coeffs();
