@@ -52,6 +52,8 @@ void DroneEKF::init_EKF(ros::NodeHandle &nh) {
         current_control.top = 0;
         current_control.bottom = 0;
         received_control = false;
+
+        last_predict_time = ros::Time::now().toSec();
     } else {
         ROS_ERROR("Failed to get kalman filter parameter");
     }
