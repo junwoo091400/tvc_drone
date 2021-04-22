@@ -1,3 +1,4 @@
 geometry_msgs/Twist twist
 geometry_msgs/Pose pose
 float32 thrust_scaling
+geometry_msgs/Vector3 disturbance_torque

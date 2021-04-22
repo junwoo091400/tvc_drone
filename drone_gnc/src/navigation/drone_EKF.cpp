@@ -25,9 +25,8 @@ void DroneEKF::init_EKF(ros::NodeHandle &nh) {
                 dx_var, dx_var, dz_var,
                 att_var, att_var, att_var, att_var,
                 datt_var, datt_var, datt_var,
-                thrust_scaling_var;
-                //TODO
-//                disturbance_torque_var, disturbance_torque_var, disturbance_torque_var;
+                thrust_scaling_var,
+                disturbance_torque_var, disturbance_torque_var, disturbance_torque_var;
 
         P.setZero();
 
@@ -77,8 +76,7 @@ void DroneEKF::state_dynamics(const state_t<T> &x, state_t<T> &xdot) {
         Eigen::Matrix<T, 4, 1> u;
         u << current_control.servo1, current_control.servo2, current_control.bottom, current_control.top;
 
-        Eigen::Matrix<T, 4, 1> params;
-        params << x(13), 0, 0, 0;
+        Eigen::Matrix<T, 4, 1> params = x.segment(13, 4);
 
         drone.state_dynamics(x_drone, u, params, xdot);
     }
@@ -95,7 +93,7 @@ void DroneEKF::state_dynamics(const state_t<T> &x, state_t<T> &xdot) {
         xdot.segment(10, 3) << 0.0, 0.0, 0.0;
     }
 
-    xdot.segment(13, 1) << 0.0;
+    xdot.segment(13, 4) << 0.0, 0.0, 0.0, 0.0;
 
 }
 

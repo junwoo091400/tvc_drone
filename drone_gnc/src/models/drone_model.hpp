@@ -15,6 +15,7 @@ public:
     float maxServo2Angle;
 
     double thrust_scaling;
+    Eigen::Vector3d disturbance_torque;
 
     void init(ros::NodeHandle &n) {
         Rocket::init(n);
@@ -30,6 +31,9 @@ public:
         J_inv[0] = 1 / dry_Inertia[0];
         J_inv[1] = 1 / dry_Inertia[1];
         J_inv[2] = 1 / dry_Inertia[2];
+
+        thrust_scaling = 1;
+        disturbance_torque.setZero();
     }
 
     template<typename T>
@@ -108,13 +112,14 @@ public:
         return torque;
     }
 
-    void setParams(const double thrust_scaling_val){
+    void setParams(double thrust_scaling_val, double tx, double ty, double tz){
         thrust_scaling = thrust_scaling_val;
+        disturbance_torque << tx, ty, tz;
     }
 
     template<typename T>
     inline void getParams(Eigen::Matrix<T, 4, 1> &params){
-        params << (T)thrust_scaling, (T)0.0, (T)0.0, (T)0.0;
+        params << (T)thrust_scaling, (T)disturbance_torque.x(), (T)disturbance_torque.y(), (T)disturbance_torque.z();
     }
 
 

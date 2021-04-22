@@ -126,6 +126,10 @@ public:
 
         kalman_state.thrust_scaling = kalman.X(13);
 
+        kalman_state.disturbance_torque.x = kalman.X(14);
+        kalman_state.disturbance_torque.y = kalman.X(15);
+        kalman_state.disturbance_torque.z = kalman.X(16);
+
         kalman_pub.publish(kalman_state);
     }
 
