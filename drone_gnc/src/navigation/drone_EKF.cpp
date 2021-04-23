@@ -78,7 +78,6 @@ void DroneEKF::updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &dro
 
 template<typename T>
 void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
-
     if(received_control){
         Eigen::Matrix<T, 13, 1> x_drone = x.segment(0, 13);
 
@@ -87,6 +86,7 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
 
         Eigen::Matrix<T, 4, 1> params = x.segment(13, 4);
 
+        //state derivatives
         drone.state_dynamics(x_drone, u, params, xdot);
     }
     else{
@@ -96,14 +96,15 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
         // Angular velocity omega in quaternion format to compute quaternion derivative
         Eigen::Quaternion<T> omega_quat(0.0, x(10), x(11), x(12));
 
+        //state derivatives
         xdot.segment(0, 3) = x.segment(3, 3);
         xdot.segment(3, 3) << 0.0, 0.0, 0.0;
         xdot.segment(6, 4) = 0.5 * (attitude * omega_quat).coeffs();
         xdot.segment(10, 3) << 0.0, 0.0, 0.0;
     }
 
+    // assume parameters unchanged
     xdot.segment(13, 4) << 0.0, 0.0, 0.0, 0.0;
-
 }
 
 void DroneEKF::fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pdot) {
@@ -130,9 +131,9 @@ void DroneEKF::RK4(const state &X, const state_matrix &P, double dT, state &Xnex
     state_matrix k1_P, k2_P, k3_P, k4_P;
 
     fullDerivative(X, P, k1, k1_P);
-    fullDerivative((X + k1 * dT / 2).eval(), (P + k1_P * dT / 2).eval(), k2, k2_P);
-    fullDerivative((X + k2 * dT / 2).eval(), (P + k2_P * dT / 2).eval(), k3, k3_P);
-    fullDerivative((X + k3 * dT).eval(), (P + k3_P * dT).eval(), k4, k4_P);
+    fullDerivative(X + k1 * dT / 2, P + k1_P * dT / 2, k2, k2_P);
+    fullDerivative(X + k2 * dT / 2, P + k2_P * dT / 2, k3, k3_P);
+    fullDerivative(X + k3 * dT, P + k3_P * dT, k4, k4_P);
 
     Xnext = X + (k1 + 2 * k2 + 2 * k3 + k4) * dT / 6;
     Pnext = P + (k1_P + 2 * k2_P + 2 * k3_P + k4_P) * dT / 6;
