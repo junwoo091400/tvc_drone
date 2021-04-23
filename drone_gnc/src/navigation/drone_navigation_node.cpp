@@ -44,7 +44,7 @@ public:
         initTopics(nh);
 
         // init EKF
-        kalman.init_EKF(nh);
+        kalman.initEKF(nh);
 
         // Initialize fsm
         current_fsm.time_now = 0;
@@ -65,7 +65,7 @@ public:
         fsm_sub = nh.subscribe("/gnc_fsm_pub", 100, &DroneNavigationNode::fsmCallback, this);
 
         // Subscribe to time_keeper for fsm and time
-        control_sub = nh.subscribe("/drone_control", 100, &DroneEKF::update_current_control, &kalman);
+        control_sub = nh.subscribe("/drone_control", 100, &DroneEKF::updateCurrentControl, &kalman);
 
         sensor_sub;
         if (DRONE_DOME) {
@@ -99,8 +99,8 @@ public:
             new_data.segment(0, 3) = position;
             new_data.segment(3, 4) = orientation.coeffs();
 
-            kalman.predict_step();
-            kalman.optitrack_update_step(new_data);
+            kalman.predictStep();
+            kalman.optitrackUpdateStep(new_data);
         }
     }
 

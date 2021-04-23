@@ -19,6 +19,7 @@ public:
     // Autodiff dor state
     template<typename scalar_t>
     using state_t = Matrix<scalar_t, NX, 1>;
+    using state = state_t<double>;
 
     using ADScalar = AutoDiffScalar<state_t<double>>;
     using ad_state_t = state_t<ADScalar>;
@@ -30,28 +31,29 @@ public:
     using optitrack_sensor_t = Matrix<scalar_t, 7, 1>;
 
     typedef Matrix<double, NX, NX> state_matrix;
+//    typedef Matrix<double, NX, 1> state;
 
     double last_predict_time;
-    state_t<double> X;
+    state X;
+
+    ad_state_t ADx;
 
     template<typename T>
-    void state_dynamics(const state_t<T> &x, state_t<T> &xdot);
+    void stateDynamics(const state_t<T> &x, state_t<T> &xdot);
 
-    void init_EKF(ros::NodeHandle &nh);
+    void initEKF(ros::NodeHandle &nh);
 
-    void RK4(const state_t<double> &X, double dT, state_t<double> &Xnext);
+    void fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pnext);
 
-    void P_derivative(const state_matrix &P, state_matrix &Pdot);
+    void RK4(const state &X, const state_matrix &P, double dT, state &Xnext, state_matrix &Pnext);
 
-    void RK4_P(const state_matrix &P, double dT, state_matrix &Pnext);
+    void predictStep();
 
-    void predict_step();
+    void updateStep(sensor_t<double> z);
 
-    void update_step(sensor_t<double> z);
+    void optitrackUpdateStep(optitrack_sensor_t<double> z);
 
-    void optitrack_update_step(optitrack_sensor_t<double> z);
-
-    void update_current_control(const drone_gnc::DroneControl::ConstPtr &drone_control);
+    void updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control);
 
 private:
     state_matrix Q;

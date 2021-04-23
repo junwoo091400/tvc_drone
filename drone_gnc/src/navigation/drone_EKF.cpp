@@ -1,6 +1,6 @@
 #include "drone_EKF.h"
 
-void DroneEKF::init_EKF(ros::NodeHandle &nh) {
+void DroneEKF::initEKF(ros::NodeHandle &nh) {
     double x_var, dx_var, z_var, dz_var, att_var, datt_var, gyro_var, accel_x_var, accel_z_var, baro_var, thrust_scaling_var, disturbance_torque_var;
     if (nh.getParam("/filter/predict_vars/x", x_var) &&
         nh.getParam("/filter/predict_vars/dz", dx_var) &&
@@ -17,7 +17,7 @@ void DroneEKF::init_EKF(ros::NodeHandle &nh) {
 
         std::vector<double> initial_state;
         nh.getParam("initial_state", initial_state);
-        state_t<double> X0(initial_state.data());
+        state X0(initial_state.data());
         X = X0;
 
         Q.setZero();
@@ -56,19 +56,28 @@ void DroneEKF::init_EKF(ros::NodeHandle &nh) {
         received_control = false;
 
         last_predict_time = ros::Time::now().toSec();
+
+        /** initialize derivatives */
+        ADx(X);
+        int div_size = ADx.size();
+        int derivative_idx = 0;
+        for (int i = 0; i < ADx.size(); ++i) {
+            ADx(i).derivatives() = state::Unit(div_size, derivative_idx);
+            derivative_idx++;
+        }
     } else {
         ROS_ERROR("Failed to get kalman filter parameter");
     }
 
 }
 
-void DroneEKF::update_current_control(const drone_gnc::DroneControl::ConstPtr &drone_control) {
+void DroneEKF::updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
     current_control = *drone_control;
     received_control = true;
 }
 
 template<typename T>
-void DroneEKF::state_dynamics(const state_t<T> &x, state_t<T> &xdot) {
+void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
 
     if(received_control){
         Eigen::Matrix<T, 13, 1> x_drone = x.segment(0, 13);
@@ -97,59 +106,48 @@ void DroneEKF::state_dynamics(const state_t<T> &x, state_t<T> &xdot) {
 
 }
 
-void DroneEKF::RK4(const state_t<double> &X, double dT, state_t<double> &Xnext) {
-    state_t<double> k1, k2, k3, k4;
+void DroneEKF::fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pdot) {
+    //X derivative
+    stateDynamics(x, xdot);
 
-    state_dynamics(X, k1);
-    state_dynamics((X + k1 * dT / 2).eval(), k2);
-    state_dynamics((X + k2 * dT / 2).eval(), k3);
-    state_dynamics((X + k3 * dT).eval(), k4);
-
-    Xnext = X + (k1 + 2 * k2 + 2 * k3 + k4) * dT / 6;
-}
-
-void DroneEKF::P_derivative(const state_matrix &P, state_matrix &Pdot) {
-    Pdot = F * P + P * F.transpose() + Q;
-}
-
-void DroneEKF::RK4_P(const state_matrix &P, double dT, state_matrix &Pnext) {
-    state_matrix k1, k2, k3, k4;
-
-    P_derivative(P, k1);
-    P_derivative(P + k1 * dT / 2, k2);
-    P_derivative(P + k2 * dT / 2, k3);
-    P_derivative(P + k3 * dT, k4);
-
-    Pnext = P + (k1 + 2 * k2 + 2 * k3 + k4) * dT / 6;
-}
-
-void DroneEKF::predict_step() {
-    double dT = ros::Time::now().toSec() - last_predict_time;
-    last_predict_time = ros::Time::now().toSec();
-
-    /** initialize derivatives */
-    ad_state_t ADx(X);
-    int div_size = ADx.size();
-    int derivative_idx = 0;
-    for (int i = 0; i < ADx.size(); ++i) {
-        ADx(i).derivatives() = state_t<double>::Unit(div_size, derivative_idx);
-        derivative_idx++;
-    }
-
+    //P derivative
     //propagate xdot autodiff scalar at current x
+    ADx = X;
     ad_state_t Xdot;
-    state_dynamics(ADx, Xdot);
+    stateDynamics(ADx, Xdot);
 
     // obtain the jacobian
     for (int i = 0; i < X.size(); i++) {
         F.row(i) = Xdot(i).derivatives();
     }
-    //predict
-    RK4(X, dT, X);
-    RK4_P(P, dT, P);
+
+    Pdot = F * P + P * F.transpose() + Q;
 }
 
-void DroneEKF::update_step(sensor_t<double> z) {
+
+void DroneEKF::RK4(const state &X, const state_matrix &P, double dT, state &Xnext, state_matrix &Pnext) {
+    state k1, k2, k3, k4;
+    state_matrix k1_P, k2_P, k3_P, k4_P;
+
+    fullDerivative(X, P, k1, k1_P);
+    fullDerivative((X + k1 * dT / 2).eval(), (P + k1_P * dT / 2).eval(), k2, k2_P);
+    fullDerivative((X + k2 * dT / 2).eval(), (P + k2_P * dT / 2).eval(), k3, k3_P);
+    fullDerivative((X + k3 * dT).eval(), (P + k3_P * dT).eval(), k4, k4_P);
+
+    Xnext = X + (k1 + 2 * k2 + 2 * k3 + k4) * dT / 6;
+    Pnext = P + (k1_P + 2 * k2_P + 2 * k3_P + k4_P) * dT / 6;
+}
+
+
+void DroneEKF::predictStep() {
+    double dT = ros::Time::now().toSec() - last_predict_time;
+    last_predict_time = ros::Time::now().toSec();
+
+    //predict: integrate X and P
+    RK4(X, P, dT, X, P);
+}
+
+void DroneEKF::updateStep(sensor_t<double> z) {
     Matrix<double, NX, 6> K;
     K = P * H.transpose() * ((H * P * H.transpose() + R).inverse());
     X = X + K * (z - H * X);
@@ -160,7 +158,7 @@ void DroneEKF::update_step(sensor_t<double> z) {
 //    X.segment(13, 3) << z.segment(0, 3);
 }
 
-void DroneEKF::optitrack_update_step(optitrack_sensor_t<double> z) {
+void DroneEKF::optitrackUpdateStep(optitrack_sensor_t<double> z) {
     Matrix<double, NX, 7> K;
     K = P * H_optitrack.transpose() * ((H_optitrack * P * H_optitrack.transpose() + R_optitrack).inverse());
     X = X + K * (z - H_optitrack * X);
