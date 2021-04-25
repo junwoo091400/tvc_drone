@@ -5,6 +5,7 @@
 #include "ros/ros.h"
 
 #include <string>
+#include <math.h>
 
 #define CONTROL_HORIZON 1// In seconds
 
@@ -61,6 +62,9 @@ public:
 
     shared_ptr<Drone> drone;
 
+    scalar_t maxAttitudeAngle;
+    scalar_t maxAttitudeCos;
+
     void init(ros::NodeHandle nh, shared_ptr<Drone> d) {
         scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, droll_cost;
         if (nh.getParam("/mpc/state_costs/x", x_cost) &&
@@ -71,15 +75,17 @@ public:
             nh.getParam("/mpc/state_costs/datt", datt_cost) &&
             nh.getParam("/mpc/state_costs/droll", droll_cost) &&
             nh.getParam("/mpc/input_costs/servo", servo_cost) &&
-            nh.getParam("/mpc/input_costs/thrust", thrust_cost)) {
+            nh.getParam("/mpc/input_costs/thrust", thrust_cost) &&
+            nh.getParam("/rocket/maxAttitudeAngle", maxAttitudeAngle)) {
 
             Q << x_cost, x_cost, z_cost,
                     dx_cost, dx_cost, dz_cost,
                     0, 0, 0, 0,
                     datt_cost, datt_cost, droll_cost;
             R << servo_cost, servo_cost, thrust_cost, thrust_cost;
-            QN << 5*Q;
+            QN << 5 * Q;
             attitude_cost = att_cost;
+            maxAttitudeCos = cos(maxAttitudeAngle);
 
             drone = d;
         } else {
@@ -89,8 +95,10 @@ public:
     }
 
     template<typename T>
-    inline void dynamics_impl(const Eigen::Ref<const state_t <T>> x, const Eigen::Ref<const control_t <T>> u,
-                              const Eigen::Ref<const parameter_t <T>> p, const Eigen::Ref<const static_parameter_t> &d,
+    inline void dynamics_impl(const Eigen::Ref<const state_t <T>> x,
+                              const Eigen::Ref<const control_t <T>> u,
+                              const Eigen::Ref<const parameter_t <T>> p,
+                              const Eigen::Ref<const static_parameter_t> &d,
                               const T &t, Eigen::Ref<state_t < T>> xdot) const noexcept {
         Eigen::Matrix<T, 13, 1> x_drone = x.segment(0, 13);
         Eigen::Matrix<T, 4, 1> u_drone = u.segment(0, 4);
@@ -102,16 +110,18 @@ public:
 
         drone->unScaleControl(u_drone);
         drone->state_dynamics(x_drone, u_drone, params, xdot);
-//        drone->scaleState(xdot);
-        xdot.segment(3, 3) = (T)1e-2*xdot.segment(3, 3);
+        //drone->scaleState(xdot);
+        //TODO
+        xdot.segment(3, 3) = (T) 1e-2 * xdot.segment(3, 3);
     }
 
 //    template<typename T>
-//    inline void inequality_constraints_impl(const state_t<T> &x, const control_t<T> &u, const parameter_t<T> &p,
-//                                                    const static_parameter_t &d, const scalar_t &t, constraint_t<T> &g) const noexcept {
-//        // w = x(9); x = x(6);y = x(7), x(8))
-//        // (w^2 + z^2)*(x^2 + y^2) corresponds to the inclination relative to (0, 0, 1)
-//        g.head(1) = (x(9)^2 + x(8)^2)*(x(6)^2 + x(7)^2) - (T) 0.0;
+//    inline void inequality_constraints_impl(const state_t <T> &x, const control_t <T> &u, const parameter_t <T> &p,
+//                                            const static_parameter_t &d, const scalar_t &t,
+//                                            constraint_t <T> &g) const noexcept {
+////        drone->unScaleControl(u);
+////        g << abs(u(3) - u(2));
+////        polympc::ignore_unused_var(d);
 //    }
 
     template<typename T>

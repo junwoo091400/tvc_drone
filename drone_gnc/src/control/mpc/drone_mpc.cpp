@@ -42,6 +42,12 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
             inf, inf, inf, inf,
             inf, inf, inf;
     mpc.state_bounds(lbx, ubx);
+
+//    constraints lbg; lbg << 0;
+//    constraints ubg; lbg << inf;
+//
+//    //TODO
+//    mpc.constraints_bounds(lbg, ubg);
     mpc.set_time_limits(0, CONTROL_HORIZON);
     // Initial state
     state x0;

@@ -36,6 +36,9 @@ maxPropellerSpeed: 80
 
 maxServo1Angle: 0.1
 maxServo2Angle: 0.1
+
+maxAttitudeAngle: 0.1
+
 CM_to_thrust_distance: 0.205
 Cd:
   - 2

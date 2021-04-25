@@ -7,15 +7,11 @@ import serial
 import pigpio 
 import time
 
-from tvc_simulator.msg import DroneControl
-from tvc_simulator.msg import FSM
-from tvc_simulator.msg import DroneState
-from tvc_simulator.msg import Sensor
+from drone_gnc.msg import DroneControl
+from drone_gnc.msg import DroneState
+from drone_gnc.msg import Sensor
 
 def control_callback(control):
-    # global current_control
-    # current_control = control
-
     top_motor_cmd = control.top
     bottom_motor_cmd = control.bottom
 
@@ -43,11 +39,8 @@ def control_callback(control):
     pi.set_servo_pulsewidth(bottom_motor_pin, bottom_motor_DC)
 
 if __name__ == '__main__':
-
     # Create global variable
     rocket_state = DroneState()
-
-    # current_control = DroneControl()
 
     sensor_data = Sensor()
 
@@ -56,9 +49,6 @@ if __name__ == '__main__':
     
     # Subscribe to rocket_control 
     rospy.Subscriber("/drone_control", DroneControl, control_callback)
-    
-    # Publisher for rocket state from AV control
-    # rocket_state_pub = rospy.Publisher('drone_state', DroneState, queue_size=10)
 
     # Publisher for rocket state from AV control
     sensor_pub = rospy.Publisher('/sensors', Sensor, queue_size=10)
@@ -101,7 +91,6 @@ if __name__ == '__main__':
     # Config Rpi
     ser = serial.Serial('/dev/serial0', 115200)  # open serial port
     
-    
     # Node rate in Hz
     rate = rospy.Rate(200)
     n_average = 100
@@ -139,5 +128,3 @@ if __name__ == '__main__':
             sensor_data.baro_height = new_baro
             
         sensor_pub.publish(sensor_data)
-        
-    

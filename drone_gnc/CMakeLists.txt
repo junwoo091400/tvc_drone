@@ -75,10 +75,11 @@ add_message_files(
         Waypoint.msg
         Sensor.msg
         Trajectory.msg
+        DroneTrajectory.msg
         DroneControl.msg
         DroneState.msg
+        DroneStateStamped.msg
 )
-
 
 ## Generate services in the 'srv' folder
 add_service_files(

@@ -18,6 +18,7 @@ public:
     using mpc_t = MPC<control_ocp, MySolver, admm>;
     using state = mpc_t::state_t;
     using control = mpc_t::control_t;
+    using constraints = mpc_t::constraints_t;
 
     mpc_t mpc;
 

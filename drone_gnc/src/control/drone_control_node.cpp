@@ -2,11 +2,15 @@
 
 #include "drone_gnc/FSM.h"
 #include "drone_gnc/DroneState.h"
+#include "drone_gnc/DroneStateStamped.h"
 #include "drone_gnc/Waypoint.h"
 #include "drone_gnc/Trajectory.h"
+#include "drone_gnc/DroneTrajectory.h"
 
 #include "drone_gnc/DroneControl.h"
 #include "geometry_msgs/Vector3.h"
+
+#include "std_msgs/Int32.h"
 
 #include "drone_gnc/GetFSM.h"
 #include "drone_gnc/GetWaypoint.h"
@@ -48,11 +52,16 @@ public:
         target_sub = nh.subscribe("/target_apogee", 100, &DroneControlNode::targetCallback, this);
 
         // Publishers
-        MPC_horizon_pub = nh.advertise<drone_gnc::Trajectory>("/mpc_horizon", 10);
+        horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/mpc_horizon", 10);
         drone_control_pub = nh.advertise<drone_gnc::DroneControl>("/drone_control", 10);
 
         // Service clients
         client_waypoint = nh.serviceClient<drone_gnc::GetWaypoint>("/getWaypoint");
+
+        // Debug
+        sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
+        qp_iter_pub = nh.advertise<std_msgs::Int32>("debug/qp_iter", 10);
+        horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("debug/horizon", 10);
     }
 
     void computeControl() {
@@ -87,16 +96,46 @@ public:
 
         // Send optimal trajectory computed by control. Send only position for now
         drone_gnc::Trajectory trajectory_msg;
+        drone_gnc::DroneTrajectory horizon_msg;
         for (int i = 0; i < drone_mpc.mpc.ocp().NUM_NODES; i++) {
+            DroneMPC::state state_val = drone_mpc.mpc.solution_x_at(i);
+
             drone_gnc::Waypoint point;
             point.time = drone_mpc.mpc.time_grid(i);
-            point.position.x = 100 * drone_mpc.mpc.solution_x_at(i)(0);
-            point.position.y = 100 * drone_mpc.mpc.solution_x_at(i)(1);
-            point.position.z = 100 * drone_mpc.mpc.solution_x_at(i)(2);
+            point.position.x = 100 * state_val(0);
+            point.position.y = 100 * state_val(1);
+            point.position.z = 100 * state_val(2);
 //                ROS_INFO_STREAM(100 * mpc.solution_x_at(i)(2) << " " << 100 * mpc.solution_x_at(mpc.time_grid(i))(2));
             trajectory_msg.trajectory.push_back(point);
+
+            drone_gnc::DroneState state_msg;
+            state_msg.pose.position.x = 100 * state_val(0);
+            state_msg.pose.position.y = 100 * state_val(1);
+            state_msg.pose.position.z = 100 * state_val(2);
+
+            state_msg.twist.linear.x = 100 * state_val(3);
+            state_msg.twist.linear.y = 100 * state_val(4);
+            state_msg.twist.linear.z = 100 * state_val(5);
+
+            state_msg.pose.orientation.x = state_val(6);
+            state_msg.pose.orientation.y = state_val(7);
+            state_msg.pose.orientation.z = state_val(8);
+            state_msg.pose.orientation.w = state_val(9);
+
+            state_msg.twist.angular.x = state_val(10);
+            state_msg.twist.angular.y = state_val(11);
+            state_msg.twist.angular.z = state_val(12);
+
+
+            drone_gnc::DroneStateStamped state_msg_stamped;
+            state_msg_stamped.state = state_msg;
+            state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(drone_mpc.mpc.time_grid(i));
+            state_msg_stamped.header.frame_id = ' ';
+
+            horizon_msg.trajectory.push_back(state_msg_stamped);
         }
-        MPC_horizon_pub.publish(trajectory_msg);
+        horizon_viz_pub.publish(trajectory_msg);
+        horizon_pub.publish(horizon_msg);
 
     }
 
@@ -153,6 +192,12 @@ public:
                   << (std::accumulate(average_z_error.begin(), average_z_error.end(), 0.0)) / average_z_error.size()
                   << "\n";
     }
+
+    void publishDebugInfo(){
+        sqp_iter_pub.publish(drone_mpc.mpc.info().iter);
+        qp_iter_pub.publish(drone_mpc.mpc.info().qp_solver_iter);
+    }
+
     bool received_state = false;
 
 private:
@@ -166,12 +211,16 @@ private:
     ros::Subscriber target_sub;
 
     // Publishers
-    ros::Publisher MPC_horizon_pub;
+    ros::Publisher horizon_viz_pub;
     ros::Publisher drone_control_pub;
 
     // Service clients
     ros::ServiceClient client_waypoint;
 
+    // Debug
+    ros::Publisher sqp_iter_pub;
+    ros::Publisher qp_iter_pub;
+    ros::Publisher horizon_pub;
     // Variables to track performance over whole simulation
     double time_compute_start;
     std::vector<float> average_time;
@@ -240,6 +289,7 @@ int main(int argc, char **argv) {
             droneControlNode.publishTrajectory();
 
             droneControlNode.saveDebugInfo();
+            droneControlNode.publishDebugInfo();
 
         } else if (current_fsm.state_machine.compare("Coast") == 0) {
             // Slow down control to 10s period for reducing useless computation

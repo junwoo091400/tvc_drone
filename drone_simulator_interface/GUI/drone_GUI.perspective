@@ -84,7 +84,7 @@
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[20.1270170211792, 21.1270170211792]"
+                  "repr": "[92.47840189933777, 93.47840189933777]"
                 }
               },
               "groups": {}
@@ -127,11 +127,11 @@
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[0.0, 1.0]"
+                  "repr": "[-2.2788512633817344e-17, 1.0]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[20.185926914215088, 21.185926914215088]"
+                  "repr": "[92.53075003623962, 93.53075003623962]"
                 }
               },
               "groups": {}
@@ -170,15 +170,15 @@
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "u'/drone_state/disturbance_torque/z'"
+                  "repr": "u'/control/debug/qp_iter/data'"
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[0.0, 1.0]"
+                  "repr": "[0.0, 252.0]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[20.224370002746582, 21.224370002746582]"
+                  "repr": "[92.5581841468811, 93.5581841468811]"
                 }
               },
               "groups": {}
@@ -217,7 +217,7 @@
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "[u'/drone_state/twist/angular/x', u'/simu_drone_state/twist/angular/x']"
+                  "repr": "[u'/simu_drone_state/twist/angular/x', u'/drone_state/twist/angular/x']"
                 },
                 "y_limits": {
                   "type": "repr",
@@ -225,7 +225,7 @@
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[20.276904106140137, 21.276904106140137]"
+                  "repr": "[92.62144112586975, 93.62144112586975]"
                 }
               },
               "groups": {}
@@ -264,15 +264,15 @@
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "u'/drone_state/disturbance_torque/y'"
+                  "repr": "u'/control/debug/sqp_iter/data'"
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[0.0, 1.0]"
+                  "repr": "[-0.012262296592329632, 3.0]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[20.36202096939087, 21.36202096939087]"
+                  "repr": "[92.6862781047821, 93.6862781047821]"
                 }
               },
               "groups": {}
@@ -319,7 +319,7 @@
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[20.407397985458374, 21.407397985458374]"
+                  "repr": "[92.75549697875977, 93.75549697875977]"
                 }
               },
               "groups": {}
