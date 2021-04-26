@@ -38,7 +38,6 @@ for topic, msg, t in bag.read_messages(topics=['/commands']):
 t_end = time_init + 8
 
 kalman_state_history = np.empty((0, 14))
-# save data to csv file to use in matlab
 for topic, msg, t in bag.read_messages(topics=['/drone_state']):
     if t.to_sec() > time_init and t.to_sec() < t_end:
         state_array = np.append(t.to_sec() - time_init, convert_state_to_array(msg))
@@ -51,7 +50,6 @@ for topic, msg, t in bag.read_messages(topics=['/simu_drone_state']):
         integrator_state_history = np.vstack((integrator_state_history, state_array))
 
 horizon_history = np.empty((11, 14, 0))
-# save data to csv file to use in matlab
 for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
     if t.to_sec() > time_init and t.to_sec() < t_end:
         horizon = np.empty((0, 14))

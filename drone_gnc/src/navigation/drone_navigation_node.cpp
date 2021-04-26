@@ -95,12 +95,13 @@ public:
             Eigen::Quaterniond orientation = initial_optitrack_orientation.inverse() * raw_orientation;
             Eigen::Vector3d position = raw_position - initial_optitrack_position;
 
-            Matrix<double, 7, 1> new_data;
+
+            DroneEKF::sensor_data new_data;
             new_data.segment(0, 3) = position;
             new_data.segment(3, 4) = orientation.coeffs();
 
             kalman.predictStep();
-            kalman.optitrackUpdateStep(new_data);
+            kalman.updateStep(new_data);
         }
     }
 

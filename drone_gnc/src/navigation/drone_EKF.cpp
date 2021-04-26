@@ -30,22 +30,20 @@ void DroneEKF::initEKF(ros::NodeHandle &nh) {
 
         P.setZero();
 
+//        R.setZero();
+//        R.diagonal() << accel_x_var, accel_x_var, accel_z_var,
+//                gyro_var, gyro_var, gyro_var;
+//        // baro_var;
         R.setZero();
-        R.diagonal() << accel_x_var, accel_x_var, accel_z_var,
-                gyro_var, gyro_var, gyro_var;
-        // baro_var;
-        R_optitrack.setZero();
-        R_optitrack.diagonal() << 0.01, 0.01, 0.01,
+        R.diagonal() << 0.01, 0.01, 0.01,
                 0.0001, 0.005, 0.005, 0.005;
 
-        H.setZero();
-        H.block(0, 13, 3, 3).setIdentity(); //accelerometer
-        H.block(3, 10, 3, 3).setIdentity(); //gyro
+//        H.setZero();
+//        H.block(0, 13, 3, 3).setIdentity(); //accelerometer
+//        H.block(3, 10, 3, 3).setIdentity(); //gyro
         // H(6, 2) = 1; //baro
 
-        H_optitrack.setZero();
-        H_optitrack.topLeftCorner(3, 3).setIdentity();
-        H_optitrack.block(3, 6, 4, 4).setIdentity();
+        H.setZero();
 
         drone.init(nh);
 
@@ -107,6 +105,12 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
     xdot.segment(13, 4) << 0.0, 0.0, 0.0, 0.0;
 }
 
+template<typename T>
+void DroneEKF::measurementModel(const state_t<T> &x, sensor_data_t<T> &z) {
+    z.segment(0, 3) = x.segment(0,3);
+    z.segment(3, 4) = x.segment(6,4);
+}
+
 void DroneEKF::fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pdot) {
     //X derivative
     stateDynamics(x, xdot);
@@ -114,11 +118,11 @@ void DroneEKF::fullDerivative(const state &x, const state_matrix &P, state &xdot
     //P derivative
     //propagate xdot autodiff scalar at current x
     ADx = X;
-    ad_state_t Xdot;
+    ad_state Xdot;
     stateDynamics(ADx, Xdot);
 
-    // obtain the jacobian
-    for (int i = 0; i < X.size(); i++) {
+    // obtain the jacobian of f(x)
+    for (int i = 0; i < Xdot.size(); i++) {
         F.row(i) = Xdot(i).derivatives();
     }
 
@@ -148,20 +152,19 @@ void DroneEKF::predictStep() {
     RK4(X, P, dT, X, P);
 }
 
-void DroneEKF::updateStep(sensor_t<double> z) {
-    Matrix<double, NX, 6> K;
+void DroneEKF::updateStep(sensor_data z) {
+    //propagate hdot autodiff scalar at current x
+    ADx = X;
+    ad_sensor_data hdot;
+    measurementModel(ADx, hdot);
+
+    // obtain the jacobian of h(x)
+    for (int i = 0; i < hdot.size(); i++) {
+        H.row(i) = hdot(i).derivatives();
+    }
+
+    Matrix<double, NX, NZ> K;
     K = P * H.transpose() * ((H * P * H.transpose() + R).inverse());
     X = X + K * (z - H * X);
     P = P - K * H * P;
-
-//    X.segment(10, 3) << z.segment(3, 3);
-//
-//    X.segment(13, 3) << z.segment(0, 3);
-}
-
-void DroneEKF::optitrackUpdateStep(optitrack_sensor_t<double> z) {
-    Matrix<double, NX, 7> K;
-    K = P * H_optitrack.transpose() * ((H_optitrack * P * H_optitrack.transpose() + R_optitrack).inverse());
-    X = X + K * (z - H_optitrack * X);
-    P = P - K * H_optitrack * P;
 }
