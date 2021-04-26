@@ -187,6 +187,7 @@ add_subdirectory(src/utils)
 add_subdirectory(src/control)
 add_subdirectory(src/models)
 add_subdirectory(src/navigation)
+add_subdirectory(src/navigation/optitrack)
 add_subdirectory(submodule/polympc)
 
 

@@ -80,7 +80,7 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     converted_state.twist.angular.z = omega_body(2);
 
     converted_state.pose = rocket_state->pose;
-
+    converted_state.thrust_scaling = 1;
 
     drone_state_pub.publish(converted_state);
 }

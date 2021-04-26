@@ -7,8 +7,12 @@
         <rosparam file="$(find drone_gnc)/config/mpc_parameters.yaml"/>
     </group>
 
+<!--    <group ns="filter">-->
+<!--        <rosparam file="$(find drone_gnc)/config/filter_parameters.yaml"/>-->
+<!--    </group>-->
+
     <group ns="filter">
-        <rosparam file="$(find drone_gnc)/config/filter_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
     </group>
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node" output="screen">
@@ -21,7 +25,7 @@
         <rosparam param="initial_state">"Idle"</rosparam>
     </node>
 
-    <node name="navigation" pkg="drone_gnc" type="drone_navigation" machine="gnc_machine" cwd="node" output="screen">
+    <node name="navigation" pkg="drone_gnc" type="drone_navigation_optitrack" machine="gnc_machine" cwd="node" output="screen">
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0, 1, 0,0,0]</rosparam>
         <rosparam param="drone_dome">true</rosparam>
     </node>

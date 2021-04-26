@@ -1,0 +1,10 @@
+# MPC parameters
+predict_vars:
+  x: 0.5
+  z: 0.5
+  dx: 500
+  dz: 500
+  att: 0.05
+  datt: 500
+  thrust_scaling: 10
+  disturbance_torque: 100
