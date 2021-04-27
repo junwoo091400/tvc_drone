@@ -8,11 +8,11 @@
 class Drone : public Rocket {
 public:
 
-    float minPropellerSpeed;
-    float maxPropellerSpeed;
+    double minPropellerSpeed;
+    double maxPropellerSpeed;
 
-    float maxServo1Angle;
-    float maxServo2Angle;
+    double maxServo1Angle;
+    double maxServo2Angle;
 
     double thrust_scaling;
     Eigen::Vector3d disturbance_torque;

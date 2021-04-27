@@ -1,4 +1,4 @@
-float32 servo1
-float32 servo2
-float32 top
-float32 bottom
+float64 servo1
+float64 servo2
+float64 top
+float64 bottom
