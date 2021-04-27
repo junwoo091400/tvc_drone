@@ -10,9 +10,12 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
     nh.getParam("/mpc/line_search_max_iter", line_search_max_iter);
     nh.getParam("/mpc/mpc_period", mpc_period);
     nh.getParam("/mpc/feedforward_period", feedforward_period);
+    nh.param("/is_simu", is_simu, true);
 
     mpc.settings().max_iter = max_iter;
     mpc.settings().line_search_max_iter = line_search_max_iter;
+
+    mpc.set_time_limits(0, CONTROL_HORIZON);
 
     // Input constraints
     const double inf = std::numeric_limits<double>::infinity();
@@ -43,12 +46,10 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
             inf, inf, inf;
     mpc.state_bounds(lbx, ubx);
 
-//    constraints lbg; lbg << 0;
-//    constraints ubg; lbg << inf;
-//
-//    //TODO
+//    constraint lbg; lbg << 0;
+//    constraint ubg; ubg << 40*40;
 //    mpc.constraints_bounds(lbg, ubg);
-    mpc.set_time_limits(0, CONTROL_HORIZON);
+
     // Initial state
     state x0;
     state previous_x0;
@@ -67,13 +68,17 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
 
     state target_state;
     target_state.setZero();
+
+    init_time = ros::Time::now().toSec();
+    fixed_computation_time = mpc_period*0.98;
 }
 
 
 drone_gnc::DroneControl DroneMPC::interpolateControlSplineService() {
-    float interp_time = ros::Time::now().toSec() - solution_time;
-    ROS_INFO_STREAM(interp_time);
-    control interpolated_control = mpc.solution_u_at((double) interp_time);
+    double interp_time = ros::Time::now().toSec() - solution_time;
+    interp_time = std::max(std::min(interp_time, CONTROL_HORIZON), 0.0);
+    ROS_INFO_STREAM("interpolation time " << interp_time);
+    control interpolated_control = mpc.solution_u_at(interp_time);
     drone->unScaleControl(interpolated_control);
 
     drone_gnc::DroneControl drone_control;
@@ -129,15 +134,31 @@ void DroneMPC::warmStart() {
 }
 
 void DroneMPC::solve(state &x0) {
-//    double saved_solution_time = ros::Time::now().toSec();
+    double computation_start_time = ros::Time::now().toSec();
 //    ROS_INFO_STREAM("x0     " <<x0.transpose().head(6)*100);
+
     state predicted_x0;
     integrateX0(x0, predicted_x0);
+
 //    ROS_INFO_STREAM("predicted x0 " <<predicted_x0.transpose().head(6)*100);
+
     mpc.initial_conditions(predicted_x0);
 //    warmStart();
-//    ros::Duration(0.048).sleep();
+
+
+    if (is_simu){
+        // in simulation, sleep to account fo
+        ros::Duration(mpc_period-feedforward_period).sleep();
+    }
+
+    double time_now = ros::Time::now().toSec();
     mpc.solve();
+    last_computation_time = (ros::Time::now().toSec()-time_now)*1000;
+
+    time_now = ros::Time::now().toSec();
+    while (ros::Time::now().toSec() < computation_start_time+fixed_computation_time);
+    ROS_INFO_STREAM("stalled duration " << (ros::Time::now().toSec() - time_now)*1000);
+
     solution_time = ros::Time::now().toSec();
 }
 
@@ -146,10 +167,16 @@ void DroneMPC::integrateX0(const state x0, state &new_x0){
 
     int max_ff_index = std::round(mpc_period/feedforward_period);
 
-    for(int i = 0; i<max_ff_index; i++){
+    int i;
+    for(i = 0; i<max_ff_index-1; i++){
         control interpolated_control = mpc.solution_u_at(feedforward_period*i);
         drone->unScaleControl(interpolated_control);
         drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
     }
+    i++;
+
+    control interpolated_control = mpc.solution_u_at(feedforward_period*i);
+    drone->unScaleControl(interpolated_control);
+    drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
 }
 

@@ -11,6 +11,7 @@
 #include "geometry_msgs/Vector3.h"
 
 #include "std_msgs/Int32.h"
+#include "std_msgs/Float64.h"
 
 #include "drone_gnc/GetFSM.h"
 #include "drone_gnc/GetWaypoint.h"
@@ -62,6 +63,7 @@ public:
         sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
         qp_iter_pub = nh.advertise<std_msgs::Int32>("debug/qp_iter", 10);
         horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("debug/horizon", 10);
+        computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
     }
 
     void computeControl() {
@@ -75,7 +77,8 @@ public:
                 current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
                 current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
 
-        drone_mpc.drone->setParams(current_state.thrust_scaling, current_state.disturbance_torque.x, current_state.disturbance_torque.y, current_state.disturbance_torque.z);
+        drone_mpc.drone->setParams(current_state.thrust_scaling, current_state.disturbance_torque.x,
+                                   current_state.disturbance_torque.y, current_state.disturbance_torque.z);
 
         drone_mpc.solve(x0);
 
@@ -89,6 +92,7 @@ public:
 
     void publishFeedforwardControl() {
         drone_gnc::DroneControl drone_control = drone_mpc.interpolateControlSplineService();
+        ROS_INFO_STREAM("published at " << ros::Time::now().toSec() - drone_mpc.init_time);
         drone_control_pub.publish(drone_control);
     }
 
@@ -140,48 +144,47 @@ public:
     }
 
 
-    void fetchNewTarget(){
+    void fetchNewTarget() {
         DroneMPC::state target_state;
         DroneMPC::control target_control;
 
-        if (client_waypoint.call(srv_waypoint)) {
-            target_state << srv_waypoint.response.target_point.position.x * 1e-2,
-                    srv_waypoint.response.target_point.position.y * 1e-2,
-                    srv_waypoint.response.target_point.position.z * 1e-2,
-                    srv_waypoint.response.target_point.speed.x * 1e-2, srv_waypoint.response.target_point.speed.y *
-                                                                       1e-2,
-                    srv_waypoint.response.target_point.speed.z * 1e-2,
-                    current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
-                    current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
-
-            target_control << 0, 0, 0, 0;
-        } else {
-            target_state << target_apogee.x * 1e-2, target_apogee.y * 1e-2, target_apogee.z * 1e-2,
-                    0, 0, 0,
-                    0, 0, 0, 1,
-                    0, 0, 0;
-            target_control << 0, 0, 0, 0;
-        }
+//        if (client_waypoint.call(srv_waypoint)) {
+//            target_state << srv_waypoint.response.target_point.position.x * 1e-2,
+//                    srv_waypoint.response.target_point.position.y * 1e-2,
+//                    srv_waypoint.response.target_point.position.z * 1e-2,
+//                    srv_waypoint.response.target_point.speed.x * 1e-2, srv_waypoint.response.target_point.speed.y *
+//                                                                       1e-2,
+//                    srv_waypoint.response.target_point.speed.z * 1e-2,
+//                    current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
+//                    current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
+//
+//            target_control << 0, 0, 0, 0;
+//        } else {
+        target_state << target_apogee.x * 1e-2, target_apogee.y * 1e-2, target_apogee.z * 1e-2,
+                0, 0, 0,
+                0, 0, 0, 1,
+                0, 0, 0;
+        target_control << 0, 0, 0, 0;
+//        }
 
         drone_mpc.setTarget(target_state, target_control);
     }
 
-    void saveDebugInfo(){
+    void saveDebugInfo() {
         double x_error = current_state.pose.position.x - target_apogee.x * 100;
         average_x_error.push_back(x_error * x_error);
-        double y_error = current_state.pose.position.y -  target_apogee.y * 100;
+        double y_error = current_state.pose.position.y - target_apogee.y * 100;
         average_y_error.push_back(y_error * y_error);
         double z_error = current_state.pose.position.z - target_apogee.z * 100;
         average_z_error.push_back(z_error * z_error);
 
-        double compute_time = 1000 * (ros::Time::now().toSec() - time_compute_start);
-        ROS_INFO("Ctr T= %.2f ms", compute_time);
+        ROS_INFO("Ctr T= %.2f ms", drone_mpc.last_computation_time);
 
         average_status.push_back(drone_mpc.mpc.info().status.value);
         average_time.push_back(time_compute_start);
     }
 
-    void printDebugInfo(){
+    void printDebugInfo() {
         std::cout << "Average time: "
                   << (std::accumulate(average_time.begin(), average_time.end(), 0.0)) / average_time.size()
                   << "ms | Average error (x, y, z): "
@@ -193,9 +196,10 @@ public:
                   << "\n";
     }
 
-    void publishDebugInfo(){
+    void publishDebugInfo() {
         sqp_iter_pub.publish(drone_mpc.mpc.info().iter);
         qp_iter_pub.publish(drone_mpc.mpc.info().qp_solver_iter);
+        computation_time_pub.publish(drone_mpc.last_computation_time);
     }
 
     bool received_state = false;
@@ -221,6 +225,7 @@ private:
     ros::Publisher sqp_iter_pub;
     ros::Publisher qp_iter_pub;
     ros::Publisher horizon_pub;
+    ros::Publisher computation_time_pub;
     // Variables to track performance over whole simulation
     double time_compute_start;
     std::vector<float> average_time;
@@ -248,6 +253,11 @@ int main(int argc, char **argv) {
 
     drone_gnc::GetFSM srv_fsm;
 
+    drone_gnc::FSM current_fsm;
+    // Initialize fsm
+    current_fsm.time_now = 0;
+    current_fsm.state_machine = "Idle";
+
     int ff_index = 0;
     // Thread to feedforward spline control interpolations
     ros::Timer low_level_control_thread = nh.createTimer(
@@ -256,28 +266,32 @@ int main(int argc, char **argv) {
                     droneControlNode.publishFeedforwardControl();
                     ff_index++;
                 }
+
             });
 
-    drone_gnc::FSM current_fsm;
-    // Initialize fsm
-    current_fsm.time_now = 0;
-    current_fsm.state_machine = "Idle";
+
+
+    // Get current FSM and time
+    ros::Timer fsm_update_thread = nh.createTimer(
+            ros::Duration(mpc_period), [&](const ros::TimerEvent &) {
+                if (client_fsm.call(srv_fsm)) {
+                    current_fsm = srv_fsm.response.fsm;
+                }
+            });
 
     // Thread to compute control. Duration defines interval time in seconds
     ros::Timer control_thread = nh.createTimer(ros::Duration(mpc_period), [&](const ros::TimerEvent &) {
-
-        // Get current FSM and time
-        if (client_fsm.call(srv_fsm)) {
-            current_fsm = srv_fsm.response.fsm;
-        }
-
+        double loop_start_time = ros::Time::now().toSec();
         // State machine ------------------------------------------
         if ((current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) &&
             droneControlNode.received_state) {
 
             droneControlNode.fetchNewTarget();
-
             droneControlNode.computeControl();
+
+            droneControlNode.publishTrajectory();
+            droneControlNode.saveDebugInfo();
+            droneControlNode.publishDebugInfo();
 
             if (current_fsm.state_machine.compare("Launch") == 0) {
                 low_level_control_thread.stop();
@@ -286,11 +300,6 @@ int main(int argc, char **argv) {
                 low_level_control_thread.start();
             }
 
-            droneControlNode.publishTrajectory();
-
-            droneControlNode.saveDebugInfo();
-            droneControlNode.publishDebugInfo();
-
         } else if (current_fsm.state_machine.compare("Coast") == 0) {
             // Slow down control to 10s period for reducing useless computation
             control_thread.setPeriod(ros::Duration(10.0));
@@ -298,6 +307,7 @@ int main(int argc, char **argv) {
             droneControlNode.printDebugInfo();
 
         }
+        ROS_INFO_STREAM("loop period " << 1000*(ros::Time::now().toSec() -loop_start_time) <<" ms");
     });
 
     // Start spinner on a different thread to allow spline evaluation while a new solution is computed

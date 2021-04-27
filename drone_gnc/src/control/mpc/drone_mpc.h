@@ -7,7 +7,6 @@
 #include "drone_gnc/InterpolateControlSpline.h"
 
 #include "polympc_redef.hpp"
-#include "mpc/drone_control_ocp.hpp"
 
 class DroneMPC {
 
@@ -18,7 +17,7 @@ public:
     using mpc_t = MPC<control_ocp, MySolver, admm>;
     using state = mpc_t::state_t;
     using control = mpc_t::control_t;
-    using constraints = mpc_t::constraints_t;
+//    using constraint = mpc_t::constraint_t;
 
     mpc_t mpc;
 
@@ -34,11 +33,14 @@ public:
     std::shared_ptr<Drone> drone;
     double mpc_period;
     double feedforward_period;
+    double fixed_computation_time;
+    double last_computation_time = 0;
+    double init_time;
 
 private:
     void warmStart();
-
     double solution_time;
+    bool is_simu;
 };
 
 

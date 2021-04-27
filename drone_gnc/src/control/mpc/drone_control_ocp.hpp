@@ -7,7 +7,7 @@
 #include <string>
 #include <math.h>
 
-#define CONTROL_HORIZON 1// In seconds
+#define CONTROL_HORIZON 1.5// In seconds
 
 #include <chrono>
 
@@ -116,14 +116,14 @@ public:
     }
 
 //    template<typename T>
-//    inline void inequality_constraints_impl(const state_t <T> &x, const control_t <T> &u, const parameter_t <T> &p,
-//                                            const static_parameter_t &d, const scalar_t &t,
-//                                            constraint_t <T> &g) const noexcept {
-////        drone->unScaleControl(u);
-////        g << abs(u(3) - u(2));
-////        polympc::ignore_unused_var(d);
+//    EIGEN_STRONG_INLINE void inequality_constraints_impl(const Eigen::Ref<const state_t<T>> x, const Eigen::Ref<const control_t<T>> u,
+//                                                         const Eigen::Ref<const parameter_t<T>> p,const Eigen::Ref<const static_parameter_t> d,
+//                                                         const scalar_t &t, Eigen::Ref<constraint_t<T>> g) const noexcept
+//    {
+//        Eigen::Matrix<T, 4, 1> u_drone = u.segment(0, 4);
+//        drone->unScaleControl(u_drone);
+//        g(0) = (u_drone(3) - u_drone(2))*(u_drone(3) - u_drone(2));
 //    }
-
     template<typename T>
     inline void lagrange_term_impl(const Eigen::Ref<const state_t <T>> x, const Eigen::Ref<const control_t <T>> u,
                                    const Eigen::Ref<const parameter_t <T>> p,

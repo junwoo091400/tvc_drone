@@ -12,6 +12,8 @@ using namespace Eigen;
 #include "../../../submodule/polympc/src/solvers/osqp_interface.hpp"
 #include "../../../submodule/polympc/src/control/mpc_wrapper.hpp"
 
+#include "drone_control_ocp.hpp"
+
 // ------ Create solver -------
 template<typename Problem, typename QPSolver>
 class MySolver;
