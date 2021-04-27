@@ -14,9 +14,9 @@ using namespace Eigen;
 
 class DroneEKF {
 public:
-    static const int NX = 17;
+    static const int NX = 16;
     static const int NU = 4;
-    static const int NZ = 7;
+    static const int NZ = 3;
 
     // Autodiff dor state
     template<typename scalar_t>

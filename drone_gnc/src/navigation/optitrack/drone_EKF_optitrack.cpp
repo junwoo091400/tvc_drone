@@ -1,7 +1,7 @@
 #include "drone_EKF_optitrack.h"
 
 void DroneEKF::initEKF(ros::NodeHandle &nh) {
-    double x_var, dx_var, z_var, dz_var, att_var, datt_var, gyro_var, accel_x_var, accel_z_var, baro_var, thrust_scaling_var, disturbance_torque_var;
+    double x_var, dx_var, z_var, dz_var, att_var, datt_var, thrust_scaling_var, disturbance_torque_var;
     if (nh.getParam("/filter/predict_vars/x", x_var) &&
         nh.getParam("/filter/predict_vars/dz", dx_var) &&
         nh.getParam("/filter/predict_vars/z", z_var) &&
@@ -9,11 +9,7 @@ void DroneEKF::initEKF(ros::NodeHandle &nh) {
         nh.getParam("/filter/predict_vars/att", att_var) &&
         nh.getParam("/filter/predict_vars/datt", datt_var) &&
         nh.getParam("/filter/predict_vars/thrust_scaling", thrust_scaling_var) &&
-        nh.getParam("/filter/predict_vars/disturbance_torque", disturbance_torque_var) &&
-        nh.getParam("/filter/update_vars/gyro", gyro_var) &&
-        nh.getParam("/filter/update_vars/accel_x", accel_x_var) &&
-        nh.getParam("/filter/update_vars/accel_z", accel_z_var) &&
-        nh.getParam("/filter/update_vars/baro", baro_var)) {
+        nh.getParam("/filter/predict_vars/disturbance_torque", disturbance_torque_var)) {
 
         std::vector<double> initial_state;
         nh.getParam("initial_state", initial_state);

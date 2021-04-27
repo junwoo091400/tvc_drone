@@ -4,6 +4,8 @@
     <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
     <include file="$(find drone_utils)/launch/gui.launch"/>
     <rosparam param="navigation/drone_dome">true</rosparam>
+    <rosparam param="/is_simu">true</rosparam>
+<!--    <rosparam param="/use_sim_time">true</rosparam>-->
 
     <!-- transform drone_kalman to rocket state for visualization-->
     <node name="drone_to_rocket_state" pkg="topic_tools" type="transform" args="/drone_state /kalman_rocket_state real_time_simulator/State

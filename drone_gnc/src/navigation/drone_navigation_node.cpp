@@ -23,20 +23,12 @@ public:
 
     // Callback function to store last received sensor data
     void sensorCallback(const drone_gnc::Sensor::ConstPtr &sensor) {
-    }
+        DroneEKF::sensor_data new_data;
+        new_data.segment(0, 3) << sensor->IMU_acc.x, sensor->IMU_acc.y, sensor->IMU_acc.z;
 
-    // Callback function to store last received state
-    void rocket_stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
-        optitrack_pose = rocket_state->pose;
-        received_optitrack = true;
-    }
-
-    void optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
-        optitrack_pose.position.x = -pose->pose.position.x;
-        optitrack_pose.position.y = -pose->pose.position.y;
-        optitrack_pose.position.z = pose->pose.position.z;
-        optitrack_pose.orientation = pose->pose.orientation;
-        received_optitrack = true;
+        kalman.predictStep();
+        kalman.updateStep(new_data);
+        publishDroneState();
     }
 
     DroneNavigationNode(ros::NodeHandle &nh) {
@@ -49,10 +41,6 @@ public:
         // Initialize fsm
         current_fsm.time_now = 0;
         current_fsm.state_machine = "Idle";
-
-        //TODO
-        initial_optitrack_orientation.setIdentity();
-        initial_optitrack_position << 0, 0, 0;
     }
 
     void initTopics(ros::NodeHandle &nh) {
@@ -67,43 +55,9 @@ public:
         // Subscribe to time_keeper for fsm and time
         control_sub = nh.subscribe("/drone_control", 100, &DroneEKF::updateCurrentControl, &kalman);
 
-        sensor_sub;
-        if (DRONE_DOME) {
-            sensor_sub = nh.subscribe("/simu_drone_state", 100, &DroneNavigationNode::rocket_stateCallback, this);
-//        sensor_sub = nh.subscribe("/optitrack_client/Kite/optitrack_pose", 100, &DroneNavigationNode::optitrackCallback, this);
-        } else {
-            sensor_sub = nh.subscribe("/sensors", 100,  &DroneNavigationNode::sensorCallback, this);
-        }
+        sensor_sub = nh.subscribe("/simu_sensor_pub", 100,  &DroneNavigationNode::sensorCallback, this);
     }
 
-    void kalmanStep() {
-        if (received_optitrack) {
-            if (!initialized_optitrack) {
-                initial_optitrack_orientation = Eigen::Quaterniond(optitrack_pose.orientation.w,
-                                                                   optitrack_pose.orientation.x,
-                                                                   optitrack_pose.orientation.y,
-                                                                   optitrack_pose.orientation.z);
-                initial_optitrack_position = Eigen::Vector3d(optitrack_pose.position.x, optitrack_pose.position.y,
-                                                             optitrack_pose.position.z);
-                initialized_optitrack = true;
-            }
-
-            Eigen::Quaterniond raw_orientation(optitrack_pose.orientation.w, optitrack_pose.orientation.x,
-                                               optitrack_pose.orientation.y, optitrack_pose.orientation.z);
-            Eigen::Vector3d raw_position(optitrack_pose.position.x, optitrack_pose.position.y,
-                                         optitrack_pose.position.z);
-            Eigen::Quaterniond orientation = initial_optitrack_orientation.inverse() * raw_orientation;
-            Eigen::Vector3d position = raw_position - initial_optitrack_position;
-
-
-            DroneEKF::sensor_data new_data;
-            new_data.segment(0, 3) = position;
-            new_data.segment(3, 4) = orientation.coeffs();
-
-            kalman.predictStep();
-            kalman.updateStep(new_data);
-        }
-    }
 
     void publishDroneState(){
         drone_gnc::DroneState kalman_state;
@@ -139,11 +93,6 @@ private:
 
     drone_gnc::FSM current_fsm;
     drone_gnc::DroneControl current_control;
-    geometry_msgs::Pose optitrack_pose;
-    bool received_optitrack = false;
-    bool initialized_optitrack = false;
-    Eigen::Quaterniond initial_optitrack_orientation;
-    Eigen::Vector3d initial_optitrack_position;
 
     ros::Publisher kalman_pub;
     ros::Subscriber fsm_sub;
@@ -159,10 +108,10 @@ int main(int argc, char **argv) {
     DroneNavigationNode droneNavigationNode(nh);
 
     // Thread to compute kalman. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent &) {
-        droneNavigationNode.kalmanStep();
-        droneNavigationNode.publishDroneState();
-    });
+//    ros::Timer control_thread = nh.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent &) {
+//        droneNavigationNode.kalmanStep();
+//        droneNavigationNode.publishDroneState();
+//    });
 
     // Automatic callback of service and publisher from here
     ros::spin();

@@ -1,16 +1,16 @@
 # MPC parameters
 predict_vars:
-  x: 0.5
-  z: 0.5
-  dx: 500
-  dz: 500
-  att: 0.05
-  datt: 500
-  thrust_scaling: 10
-  disturbance_torque: 100
+  x: 0
+  z: 0
+  dx: 100
+  dz: 100
+  att: 1
+  datt: 1
+  ddx: 0
+  thrust_scaling: 0
+  disturbance_torque: 0
 
 update_vars:
   gyro: 0
-  accel_x: 0
-  accel_z: 0
+  accel: 0
   baro: 0
