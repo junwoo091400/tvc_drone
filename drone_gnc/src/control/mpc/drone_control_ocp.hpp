@@ -7,8 +7,6 @@
 #include <string>
 #include <math.h>
 
-#define CONTROL_HORIZON 1.5// In seconds
-
 #include <chrono>
 
 #include "../../../submodule/polympc/src/polynomials/ebyshev.hpp"

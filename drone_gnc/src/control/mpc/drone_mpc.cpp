@@ -15,7 +15,8 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
     mpc.settings().max_iter = max_iter;
     mpc.settings().line_search_max_iter = line_search_max_iter;
 
-    mpc.set_time_limits(0, CONTROL_HORIZON);
+    nh.getParam("/mpc/horizon_length", horizon_length);
+    mpc.set_time_limits(0, horizon_length);
 
     // Input constraints
     const double inf = std::numeric_limits<double>::infinity();
@@ -76,7 +77,7 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
 
 drone_gnc::DroneControl DroneMPC::interpolateControlSplineService() {
     double interp_time = ros::Time::now().toSec() - solution_time;
-    interp_time = std::max(std::min(interp_time, CONTROL_HORIZON), 0.0);
+    interp_time = std::max(std::min(interp_time, horizon_length), 0.0);
     ROS_INFO_STREAM("interpolation time " << interp_time);
     control interpolated_control = mpc.solution_u_at(interp_time);
     drone->unScaleControl(interpolated_control);
@@ -119,7 +120,7 @@ void DroneMPC::warmStart() {
 
     for (int i = 0; i < NUM_NODES; i++) {
         double interp_time = mpc.time_grid(i) + time_since_last_solve;
-        if (interp_time <= CONTROL_HORIZON) {
+        if (interp_time <= horizon_length) {
             x_interp = mpc.solution_x_at(interp_time);
             u_interp = mpc.solution_u_at(interp_time);
         } else {

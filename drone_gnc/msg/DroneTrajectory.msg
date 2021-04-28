@@ -1,1 +1,1 @@
-DroneStateStamped[] trajectory
+DroneWaypointStamped[] trajectory

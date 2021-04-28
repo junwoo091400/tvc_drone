@@ -36,6 +36,7 @@ public:
     double fixed_computation_time;
     double last_computation_time = 0;
     double init_time;
+    double horizon_length;
 
 private:
     void warmStart();

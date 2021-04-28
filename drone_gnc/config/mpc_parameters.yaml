@@ -7,11 +7,15 @@ state_costs:
   att: 1.0e-3
   datt: 1.0e-1
   droll: 1.0e-2
+
 input_costs:
   servo: 5.0e-2
   thrust: 1.0e-2
-max_iter: 2
+
+horizon_length: 1.5
+
+max_iter: 3
 line_search_max_iter: 4
-mpc_period: 0.02
+mpc_period: 0.04
 feedforward_period: 0.02
 

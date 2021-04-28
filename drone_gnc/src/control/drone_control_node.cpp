@@ -2,7 +2,7 @@
 
 #include "drone_gnc/FSM.h"
 #include "drone_gnc/DroneState.h"
-#include "drone_gnc/DroneStateStamped.h"
+#include "drone_gnc/DroneWaypointStamped.h"
 #include "drone_gnc/Waypoint.h"
 #include "drone_gnc/Trajectory.h"
 #include "drone_gnc/DroneTrajectory.h"
@@ -130,11 +130,21 @@ public:
             state_msg.twist.angular.y = state_val(11);
             state_msg.twist.angular.z = state_val(12);
 
+            DroneMPC::control control_val = drone_mpc.mpc.solution_u_at(i);
+            drone_mpc.drone->unScaleControl(control_val);
+            drone_gnc::DroneControl control_msg;
+            control_msg.servo1 = control_val(0);
+            control_msg.servo2 = control_val(1);
+            control_msg.bottom = control_val(2);
+            control_msg.top = control_val(3);
 
-            drone_gnc::DroneStateStamped state_msg_stamped;
+            drone_gnc::DroneWaypointStamped state_msg_stamped;
             state_msg_stamped.state = state_msg;
+            state_msg_stamped.control = control_msg;
             state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(drone_mpc.mpc.time_grid(i));
             state_msg_stamped.header.frame_id = ' ';
+
+
 
             horizon_msg.trajectory.push_back(state_msg_stamped);
         }
