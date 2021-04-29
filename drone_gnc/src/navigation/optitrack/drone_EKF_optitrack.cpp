@@ -76,7 +76,7 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
         Eigen::Matrix<T, 13, 1> x_drone = x.segment(0, 13);
 
         Eigen::Matrix<T, 4, 1> u;
-        u << current_control.servo1, current_control.servo2, current_control.bottom, current_control.top;
+        u << current_control.servo1, current_control.servo2, (current_control.bottom + current_control.top)/2, current_control.top - current_control.bottom;
 
         Eigen::Matrix<T, 4, 1> params = x.segment(13, 4);
 

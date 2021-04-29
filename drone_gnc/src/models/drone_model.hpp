@@ -8,6 +8,9 @@
 
 class Drone : public Rocket {
 public:
+    static const int NX = 13;
+    static const int NU = 4;
+    static const int NP = 4;
 
     double minPropellerSpeed;
     double maxPropellerSpeed;
@@ -57,9 +60,9 @@ public:
 
 
     template<typename T, typename state>
-    inline void state_dynamics(const Eigen::Matrix<T, 13, 1> &x,
-                               const Eigen::Matrix<T, 4, 1> &u,
-                               const Eigen::Matrix<T, 4, 1> &params,
+    inline void state_dynamics(const Eigen::Matrix<T, NX, 1> &x,
+                               const Eigen::Matrix<T, NU, 1> &u,
+                               const Eigen::Matrix<T, NP, 1> &params,
                                state &xdot) const {
         Eigen::Matrix<T, 4, 1> input;
         input << u(0), u(1), u(2), u(3);
@@ -136,11 +139,11 @@ public:
     }
 
 
-    void stepRK4(const Eigen::Matrix<double, 13, 1> x0, const Eigen::Matrix<double, 4, 1> u, double dT,
-                 Eigen::Matrix<double, 13, 1> &x_next) {
-        Eigen::Matrix<double, 13, 1> k1, k2, k3, k4;
+    void stepRK4(const Eigen::Matrix<double, NX, 1> x0, const Eigen::Matrix<double, NU, 1> u, double dT,
+                 Eigen::Matrix<double, NX, 1> &x_next) {
+        Eigen::Matrix<double, NX, 1> k1, k2, k3, k4;
 
-        Eigen::Matrix<double, 4, 1> params;
+        Eigen::Matrix<double, NU, 1> params;
         getParams(params);
 
         state_dynamics(x0, u, params, k1);

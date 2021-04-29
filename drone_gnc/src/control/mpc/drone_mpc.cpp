@@ -60,7 +60,7 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
-    mpc.x_guess(x0.replicate(13, 1));
+    mpc.x_guess(x0.replicate(mpc.ocp().NX, 1));
 
     control target_control;
     target_control.setZero();

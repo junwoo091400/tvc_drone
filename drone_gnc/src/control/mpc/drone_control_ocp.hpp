@@ -49,12 +49,12 @@ class control_ocp : public ContinuousOCP<control_ocp, Approximation, SPARSE> {
 public:
     ~control_ocp() = default;
 
-    Eigen::Vector<scalar_t, 13> Q;
-    Eigen::Vector<scalar_t, 4> R;
-    Eigen::Vector<scalar_t, 13> QN;
+    Eigen::Vector<scalar_t, NX> Q;
+    Eigen::Vector<scalar_t, NU> R;
+    Eigen::Vector<scalar_t, NX> QN;
 
-    Eigen::Matrix<scalar_t, 13, 1> xs;
-    Eigen::Matrix<scalar_t, 4, 1> us;
+    Eigen::Matrix<scalar_t, NX, 1> xs;
+    Eigen::Matrix<scalar_t, NU, 1> us;
 
     scalar_t attitude_cost;
 
@@ -64,7 +64,7 @@ public:
     scalar_t maxAttitudeCos;
 
     void init(ros::NodeHandle nh, shared_ptr<Drone> d) {
-        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, droll_cost;
+        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
         if (nh.getParam("/mpc/state_costs/x", x_cost) &&
             nh.getParam("/mpc/state_costs/dz", dx_cost) &&
             nh.getParam("/mpc/state_costs/z", z_cost) &&
@@ -74,13 +74,14 @@ public:
             nh.getParam("/mpc/state_costs/droll", droll_cost) &&
             nh.getParam("/mpc/input_costs/servo", servo_cost) &&
             nh.getParam("/mpc/input_costs/thrust", thrust_cost) &&
+            nh.getParam("/mpc/input_costs/torque", torque_cost) &&
             nh.getParam("/rocket/maxAttitudeAngle", maxAttitudeAngle)) {
 
             Q << x_cost, x_cost, z_cost,
                     dx_cost, dx_cost, dz_cost,
                     0, 0, 0, 0,
                     datt_cost, datt_cost, droll_cost;
-            R << servo_cost, servo_cost, thrust_cost, thrust_cost;
+            R << servo_cost, servo_cost, thrust_cost, torque_cost;
             QN << 5 * Q;
             attitude_cost = att_cost;
             maxAttitudeCos = cos(maxAttitudeAngle);
@@ -98,10 +99,10 @@ public:
                               const Eigen::Ref<const parameter_t <T>> p,
                               const Eigen::Ref<const static_parameter_t> &d,
                               const T &t, Eigen::Ref<state_t < T>> xdot) const noexcept {
-        Eigen::Matrix<T, 13, 1> x_drone = x.segment(0, 13);
-        Eigen::Matrix<T, 4, 1> u_drone = u.segment(0, 4);
+        Eigen::Matrix<T, Drone::NX, 1> x_drone = x.segment(0, Drone::NX);
+        Eigen::Matrix<T, Drone::NU, 1> u_drone = u.segment(0, Drone::NU);
 
-        Eigen::Matrix<T, 4, 1> params;
+        Eigen::Matrix<T, Drone::NP, 1> params;
 
         drone->getParams(params);
 
@@ -127,8 +128,8 @@ public:
                                    const Eigen::Ref<const parameter_t <T>> p,
                                    const Eigen::Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
-        Eigen::Matrix<T, 13, 1> x_error = x - xs.template cast<T>();
-        Eigen::Matrix<T, 4, 1> u_error = u - us.template cast<T>();
+        Eigen::Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
+        Eigen::Matrix<T, NU, 1> u_error = u - us.template cast<T>();
 
         //cos of angle from vertical
         T attitude_error = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
@@ -142,7 +143,7 @@ public:
     inline void mayer_term_impl(const Eigen::Ref<const state_t <T>> x, const Eigen::Ref<const control_t <T>> u,
                                 const Eigen::Ref<const parameter_t <T>> p, const Eigen::Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        Eigen::Matrix<T, 13, 1> x_error = x - xs.template cast<T>();
+        Eigen::Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
 
         //cos of angle from vertical
         T attitude_error = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);

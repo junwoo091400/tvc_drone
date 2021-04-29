@@ -5,12 +5,13 @@ state_costs:
   z: 5.0e+1
   dz: 1.0e+2
   att: 1.0e-3
-  datt: 1.0e-1
+  datt: 1.0e-0
   droll: 1.0e-2
 
 input_costs:
-  servo: 5.0e-2
-  thrust: 1.0e-2
+  servo: 5.0e-1
+  thrust: 1.0e-1
+  torque: 1.0e-1
 
 horizon_length: 1.5
 
