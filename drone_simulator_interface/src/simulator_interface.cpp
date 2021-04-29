@@ -26,8 +26,8 @@ float CM_OFFSET_X = 0;
 
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
 
-    float thrust = drone.getThrust(drone_control->bottom, drone_control->top);
-    float torque = drone.getTorque(drone_control->bottom, drone_control->top);
+    float thrust = drone.getThrust((drone_control->bottom +drone_control->top)*0.5);
+    float torque = drone.getTorque(drone_control->top - drone_control->bottom);
 
     // ss model for fixed ts//TODO use integrator time step instead
     x_servo1 = sysA * x_servo1 + sysB * ((double) drone_control->servo1);

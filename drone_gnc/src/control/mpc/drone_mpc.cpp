@@ -85,8 +85,8 @@ drone_gnc::DroneControl DroneMPC::interpolateControlSplineService() {
     drone_gnc::DroneControl drone_control;
     drone_control.servo1 = interpolated_control(0);
     drone_control.servo2 = interpolated_control(1);
-    drone_control.bottom = interpolated_control(2);
-    drone_control.top = interpolated_control(3);
+    drone_control.bottom = interpolated_control(2) - interpolated_control(3)/2;
+    drone_control.top = interpolated_control(2) + interpolated_control(3)/2;
 
     drone_control.servo1 = std::min(std::max(drone_control.servo1, -drone->maxServo1Angle),
                                         drone->maxServo1Angle);

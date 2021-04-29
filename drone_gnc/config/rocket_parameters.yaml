@@ -34,8 +34,10 @@ Isp: -1
 minPropellerSpeed: 35
 maxPropellerSpeed: 80
 
-maxServo1Angle: 0.1
-maxServo2Angle: 0.1
+maxPropellerDelta: 30
+
+maxServo1Angle: 0.3
+maxServo2Angle: 0.3
 
 maxAttitudeAngle: 0.1
 

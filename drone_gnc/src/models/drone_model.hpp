@@ -10,6 +10,7 @@ public:
 
     double minPropellerSpeed;
     double maxPropellerSpeed;
+    double maxPropellerDelta;
 
     double maxServo1Angle;
     double maxServo2Angle;
@@ -21,6 +22,7 @@ public:
         Rocket::init(n);
         if (n.getParam("/rocket/minPropellerSpeed", minPropellerSpeed) &&
             n.getParam("/rocket/maxPropellerSpeed", maxPropellerSpeed) &&
+            n.getParam("/rocket/maxPropellerDelta", maxPropellerDelta) &&
             n.getParam("/rocket/maxServo1Angle", maxServo1Angle) &&
             n.getParam("/rocket/maxServo2Angle", maxServo2Angle) &&
             n.getParam("/rocket/CM_to_thrust_distance", total_CM)) {}
@@ -41,7 +43,7 @@ public:
         u(0) = maxServo1Angle * u(0);
         u(1) = maxServo2Angle * u(1);
         u(2) = 0.5 * (u(2) + 1) * (maxPropellerSpeed - minPropellerSpeed) + minPropellerSpeed;
-        u(3) = 0.5 * (u(3) + 1) * (maxPropellerSpeed - minPropellerSpeed) + minPropellerSpeed;
+        u(3) = u(3)*maxPropellerDelta;
     }
 
     template<typename T, typename state>
@@ -54,14 +56,14 @@ public:
 
         T servo1 = input(0);
         T servo2 = input(1);
-        T bottom = input(2);
-        T top = input(3);
+        T prop_av = input(2);
+        T prop_delta = input(3);
 
         T thrust_scaling = params(0);
         Eigen::Matrix<T, 3, 1> dist_torque = params.segment(1, 3);
 
-        T thrust = getThrust(bottom, top) * thrust_scaling;
-        T torque = getTorque(bottom, top);
+        T thrust = getThrust(prop_av) * thrust_scaling;
+        T torque = getTorque(prop_delta);
 
         // servomotors thrust vector rotation (see drone_interface for equivalent quaternion implementation)
         Eigen::Matrix<T, 3, 1> thrust_direction;
@@ -99,16 +101,14 @@ public:
 
 
     template<typename T>
-    inline T getThrust(const T bottom, const T top) const {
-        T average = (top + bottom) / 2;
-        T thrust = (a * average * average + b * average + c) * g;
+    inline T getThrust(const T prop_average) const {
+        T thrust = (a * prop_average * prop_average + b * prop_average + c) * g;
         return thrust;
     }
 
     template<typename T>
-    inline T getTorque(const T bottom, const T top) const {
-        T delta = top - bottom;
-        T torque = dry_Inertia[2] * delta * delta_to_acc;
+    inline T getTorque(const T prop_delta) const {
+        T torque = dry_Inertia[2] * prop_delta * delta_to_acc;
         return torque;
     }
 
