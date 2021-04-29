@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
             0, 0, 0;
 
     control u_bar;
-    u_bar << 0.0, 0.0, 65.0, 0.0;
+    u_bar << 0.0, 0.0, drone.getHoverSpeedAverage(), 0.0;
 
     Matrix<double, 4, 1> params;
     params << 1.0, 0.0, 0.0, 0.0;
@@ -101,9 +101,8 @@ int main(int argc, char **argv) {
 
     state_t<ad_control> Xdot2(x_bar);
 
-    control_t<ad_control> ADu2;
-    ADu2 << ADu(0), ADu(1), (ADu(2)+ADu(3))/2, ADu(3)-ADu(2);
-    ADu2 = u_bar;
+//    control_t<ad_control> ADu2;
+//    ADu2 = u_bar;
 
     for (int i = 0; i < Xdot2.size(); i++) {
         ROS_INFO_STREAM(Xdot2(i).derivatives());
@@ -111,7 +110,7 @@ int main(int argc, char **argv) {
 
 
     drone.state_dynamics(state_t<ad_control>(x_bar),
-                         ADu2,
+                         ADu,
                          Matrix<ad_control, 4, 1>(params),
                          Xdot2);
     ROS_INFO_STREAM("HEEE");

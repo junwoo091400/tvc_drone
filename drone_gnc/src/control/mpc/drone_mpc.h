@@ -21,7 +21,7 @@ public:
 
     mpc_t mpc;
 
-    DroneMPC(ros::NodeHandle &nh);
+    DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
 
     void solve(state &x0);
 

@@ -95,7 +95,6 @@ public:
 
         update_CM(propellant_mass);
 
-        load_motor();
     }
 
 
@@ -155,49 +154,6 @@ public:
         xdot.segment(10, 3) = (rocket_torque - omega.cross(inertia.cwiseProduct(omega))).cwiseProduct(I_inv);
     }
 
-
-    void load_motor() {
-        // std::string path = ros::package::getPath("tvc_simulator") + "/config/motor_file.txt";
-
-        // std::string line;
-        // std::ifstream myfile(path);
-        // if (myfile.is_open()) {
-        //     while (getline(myfile, line)) {
-        //         int separator = line.find("\t");
-        //         std::string time_string = line.substr(0, separator);
-        //         std::string thrust_string = line.substr(separator + 1, line.length() - separator);
-
-        //         full_thrust_time.push_back(std::stof(time_string));
-        //         full_thrust.push_back(std::stof(thrust_string));
-        //     }
-        //     myfile.close();
-
-        // } else { ROS_WARN("Didn't find motor file"); }
-    }
-
-    float get_full_thrust(float time_thrust) {
-        int i;
-        for (i = 0; i < full_thrust_time.size(); i++) {
-            if (time_thrust < full_thrust_time[i]) {
-                break;
-            }
-        }
-        i--;
-
-        float interp_thrust;
-        if (time_thrust < full_thrust_time.back())
-            interp_thrust = (full_thrust[i] +
-                             (time_thrust - full_thrust_time[i]) / (full_thrust_time[i + 1] - full_thrust_time[i]) *
-                             (full_thrust[i + 1] - full_thrust[i]));
-
-        else
-            interp_thrust = full_thrust_time.back();
-
-        if (time_thrust < 0)
-            interp_thrust = 0;
-
-        return interp_thrust;
-    }
 };
 
 #endif //SRC_ROCKET_MODEL_HPP

@@ -1,9 +1,7 @@
 #include "drone_mpc.h"
 
-DroneMPC::DroneMPC(ros::NodeHandle &nh) : solution_time(0) {
+DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solution_time(0), drone(drone_ptr) {
     // Initialize rocket class with useful parameters
-    drone = make_shared<Drone>();
-    drone->init(nh);
     mpc.ocp().init(nh, drone);
     int max_iter, line_search_max_iter;
     nh.getParam("/mpc/max_iter", max_iter);

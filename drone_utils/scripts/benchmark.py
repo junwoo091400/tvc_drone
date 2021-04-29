@@ -46,7 +46,7 @@ if __name__ == '__main__':
     rospy.Subscriber("/control/debug/computation_time", Float64, saveComputationTime)
 
     time.sleep(0.5)
-    target_apogee_pub.publish(Vector3(0.3, 0, 0))
+    target_apogee_pub.publish(Vector3(0, 0, 1))
     time.sleep(1)
     command_pub.publish("Launch")
 

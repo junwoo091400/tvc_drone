@@ -1,5 +1,6 @@
 #ifndef SRC_DRONE_MODEL_HPP
 #define SRC_DRONE_MODEL_HPP
+
 #include <Eigen/Eigen>
 #include "rocket_model.hpp"
 
@@ -43,8 +44,17 @@ public:
         u(0) = maxServo1Angle * u(0);
         u(1) = maxServo2Angle * u(1);
         u(2) = 0.5 * (u(2) + 1) * (maxPropellerSpeed - minPropellerSpeed) + minPropellerSpeed;
-        u(3) = u(3)*maxPropellerDelta;
+        u(3) = u(3) * maxPropellerDelta;
     }
+
+
+    inline void scaleControl(Eigen::Matrix<double, 4, 1> &u) const {
+        u(0) = u(0) / maxServo1Angle;
+        u(1) = u(1) / maxServo2Angle;
+        u(2) = 2 * (u(2) - minPropellerSpeed) / (maxPropellerSpeed - minPropellerSpeed) - 1;
+        u(3) = u(3) / maxPropellerDelta;
+    }
+
 
     template<typename T, typename state>
     inline void state_dynamics(const Eigen::Matrix<T, 13, 1> &x,
@@ -92,12 +102,14 @@ public:
     // torque = I * rot_acc
     const double delta_to_acc = -0.1040;
 
-//    void getPropellersSpeeds(const float thrust, const float torque, float &bottom, float &top) const {
-//        float average = (-b + std::sqrt(b * b - 4 * a * (c - thrust/ g))) / (2 * a) ;
-//        float delta = torque / (dry_Inertia[2] * delta_to_acc);
-//        top = average + delta / 2;
-//        bottom = average - delta / 2;
-//    }
+    double getAverageSpeed(const float thrust) const {
+        double average = (-b + std::sqrt(b * b - 4 * a * (c - thrust / g))) / (2 * a);
+        return average;
+    }
+
+    double getHoverSpeedAverage() {
+        return getAverageSpeed(9.81 * dry_mass);
+    }
 
 
     template<typename T>
@@ -112,19 +124,20 @@ public:
         return torque;
     }
 
-    void setParams(double thrust_scaling_val, double tx, double ty, double tz){
+    void setParams(double thrust_scaling_val, double tx, double ty, double tz) {
         thrust_scaling = thrust_scaling_val;
         disturbance_torque << tx, ty, tz;
     }
 
     template<typename T>
-    inline void getParams(Eigen::Matrix<T, 4, 1> &params){
-        params << (T)thrust_scaling, (T)disturbance_torque.x(), (T)disturbance_torque.y(), (T)disturbance_torque.z();
+    inline void getParams(Eigen::Matrix<T, 4, 1> &params) {
+        params
+                << (T) thrust_scaling, (T) disturbance_torque.x(), (T) disturbance_torque.y(), (T) disturbance_torque.z();
     }
 
 
     void stepRK4(const Eigen::Matrix<double, 13, 1> x0, const Eigen::Matrix<double, 4, 1> u, double dT,
-             Eigen::Matrix<double, 13, 1> &x_next) {
+                 Eigen::Matrix<double, 13, 1> &x_next) {
         Eigen::Matrix<double, 13, 1> k1, k2, k3, k4;
 
         Eigen::Matrix<double, 4, 1> params;
@@ -132,16 +145,16 @@ public:
 
         state_dynamics(x0, u, params, k1);
         //TODO
-        k1.segment(3, 3) = 1e-2*k1.segment(3, 3);
+        k1.segment(3, 3) = 1e-2 * k1.segment(3, 3);
         state_dynamics((x0 + k1 * dT / 2).eval(), u, params, k2);
         //TODO
-        k2.segment(3, 3) = 1e-2*k2.segment(3, 3);
+        k2.segment(3, 3) = 1e-2 * k2.segment(3, 3);
         state_dynamics((x0 + k2 * dT / 2).eval(), u, params, k3);
         //TODO
-        k3.segment(3, 3) = 1e-2*k3.segment(3, 3);
+        k3.segment(3, 3) = 1e-2 * k3.segment(3, 3);
         state_dynamics((x0 + k3 * dT).eval(), u, params, k4);
         //TODO
-        k4.segment(3, 3) = 1e-2*k4.segment(3, 3);
+        k4.segment(3, 3) = 1e-2 * k4.segment(3, 3);
 
         x_next = x0 + (k1 + 2 * k2 + 2 * k3 + k4) * dT / 6;
     }

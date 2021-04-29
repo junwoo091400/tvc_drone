@@ -15,6 +15,7 @@
 
 #include "drone_gnc/GetFSM.h"
 #include "drone_gnc/GetWaypoint.h"
+#include "backup_controller.hpp"
 
 #include <time.h>
 
@@ -22,6 +23,8 @@
 #include <chrono>
 #include <numeric>
 #include <mpc/drone_mpc.h>
+
+#define USE_BACKUP_CONTROLLER false
 
 class DroneControlNode {
 public:
@@ -36,7 +39,9 @@ public:
         target_apogee = target;
     }
 
-    DroneControlNode(ros::NodeHandle &nh) : drone_mpc(nh) {
+    DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
+                                                                              drone(drone_ptr),
+                                                                              backupController(drone_ptr) {
         initTopics(nh);
 
         std::vector<double> initial_target_apogee;
@@ -91,7 +96,14 @@ public:
     }
 
     void publishFeedforwardControl() {
-        drone_gnc::DroneControl drone_control = drone_mpc.interpolateControlSplineService();
+        drone_gnc::DroneControl drone_control;
+        if(USE_BACKUP_CONTROLLER){
+            drone_control = backupController.getControl(current_state, target_apogee);
+        }
+        else{
+            drone_control = drone_mpc.interpolateControlSplineService();
+        }
+
         ROS_INFO_STREAM("published at " << ros::Time::now().toSec() - drone_mpc.init_time);
         drone_control_pub.publish(drone_control);
     }
@@ -145,7 +157,6 @@ public:
             state_msg_stamped.header.frame_id = ' ';
 
 
-
             horizon_msg.trajectory.push_back(state_msg_stamped);
         }
         horizon_viz_pub.publish(trajectory_msg);
@@ -174,7 +185,8 @@ public:
                 0, 0, 0,
                 0, 0, 0, 1,
                 0, 0, 0;
-        target_control << 0, 0, 0, 0;
+        target_control << 0, 0, drone->getHoverSpeedAverage(), 0;
+        drone->scaleControl(target_control);
 //        }
 
         drone_mpc.setTarget(target_state, target_control);
@@ -217,6 +229,10 @@ public:
 private:
     DroneMPC drone_mpc;
 
+    std::shared_ptr<Drone> drone;
+
+    DroneBackupController backupController;
+
     drone_gnc::DroneState current_state;
     geometry_msgs::Vector3 target_apogee;
     drone_gnc::GetWaypoint srv_waypoint;
@@ -251,7 +267,10 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "control");
     ros::NodeHandle nh("control");
 
-    DroneControlNode droneControlNode(nh);
+    std::shared_ptr<Drone> drone = make_shared<Drone>();
+    drone->init(nh);
+
+    DroneControlNode droneControlNode(nh, drone);
 
     double mpc_period, feedforward_period;
     nh.getParam("/mpc/mpc_period", mpc_period);
@@ -297,7 +316,10 @@ int main(int argc, char **argv) {
             droneControlNode.received_state) {
 
             droneControlNode.fetchNewTarget();
-            droneControlNode.computeControl();
+            if(!USE_BACKUP_CONTROLLER){
+                droneControlNode.computeControl();
+            }
+
 
             droneControlNode.publishTrajectory();
             droneControlNode.saveDebugInfo();
@@ -317,7 +339,7 @@ int main(int argc, char **argv) {
             droneControlNode.printDebugInfo();
 
         }
-        ROS_INFO_STREAM("loop period " << 1000*(ros::Time::now().toSec() -loop_start_time) <<" ms");
+        ROS_INFO_STREAM("loop period " << 1000 * (ros::Time::now().toSec() - loop_start_time) << " ms");
     });
 
     // Start spinner on a different thread to allow spline evaluation while a new solution is computed
