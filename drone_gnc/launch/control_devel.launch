@@ -1,0 +1,14 @@
+<launch>
+    <group ns="rocket">
+        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+    </group>
+
+    <group ns="mpc">
+        <rosparam file="$(find drone_gnc)/config/mpc_parameters.yaml"/>
+    </group>
+
+    <node name="control_devel" pkg="drone_gnc" type="control_devel" cwd="node" output="screen">
+    </node>
+</launch>
+
+
