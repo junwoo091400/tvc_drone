@@ -15,7 +15,7 @@ input_costs:
 
 horizon_length: 1.0
 
-max_iter: 2
+max_iter: 1
 line_search_max_iter: 4
 mpc_period: 0.04
 feedforward_period: 0.02
