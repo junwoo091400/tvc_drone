@@ -82,7 +82,7 @@ public:
                     0, 0, 0, 0,
                     datt_cost, datt_cost, droll_cost;
             R << servo_cost, servo_cost, thrust_cost, torque_cost;
-            QN << 5 * Q;
+            QN << 2*Q;
             attitude_cost = att_cost;
             maxAttitudeCos = cos(maxAttitudeAngle);
 
