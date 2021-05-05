@@ -36,8 +36,8 @@ maxPropellerSpeed: 80
 
 maxPropellerDelta: 30
 
-maxServo1Angle: 0.3
-maxServo2Angle: 0.3
+maxServo1Angle: 0.25
+maxServo2Angle: 0.25
 
 maxAttitudeAngle: 0.1
 

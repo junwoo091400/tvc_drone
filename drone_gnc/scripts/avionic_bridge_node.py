@@ -26,9 +26,9 @@ def control_callback(control):
     servo1_DC = ((control.servo1/(np.pi/2)) + 1.453)*1000
     servo2_DC = ((-control.servo2/(np.pi/2)) + 1.47)*1000
 
-    top_motor_DC = top_motor_cmd*10 + 1000
-    bottom_motor_DC = bottom_motor_cmd*10 + 1000
-    # print(top_motor_DC, bottom_motor_DC)
+    top_motor_DC = int(top_motor_cmd*10 + 1000)
+    bottom_motor_DC = int(bottom_motor_cmd*10 + 1000)
+    print(top_motor_DC, bottom_motor_DC)
     # print(servo1_DC, servo2_DC)
 
     # send to motors
