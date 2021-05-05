@@ -49,9 +49,9 @@ class control_ocp : public ContinuousOCP<control_ocp, Approximation, SPARSE> {
 public:
     ~control_ocp() = default;
 
-    Eigen::Vector<scalar_t, NX> Q;
-    Eigen::Vector<scalar_t, NU> R;
-    Eigen::Vector<scalar_t, NX> QN;
+    Eigen::Matrix<scalar_t, NX, 1> Q;
+    Eigen::Matrix<scalar_t, NU, 1> R;
+    Eigen::Matrix<scalar_t, NX, 1> QN;
 
     Eigen::Matrix<scalar_t, NX, 1> xs;
     Eigen::Matrix<scalar_t, NU, 1> us;
@@ -82,7 +82,11 @@ public:
                     0, 0, 0, 0,
                     datt_cost, datt_cost, droll_cost;
             R << servo_cost, servo_cost, thrust_cost, torque_cost;
-            QN << 2*Q;
+            QN << 2 * Q;
+            scaleCost(Q);
+            scaleCost(QN);
+
+
             attitude_cost = att_cost;
             maxAttitudeCos = cos(maxAttitudeAngle);
 
@@ -93,13 +97,52 @@ public:
 
     }
 
+
+    template<typename T>
+    inline void unScaleControl(control_t <T> &u) const {
+        u(0) = drone->maxServo1Angle * u(0);
+        u(1) = drone->maxServo2Angle * u(1);
+        u(2) = 0.5 * (u(2) + 1) * (drone->maxPropellerSpeed - drone->minPropellerSpeed) + drone->minPropellerSpeed;
+        u(3) = u(3) * drone->maxPropellerDelta;
+    }
+
+
+    inline void scaleControl(control_t<double> &u) const {
+        u(0) = u(0) / drone->maxServo1Angle;
+        u(1) = u(1) / drone->maxServo2Angle;
+        u(2) = 2 * (u(2) - drone->minPropellerSpeed) / (drone->maxPropellerSpeed - drone->minPropellerSpeed) - 1;
+        u(3) = u(3) / drone->maxPropellerDelta;
+    }
+
+    inline void scaleState(state_t<double> &x) const {
+        x.segment(0, 6) *= 1e-2;
+    }
+
+    inline void unScaleState(state_t<double> &x) const {
+        x.segment(0, 6) *= 1e2;
+    }
+
+    inline void scaleCost(state_t<double> &Q) const {
+        Q.segment(0, 6) *= 1e-4;
+    }
+
+    template<typename T>
+    inline void scaleStateDerivative(Eigen::Ref<state_t < T>>
+
+    xdot) const {
+        xdot.segment(3, 3) *= (T) 1e-2;
+    }
+
     template<typename T>
     inline void dynamics_impl(const Eigen::Ref<const state_t <T>> x,
                               const Eigen::Ref<const control_t <T>> u,
                               const Eigen::Ref<const parameter_t <T>> p,
                               const Eigen::Ref<const static_parameter_t> &d,
-                              const T &t, Eigen::Ref<state_t < T>> xdot) const noexcept {
+                              const T &t, Eigen::Ref<state_t < T>>
+
+    xdot)  const noexcept{
         Eigen::Matrix<T, Drone::NX, 1> x_drone = x.segment(0, Drone::NX);
+
         Eigen::Matrix<T, Drone::NU, 1> u_drone = u.segment(0, Drone::NU);
 
         Eigen::Matrix<T, Drone::NP, 1> params;
@@ -107,11 +150,9 @@ public:
         drone->getParams(params);
 
 
-        drone->unScaleControl(u_drone);
+        unScaleControl(u_drone);
         drone->state_dynamics(x_drone, u_drone, params, xdot);
-        //drone->scaleState(xdot);
-        //TODO
-        xdot.segment(3, 3) = (T) 1e-2 * xdot.segment(3, 3);
+        scaleStateDerivative(xdot);
     }
 
 //    template<typename T>

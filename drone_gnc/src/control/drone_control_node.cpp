@@ -75,13 +75,12 @@ public:
         time_compute_start = ros::Time::now().toSec();
 
         DroneMPC::state x0;
-        x0 << current_state.pose.position.x / 100, current_state.pose.position.y / 100,
-                current_state.pose.position.z / 100,
-                current_state.twist.linear.x / 100, current_state.twist.linear.y / 100,
-                current_state.twist.linear.z / 100,
+        x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
+                current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
                 current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
                 current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
 
+        drone_mpc.mpc.ocp().scaleState(x0);
         drone_mpc.drone->setParams(current_state.thrust_scaling, current_state.disturbance_torque.x,
                                    current_state.disturbance_torque.y, current_state.disturbance_torque.z);
 
@@ -97,10 +96,9 @@ public:
 
     void publishFeedforwardControl() {
         drone_gnc::DroneControl drone_control;
-        if(USE_BACKUP_CONTROLLER){
+        if (USE_BACKUP_CONTROLLER) {
             drone_control = backupController.getControl(current_state, target_apogee);
-        }
-        else{
+        } else {
             drone_control = drone_mpc.interpolateControlSplineService();
         }
 
@@ -115,23 +113,24 @@ public:
         drone_gnc::DroneTrajectory horizon_msg;
         for (int i = 0; i < drone_mpc.mpc.ocp().NUM_NODES; i++) {
             DroneMPC::state state_val = drone_mpc.mpc.solution_x_at(i);
+            drone_mpc.mpc.ocp().unScaleState(state_val);
 
             drone_gnc::Waypoint point;
             point.time = drone_mpc.mpc.time_grid(i);
-            point.position.x = 100 * state_val(0);
-            point.position.y = 100 * state_val(1);
-            point.position.z = 100 * state_val(2);
+            point.position.x = state_val(0);
+            point.position.y = state_val(1);
+            point.position.z = state_val(2);
 //                ROS_INFO_STREAM(100 * mpc.solution_x_at(i)(2) << " " << 100 * mpc.solution_x_at(mpc.time_grid(i))(2));
             trajectory_msg.trajectory.push_back(point);
 
             drone_gnc::DroneState state_msg;
-            state_msg.pose.position.x = 100 * state_val(0);
-            state_msg.pose.position.y = 100 * state_val(1);
-            state_msg.pose.position.z = 100 * state_val(2);
+            state_msg.pose.position.x = state_val(0);
+            state_msg.pose.position.y = state_val(1);
+            state_msg.pose.position.z = state_val(2);
 
-            state_msg.twist.linear.x = 100 * state_val(3);
-            state_msg.twist.linear.y = 100 * state_val(4);
-            state_msg.twist.linear.z = 100 * state_val(5);
+            state_msg.twist.linear.x = state_val(3);
+            state_msg.twist.linear.y = state_val(4);
+            state_msg.twist.linear.z = state_val(5);
 
             state_msg.pose.orientation.x = state_val(6);
             state_msg.pose.orientation.y = state_val(7);
@@ -143,7 +142,7 @@ public:
             state_msg.twist.angular.z = state_val(12);
 
             DroneMPC::control control_val = drone_mpc.mpc.solution_u_at(i);
-            drone_mpc.drone->unScaleControl(control_val);
+            drone_mpc.mpc.ocp().unScaleControl(control_val);
             drone_gnc::DroneControl control_msg;
             control_msg.servo1 = control_val(0);
             control_msg.servo2 = control_val(1);
@@ -181,23 +180,25 @@ public:
 //
 //            target_control << 0, 0, 0, 0;
 //        } else {
-        target_state << target_apogee.x * 1e-2, target_apogee.y * 1e-2, target_apogee.z * 1e-2,
+        target_state << target_apogee.x, target_apogee.y, target_apogee.z,
                 0, 0, 0,
                 0, 0, 0, 1,
                 0, 0, 0;
+        drone_mpc.mpc.ocp().scaleState(target_state);
+
         target_control << 0, 0, drone->getHoverSpeedAverage(), 0;
-        drone->scaleControl(target_control);
+        drone_mpc.mpc.ocp().scaleControl(target_control);
 //        }
 
         drone_mpc.setTarget(target_state, target_control);
     }
 
     void saveDebugInfo() {
-        double x_error = current_state.pose.position.x - target_apogee.x * 100;
+        double x_error = current_state.pose.position.x - target_apogee.x;
         average_x_error.push_back(x_error * x_error);
-        double y_error = current_state.pose.position.y - target_apogee.y * 100;
+        double y_error = current_state.pose.position.y - target_apogee.y;
         average_y_error.push_back(y_error * y_error);
-        double z_error = current_state.pose.position.z - target_apogee.z * 100;
+        double z_error = current_state.pose.position.z - target_apogee.z;
         average_z_error.push_back(z_error * z_error);
 
         ROS_INFO("Ctr T= %.2f ms", drone_mpc.last_computation_time);
@@ -316,7 +317,7 @@ int main(int argc, char **argv) {
             droneControlNode.received_state) {
 
             droneControlNode.fetchNewTarget();
-            if(!USE_BACKUP_CONTROLLER){
+            if (!USE_BACKUP_CONTROLLER) {
                 droneControlNode.computeControl();
             }
 

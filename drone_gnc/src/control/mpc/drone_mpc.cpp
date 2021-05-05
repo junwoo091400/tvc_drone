@@ -34,7 +34,7 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     state ubx;
 
     //TODO change state constraints
-    lbx << -inf, -inf, -1.0 / 100,
+    lbx << -inf, -inf, -1.0,
             -inf, -inf, -inf,
             -inf, -inf, -inf, -inf,
             -inf, -inf, -inf;
@@ -43,6 +43,10 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
             inf, inf, inf,
             inf, inf, inf, inf,
             inf, inf, inf;
+
+    mpc.ocp().scaleState(lbx);
+    mpc.ocp().scaleState(ubx);
+
     mpc.state_bounds(lbx, ubx);
 
 //    constraint lbg; lbg << 0;
@@ -78,7 +82,7 @@ drone_gnc::DroneControl DroneMPC::interpolateControlSplineService() {
     interp_time = std::max(std::min(interp_time, horizon_length), 0.0);
     ROS_INFO_STREAM("interpolation time " << interp_time);
     control interpolated_control = mpc.solution_u_at(interp_time);
-    drone->unScaleControl(interpolated_control);
+    mpc.ocp().unScaleControl(interpolated_control);
 
     drone_gnc::DroneControl drone_control;
     drone_control.servo1 = interpolated_control(0);
@@ -169,13 +173,13 @@ void DroneMPC::integrateX0(const state x0, state &new_x0){
     int i;
     for(i = 0; i<max_ff_index-1; i++){
         control interpolated_control = mpc.solution_u_at(feedforward_period*i);
-        drone->unScaleControl(interpolated_control);
+        mpc.ocp().unScaleControl(interpolated_control);
         drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
     }
     i++;
 
     control interpolated_control = mpc.solution_u_at(feedforward_period*i);
-    drone->unScaleControl(interpolated_control);
+    mpc.ocp().unScaleControl(interpolated_control);
     drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
 }
 

@@ -23,7 +23,6 @@ public:
     Eigen::Vector3d disturbance_torque;
 
     void init(ros::NodeHandle &n) {
-        Rocket::init(n);
         if (n.getParam("/rocket/minPropellerSpeed", minPropellerSpeed) &&
             n.getParam("/rocket/maxPropellerSpeed", maxPropellerSpeed) &&
             n.getParam("/rocket/maxPropellerDelta", maxPropellerDelta) &&
@@ -34,30 +33,11 @@ public:
             ROS_ERROR("Failed to get drone parameters");
         }
 
-        J_inv[0] = 1 / dry_Inertia[0];
-        J_inv[1] = 1 / dry_Inertia[1];
-        J_inv[2] = 1 / dry_Inertia[2];
+        Rocket::init(n);
 
         thrust_scaling = 1;
         disturbance_torque.setZero();
     }
-
-    template<typename T>
-    inline void unScaleControl(Eigen::Matrix<T, 4, 1> &u) const {
-        u(0) = maxServo1Angle * u(0);
-        u(1) = maxServo2Angle * u(1);
-        u(2) = 0.5 * (u(2) + 1) * (maxPropellerSpeed - minPropellerSpeed) + minPropellerSpeed;
-        u(3) = u(3) * maxPropellerDelta;
-    }
-
-
-    inline void scaleControl(Eigen::Matrix<double, 4, 1> &u) const {
-        u(0) = u(0) / maxServo1Angle;
-        u(1) = u(1) / maxServo2Angle;
-        u(2) = 2 * (u(2) - minPropellerSpeed) / (maxPropellerSpeed - minPropellerSpeed) - 1;
-        u(3) = u(3) / maxPropellerDelta;
-    }
-
 
     template<typename T, typename state>
     inline void state_dynamics(const Eigen::Matrix<T, NX, 1> &x,

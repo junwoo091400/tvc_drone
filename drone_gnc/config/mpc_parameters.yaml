@@ -1,9 +1,9 @@
 # MPC parameters
 state_costs:
-  x: 1.0e+2
-  dx: 1.0e-3
-  z: 5.0e+1
-  dz: 1.0e+2
+  x: 1.0e+6
+  dx: 1.0e+1
+  z: 5.0e+5
+  dz: 1.0e+6
   att: 1.0e-3
   datt: 1.0e-0
   droll: 1.0e-2
