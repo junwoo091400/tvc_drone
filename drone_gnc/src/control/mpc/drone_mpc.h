@@ -11,13 +11,13 @@
 class DroneMPC {
 
 public:
-    using admm = boxADMM<control_ocp::VAR_SIZE, control_ocp::NUM_EQ, control_ocp::scalar_t,
-            control_ocp::MATRIXFMT, linear_solver_traits<control_ocp::MATRIXFMT>::default_solver>;
-    using osqp_solver_t = polympc::OSQP<control_ocp::VAR_SIZE, control_ocp::NUM_EQ, control_ocp::scalar_t>;
-    using mpc_t = MPC<control_ocp, MySolver, admm>;
+//    using admm = boxADMM<control_ocp::VAR_SIZE, control_ocp::NUM_EQ, control_ocp::scalar_t,
+//            control_ocp::MATRIXFMT, linear_solver_traits<control_ocp::MATRIXFMT>::default_solver>;
+//    using osqp_solver_t = polympc::OSQP<control_ocp::VAR_SIZE, control_ocp::NUM_EQ, control_ocp::scalar_t>;
+    using mpc_t = MPC<control_ocp, Solver>;
     using state = mpc_t::state_t;
     using control = mpc_t::control_t;
-//    using constraint = mpc_t::constraint_t;
+    using constraint = mpc_t::constraint_t;
 
     mpc_t mpc;
 

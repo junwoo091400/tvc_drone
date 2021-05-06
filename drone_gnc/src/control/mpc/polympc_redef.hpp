@@ -14,22 +14,22 @@ using namespace Eigen;
 
 #include "drone_control_ocp.hpp"
 
-// ------ Create solver -------
-template<typename Problem, typename QPSolver>
-class MySolver;
-
-template<typename Problem, typename QPSolver = boxADMM<Problem::VAR_SIZE, Problem::DUAL_SIZE, typename Problem::scalar_t>>
-class MySolver : public SQPBase<MySolver<Problem, QPSolver>, Problem, QPSolver> {
+/** create solver */
+template<typename Problem, typename QPSolver> class Solver;
+template<typename Problem, typename QPSolver = boxADMM<Problem::VAR_SIZE, Problem::NUM_EQ + Problem::NUM_INEQ,
+        typename Problem::scalar_t, Problem::MATRIXFMT, linear_solver_traits<control_ocp::MATRIXFMT>::default_solver>>
+class Solver : public SQPBase<Solver<Problem, QPSolver>, Problem, QPSolver>
+{
 public:
-    using Base = SQPBase<MySolver<Problem, QPSolver>, Problem, QPSolver>;
+    using Base = SQPBase<Solver<Problem, QPSolver>, Problem, QPSolver>;
     using typename Base::scalar_t;
     using typename Base::nlp_variable_t;
     using typename Base::nlp_hessian_t;
+    using typename Base::nlp_jacobian_t;
+    using typename Base::nlp_dual_t;
+    using typename Base::parameter_t;
+    using typename Base::nlp_constraints_t;
 
-    EIGEN_STRONG_INLINE Problem
-    &
-
-    get_problem() noexcept { return this->problem; }
 
     /** change Hessian regularization to non-default*/
     EIGEN_STRONG_INLINE void hessian_regularisation_dense_impl(

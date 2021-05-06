@@ -21,8 +21,8 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     control lbu;
     control ubu;
 
-    lbu << -1, -1, -1, -1; // lower bound on control
-    ubu << 1, 1, 1, 1; // upper bound on control
+    lbu << -drone->maxServo1Angle, -drone->maxServo2Angle, drone->minPropellerSpeed, -drone->maxPropellerDelta; // lower bound on control
+    ubu << drone->maxServo1Angle, drone->maxServo2Angle, drone->maxPropellerSpeed, drone->maxPropellerDelta; // upper bound on control
 
     //lbu << -inf, -inf, -inf, -inf;
     //ubu <<  inf,  inf,  inf,  inf;
@@ -34,24 +34,24 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     state ubx;
 
     //TODO change state constraints
-    lbx << -inf, -inf, -1.0,
+    lbx << -inf, -inf, -eps,
             -inf, -inf, -inf,
             -inf, -inf, -inf, -inf,
-            -inf, -inf, -inf;
+            -0.1, -0.1, -0.1;
 
     ubx << inf, inf, inf,
             inf, inf, inf,
             inf, inf, inf, inf,
-            inf, inf, inf;
+            0.1, 0.1, 0.1;
 
     mpc.ocp().scaleState(lbx);
     mpc.ocp().scaleState(ubx);
 
     mpc.state_bounds(lbx, ubx);
 
-//    constraint lbg; lbg << 0;
-//    constraint ubg; ubg << 40*40;
-//    mpc.constraints_bounds(lbg, ubg);
+    constraint lbg; lbg << drone->minPropellerSpeed, drone->minPropellerSpeed, 0.965;
+    constraint ubg; ubg << drone->maxPropellerSpeed, drone->maxPropellerSpeed, 1;
+    mpc.constraints_bounds(lbg, ubg);
 
     // Initial state
     state x0;
@@ -64,7 +64,10 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
-    mpc.x_guess(x0.replicate(mpc.ocp().NX, 1));
+    mpc.x_guess(x0.replicate(mpc.ocp().NUM_NODES, 1));
+    control u0;
+    u0 << 0, 0, drone->getHoverSpeedAverage(), 0;
+    mpc.u_guess(u0.replicate(mpc.ocp().NUM_NODES, 1));
 
     control target_control;
     target_control.setZero();
