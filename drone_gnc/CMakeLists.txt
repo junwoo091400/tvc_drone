@@ -181,12 +181,14 @@ catkin_package(
 # )
 
 include_directories(src/utils src/control src/models src/navigation submodule/polympc/src
-        ${catkin_INCLUDE_DIRS})
+        ${catkin_INCLUDE_DIRS}
+        ${VRPN_INCLUDE_DIR})
 
 add_subdirectory(src/utils)
 add_subdirectory(src/control)
 add_subdirectory(src/models)
 add_subdirectory(src/navigation)
+add_subdirectory(src/utils/drone_dome)
 add_subdirectory(src/navigation/optitrack)
 add_subdirectory(submodule/polympc)
 
