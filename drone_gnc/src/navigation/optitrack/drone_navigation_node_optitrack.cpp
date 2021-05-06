@@ -11,8 +11,6 @@
 
 #include "drone_EKF_optitrack.h"
 
-bool DRONE_DOME;
-
 class DroneNavigationNode {
 public:
     // Callback function to store last received fsm
@@ -56,7 +54,6 @@ public:
     }
 
     void initTopics(ros::NodeHandle &nh) {
-        nh.param("drone_dome", DRONE_DOME, false);
 
         // Create filtered rocket state publisher
         kalman_pub = nh.advertise<drone_gnc::DroneState>("/drone_state", 10);
@@ -67,12 +64,15 @@ public:
         // Subscribe to time_keeper for fsm and time
         control_sub = nh.subscribe("/drone_control", 100, &DroneEKF::updateCurrentControl, &kalman);
 
+        bool isSimu;
+        nh.param("/is_simu", isSimu, true);
+
         sensor_sub;
-        if (DRONE_DOME) {
-            // sensor_sub = nh.subscribe("/simu_drone_state", 100, &DroneNavigationNode::rocket_stateCallback, this);
-            sensor_sub = nh.subscribe("/optitrack_client/Kite/optitrack_pose", 100, &DroneNavigationNode::optitrackCallback, this);
+        if (isSimu) {
+            sensor_sub = nh.subscribe("/simu_drone_state", 100, &DroneNavigationNode::rocket_stateCallback, this);
         } else {
-            sensor_sub = nh.subscribe("/sensors", 100,  &DroneNavigationNode::sensorCallback, this);
+            sensor_sub = nh.subscribe("/optitrack_client/Kite/optitrack_pose", 100,
+                                      &DroneNavigationNode::optitrackCallback, this);
         }
     }
 
@@ -105,7 +105,7 @@ public:
         }
     }
 
-    void publishDroneState(){
+    void publishDroneState() {
         drone_gnc::DroneState kalman_state;
 
         kalman_state.pose.position.x = kalman.X(0);

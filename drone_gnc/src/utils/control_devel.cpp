@@ -45,12 +45,27 @@ using control = control_t<double>;
 using ad_state = AutoDiffScalar<state>;
 using ad_control = AutoDiffScalar<control>;
 
+using ad_state2 = AutoDiffScalar<state_t<ad_state>>;
+using ad_control2 = AutoDiffScalar<control_t<ad_control>>;
+
+
+
+Drone drone;
+
+//void linearize(const state &x_bar,
+//               const control &u_bar,
+//               const Matrix<double, 4, 1> &params,
+//               Matrix<double, NX, NX> &A,
+//               Matrix<double, NX, NU> &B) {
+//
+//
+//}
+
 
 int main(int argc, char **argv) {
     // Init ROS time keeper node
     ros::init(argc, argv, "control");
     ros::NodeHandle nh("util");
-    Drone drone;
     drone.init(nh);
 
     state x_bar;
@@ -62,11 +77,18 @@ int main(int argc, char **argv) {
     control u_bar;
     u_bar << 0.0, 0.0, drone.getHoverSpeedAverage(), 0.0;
 
+    ROS_INFO_STREAM("u_bar" << u_bar);
+
     Matrix<double, 4, 1> params;
     params << 1.0, 0.0, 0.0, 0.0;
 
+    Matrix<double, NX, NX> A;
+    Matrix<double, NX, NU> B;
+
+//    linearize(x_bar, u_bar, params, A, B);
+
     /** initialize derivatives */
-    state_t<ad_state> ADx;
+    state_t<ad_state> ADx(x_bar);
     int div_size = ADx.size();
     int derivative_idx = 0;
     for (int i = 0; i < ADx.size(); ++i) {
@@ -75,21 +97,25 @@ int main(int argc, char **argv) {
     }
 
     //propagate xdot autodiff scalar at current x
-    ADx = x_bar;
     state_t<ad_state> Xdot;
+
+    control_t<ad_state> ad_u_bar(u_bar);
+    for (int i = 0; i < ad_u_bar.size(); ++i) ad_u_bar(i).derivatives().setZero();
+    Matrix<ad_state, 4, 1> ad_params(params);
+    for (int i = 0; i < ad_params.size(); ++i) ad_params(i).derivatives().setZero();
     drone.state_dynamics(ADx,
-                         control_t<ad_state>(u_bar),
-                         Matrix<ad_state, 4, 1>(params),
+                         ad_u_bar,
+                         ad_params,
                          Xdot);
 
     // obtain the jacobian of f(x)
-    Matrix<double, NX, NX> DF_DX;
     for (int i = 0; i < Xdot.size(); i++) {
-        DF_DX.row(i) = Xdot(i).derivatives();
+        A.row(i) = Xdot(i).derivatives();
     }
 
+
     /** initialize derivatives */
-    control_t<ad_control> ADu;
+    control_t<ad_control> ADu(u_bar);
     int div_size2 = ADu.size();
     int derivative_idx2 = 0;
     for (int i = 0; i < ADu.size(); ++i) {
@@ -98,36 +124,27 @@ int main(int argc, char **argv) {
     }
 
 
+    state_t<ad_control> Xdot2;
 
-    state_t<ad_control> Xdot2(x_bar);
+    state_t<ad_control> ad_x_bar(x_bar);
+    for (int i = 0; i < ad_x_bar.size(); ++i) ad_x_bar(i).derivatives().setZero();
 
-//    control_t<ad_control> ADu2;
-//    ADu2 = u_bar;
+    Matrix<ad_control, 4, 1> ad_params2(params);
+    for (int i = 0; i < ad_params2.size(); ++i) ad_params2(i).derivatives().setZero();
 
-    for (int i = 0; i < Xdot2.size(); i++) {
-        ROS_INFO_STREAM(Xdot2(i).derivatives());
-    }
-
-
-    drone.state_dynamics(state_t<ad_control>(x_bar),
+    drone.state_dynamics(ad_x_bar,
                          ADu,
-                         Matrix<ad_control, 4, 1>(params),
+                         ad_params2,
                          Xdot2);
-    ROS_INFO_STREAM("HEEE");
-
-
-    for (int i = 0; i < Xdot2.size(); i++) {
-        ROS_INFO_STREAM(Xdot2(i).derivatives());
-    }
 
     // obtain the jacobian of f(x)
-    Matrix<double, NX, NU> DF_DU;
     for (int i = 0; i < Xdot2.size(); i++) {
-        DF_DU.row(i) = Xdot2(i).derivatives();
+        B.row(i) = Xdot2(i).derivatives();
     }
-
     ROS_INFO_STREAM("Linearized continuous time model:");
-    ROS_INFO_STREAM("A = DF/DX\n" << DF_DX);
-    ROS_INFO_STREAM("B = DF/DU\n" << DF_DU);
+    ROS_INFO_STREAM("A = DF/DX\n" << A);
+    ROS_INFO_STREAM("B = DF/DU\n" << B);
+
+    //sample other A values
 
 }
