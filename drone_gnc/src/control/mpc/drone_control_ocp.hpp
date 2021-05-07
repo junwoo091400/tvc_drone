@@ -36,7 +36,7 @@ time_point get_time() {
 }
 
 #define POLY_ORDER 5
-#define NUM_SEG    2
+#define NUM_SEG    1
 #define NUM_EXP    1
 
 /** benchmark the new collocation class */
