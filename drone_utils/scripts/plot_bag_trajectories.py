@@ -14,7 +14,7 @@ import csv
 
 NX = 13
 NU = 4
-NNODE = 6
+NNODE = 8
 
 
 def convert_state_to_array(state):

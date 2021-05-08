@@ -7,4 +7,4 @@ predict_vars:
   att: 0.05
   datt: 10000
   thrust_scaling: 1
-  disturbance_torque: 5
+  disturbance_torque: 50

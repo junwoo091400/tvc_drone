@@ -34,23 +34,23 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     state ubx;
 
     //TODO change state constraints
-    lbx << -inf, -inf, -eps,
+    lbx << -inf, -inf, -1+eps,
             -inf, -inf, -inf,
             -inf, -inf, -inf, -inf,
-            -0.1, -0.1, -0.1;
+            -inf, -inf, -inf;
 
     ubx << inf, inf, inf,
             inf, inf, inf,
             inf, inf, inf, inf,
-            0.1, 0.1, 0.1;
+            inf, inf, inf;
 
     mpc.ocp().scaleState(lbx);
     mpc.ocp().scaleState(ubx);
 
     mpc.state_bounds(lbx, ubx);
 
-    constraint lbg; lbg << drone->minPropellerSpeed, drone->minPropellerSpeed, 0.965;
-    constraint ubg; ubg << drone->maxPropellerSpeed, drone->maxPropellerSpeed, 1;
+    constraint lbg; lbg << drone->minPropellerSpeed, drone->minPropellerSpeed, -inf;
+    constraint ubg; ubg << drone->maxPropellerSpeed, drone->maxPropellerSpeed, inf;
     mpc.constraints_bounds(lbg, ubg);
 
     // Initial state
