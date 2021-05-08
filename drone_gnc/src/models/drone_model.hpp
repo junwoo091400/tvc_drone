@@ -12,6 +12,17 @@ public:
     static const int NU = 4;
     static const int NP = 4;
 
+    template<typename T>
+    using state_t = Eigen::Matrix<T, NX, 1>;
+    using state = state_t<double>;
+    template<typename T>
+    using control_t = Eigen::Matrix<T, NU, 1>;
+    using control = control_t<double>;
+    template<typename T>
+    using parameters_t = Eigen::Matrix<T, NP, 1>;
+    using parameters = parameters_t<double>;
+
+
     double minPropellerSpeed;
     double maxPropellerSpeed;
     double maxPropellerDelta;
@@ -40,9 +51,9 @@ public:
     }
 
     template<typename T, typename state>
-    inline void state_dynamics(const Eigen::Matrix<T, NX, 1> &x,
-                               const Eigen::Matrix<T, NU, 1> &u,
-                               const Eigen::Matrix<T, NP, 1> &params,
+    inline void state_dynamics(const state_t<T> &x,
+                               const control_t<T> &u,
+                               const parameters_t<T> &params,
                                state &xdot) const {
         Eigen::Matrix<T, 4, 1> input;
         input << u(0), u(1), u(2), u(3);
@@ -72,6 +83,17 @@ public:
         Eigen::Ref<Eigen::Matrix<T, 13, 1>> xdot_body = xdot.segment(0, 13);
 
         Rocket::generic_rocket_dynamics(x_body, thrust_vector, (propeller_torque + dist_torque).eval(), xdot_body);
+    }
+
+    template<typename T, typename state_dot>
+    inline void scaled_state_dynamics(const state_t<T> &x,
+                                      const control_t<T> &u,
+                                      const parameters_t<T> &params,
+                                      state_dot &xdot) const noexcept {
+
+        control_t<T> u_scaled;
+//        scaleControl()
+        state_dynamics(x, u, params, xdot);
     }
 
     //thrust 3rd order model
@@ -119,11 +141,11 @@ public:
     }
 
 
-    void stepRK4(const Eigen::Matrix<double, NX, 1> x0, const Eigen::Matrix<double, NU, 1> u, double dT,
-                 Eigen::Matrix<double, NX, 1> &x_next) {
-        Eigen::Matrix<double, NX, 1> k1, k2, k3, k4;
+    void stepRK4(const state x0, const control u, double dT,
+                 state &x_next) {
+        state k1, k2, k3, k4;
 
-        Eigen::Matrix<double, NU, 1> params;
+        parameters params;
         getParams(params);
 
         state_dynamics(x0, u, params, k1);

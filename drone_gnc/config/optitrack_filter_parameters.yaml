@@ -5,6 +5,6 @@ predict_vars:
   dx: 500
   dz: 500
   att: 0.05
-  datt: 500
+  datt: 10000
   thrust_scaling: 1
   disturbance_torque: 5
