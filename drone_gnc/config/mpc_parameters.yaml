@@ -13,6 +13,19 @@ input_costs:
   thrust: 1.0e-1
   torque: 1.0e-1
 
+# constraints
+min_z: -1
+min_dz: -0.4
+
+max_dx: 1.2
+max_dz: 2
+max_datt: 0.6
+max_attitude_angle: 45
+
+# scaling
+scaling_x: 2
+scaling_z: 4
+
 horizon_length: 1.0
 
 max_iter: 1

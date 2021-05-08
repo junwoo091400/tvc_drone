@@ -26,14 +26,14 @@ using namespace std;
 
 typedef std::chrono::time_point<std::chrono::system_clock> time_point;
 
-time_point get_time() {
-    /** OS dependent */
-#ifdef __APPLE__
-    return std::chrono::system_clock::now();
-#else
-    return std::chrono::high_resolution_clock::now();
-#endif
-}
+//time_point get_time() {
+//    /** OS dependent */
+//#ifdef __APPLE__
+//    return std::chrono::system_clock::now();
+//#else
+//    return std::chrono::high_resolution_clock::now();
+//#endif
+//}
 
 #define POLY_ORDER 7
 #define NUM_SEG    1
@@ -56,26 +56,41 @@ public:
     Eigen::Matrix<scalar_t, NX, 1> xs;
     Eigen::Matrix<scalar_t, NU, 1> us;
 
-    scalar_t attitude_cost;
-
     shared_ptr<Drone> drone;
 
     scalar_t maxAttitudeAngle;
-    scalar_t maxAttitudeCos;
+
+    scalar_t min_z;
+    scalar_t min_dz;
+    scalar_t max_dx;
+    scalar_t max_dz;
+    scalar_t max_datt;
+    scalar_t scaling_x;
+    scalar_t scaling_z;
 
     void init(ros::NodeHandle nh, shared_ptr<Drone> d) {
-        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
-        if (nh.getParam("/mpc/state_costs/x", x_cost) &&
-            nh.getParam("/mpc/state_costs/dz", dx_cost) &&
-            nh.getParam("/mpc/state_costs/z", z_cost) &&
-            nh.getParam("/mpc/state_costs/dz", dz_cost) &&
-            nh.getParam("/mpc/state_costs/att", att_cost) &&
-            nh.getParam("/mpc/state_costs/datt", datt_cost) &&
-            nh.getParam("/mpc/state_costs/droll", droll_cost) &&
-            nh.getParam("/mpc/input_costs/servo", servo_cost) &&
-            nh.getParam("/mpc/input_costs/thrust", thrust_cost) &&
-            nh.getParam("/mpc/input_costs/torque", torque_cost) &&
-            nh.getParam("/rocket/maxAttitudeAngle", maxAttitudeAngle)) {
+//        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
+        scalar_t maxAttitudeAngle_degree;
+        if (nh.getParam("/mpc/min_z", min_z) &&
+            nh.getParam("/mpc/min_dz", min_dz) &&
+            nh.getParam("/mpc/max_dx", max_dx) &&
+            nh.getParam("/mpc/max_dz", max_dz) &&
+            nh.getParam("/mpc/max_datt", max_datt) &&
+            nh.getParam("/mpc/scaling_x", scaling_x) &&
+            nh.getParam("/mpc/scaling_z", scaling_z) &&
+
+            //                nh.getParam("/mpc/state_costs/x", x_cost) &&
+            //            nh.getParam("/mpc/state_costs/dz", dx_cost) &&
+            //            nh.getParam("/mpc/state_costs/z", z_cost) &&
+            //            nh.getParam("/mpc/state_costs/dz", dz_cost) &&
+            //            nh.getParam("/mpc/state_costs/att", att_cost) &&
+            //            nh.getParam("/mpc/state_costs/datt", datt_cost) &&
+            //            nh.getParam("/mpc/state_costs/droll", droll_cost) &&
+            //            nh.getParam("/mpc/input_costs/servo", servo_cost) &&
+            //            nh.getParam("/mpc/input_costs/thrust", thrust_cost) &&
+            //            nh.getParam("/mpc/input_costs/torque", torque_cost) &&
+
+            nh.getParam("/mpc/max_attitude_angle", maxAttitudeAngle_degree)) {
 
 //            Q << x_cost, x_cost, z_cost,
 //                    dx_cost, dx_cost, dz_cost,
@@ -106,15 +121,47 @@ public:
 //            scaleCost(Q);
 //            scaleCost(QN);
 
-
-            attitude_cost = att_cost;
-            maxAttitudeCos = cos(maxAttitudeAngle);
+            maxAttitudeAngle = maxAttitudeAngle_degree * (M_PI / 180);
 
             drone = d;
         } else {
             ROS_ERROR("Failed to get MPC parameter");
         }
 
+    }
+
+    void getConstraints(state_t <scalar_t> &lbx, state_t <scalar_t> &ubx,
+                        control_t <scalar_t> &lbu, control_t <scalar_t> &ubu,
+                        constraint_t <scalar_t> &lbg, constraint_t <scalar_t> &ubg) {
+        const double inf = std::numeric_limits<double>::infinity();
+        const double eps = 1e-1;
+
+        lbu << -drone->maxServo1Angle, -drone->maxServo2Angle,
+                drone->minPropellerSpeed, -drone->maxPropellerDelta; // lower bound on control
+        ubu << drone->maxServo1Angle, drone->maxServo2Angle,
+                drone->maxPropellerSpeed, drone->maxPropellerDelta; // upper bound on control
+
+        //TODO change state constraints
+        lbx << -inf, -inf, min_z + eps,
+                -max_dx, -max_dx, min_dz,
+                -inf, -inf, -inf, -inf,
+                -max_datt, -max_datt, -inf;
+
+        ubx << inf, inf, inf,
+                max_dx, max_dx, max_dz,
+                inf, inf, inf, inf,
+                max_datt, max_datt, inf;
+
+        ROS_INFO_STREAM(lbx.transpose());
+        ROS_INFO_STREAM(ubx.transpose());
+
+        //TODO fix attitude constraint [cos(maxAttitudeAngle) 1]
+        lbg << drone->minPropellerSpeed, drone->minPropellerSpeed, -inf;
+        ubg << drone->maxPropellerSpeed, drone->maxPropellerSpeed, inf;
+        ROS_INFO_STREAM(lbg);
+
+        scaleState(lbx);
+        scaleState(ubx);
     }
 
 
@@ -169,7 +216,6 @@ public:
 
         drone->getParams(params);
 
-
         unScaleControl(u_drone);
         drone->state_dynamics(x_drone, u_drone, params, xdot);
         scaleStateDerivative(xdot);
@@ -186,10 +232,10 @@ public:
         T attitude_error_cos = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
         Eigen::Matrix<T, 4, 1> u_drone = u.segment(0, 4);
         unScaleControl(u_drone);
+
         g(0) = u_drone(2) + u_drone(3);
         g(1) = u_drone(2) - u_drone(3);
         g(2) = attitude_error_cos;
-
     }
 
     template<typename T>
@@ -200,11 +246,7 @@ public:
         Eigen::Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
         Eigen::Matrix<T, NU, 1> u_error = u - us.template cast<T>();
 
-        //cos of angle from vertical
-//        T attitude_error = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
-
         lagrange = x_error.dot(Q.template cast<T>().cwiseProduct(x_error)) +
-                   //                   attitude_cost * attitude_error +
                    u_error.dot(R.template cast<T>().cwiseProduct(u_error));
     }
 
@@ -214,11 +256,7 @@ public:
                                 const scalar_t &t, T &mayer) noexcept {
         Eigen::Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
 
-        //cos of angle from vertical
-//        T attitude_error = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
-
         mayer = x_error.dot(QN.template cast<T>() * x_error);
-//                attitude_cost * attitude_error;
     }
 };
 

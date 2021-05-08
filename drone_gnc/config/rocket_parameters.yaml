@@ -31,16 +31,6 @@ propellant_CM: 0.1
 #set Isp to -1 for constant propellant mass
 Isp: -1
 
-minPropellerSpeed: 35
-maxPropellerSpeed: 80
-
-maxPropellerDelta: 30
-
-maxServo1Angle: 0.25
-maxServo2Angle: 0.25
-
-maxAttitudeAngle: 0.1
-
 CM_to_thrust_distance: 0.205
 Cd:
   - 2
@@ -48,3 +38,11 @@ Cd:
   - 0.7
 CM_offset_x: 0
 initial_speed: 0
+
+minPropellerSpeed: 35
+maxPropellerSpeed: 80
+
+maxPropellerDelta: 30
+
+maxServo1Angle: 15
+maxServo2Angle: 15
