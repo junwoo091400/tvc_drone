@@ -98,12 +98,13 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
         //state derivatives
         xdot.segment(0, 3) = x.segment(3, 3);//x
 
-        Eigen::Matrix<T, 3, 1> thrust_vector = x.segment(13, 4);
-        thrust_vector << 0, 0, 0;
+//        Eigen::Matrix<T, 3, 1> thrust_vector = x.segment(13, 4);
+//        thrust_vector << 0, 0, 0;
 
-        Eigen::Matrix<T, 3, 1> force_error = x.segment(13, 4);
-        //TODO
-        xdot.segment(3, 3) << attitude._transformVector((thrust_vector+force_error)/drone.dry_mass) - g0;
+//        Eigen::Matrix<T, 3, 1> force_error = x.segment(13, 4);
+//        //TODO
+//        xdot.segment(3, 3) << attitude._transformVector((thrust_vector+force_error)/drone.dry_mass) - g0;
+        xdot.segment(3, 3) << 0.0, 0.0, 0.0;
         xdot.segment(13, 3) << 0.0, 0.0, 0.0; //thrust_vector
 
         xdot.segment(6, 4) = 0.5 * (attitude * omega_quat).coeffs();//q
@@ -119,12 +120,13 @@ void DroneEKF::measurementModel(const state_t<T> &x, sensor_data_t<T> &z) {
     Eigen::Quaternion<T> attitude(x(9), x(6), x(7), x(8));
     attitude.normalize();
 
-    Eigen::Vector<T, 3> thrust;
-    thrust << (T) 0, (T) 0, (T) 0;
-
-    //TODO
-    Eigen::Matrix<T, 3, 1> force_error = x.segment(13, 4);
-    z.segment(0, 3) = (thrust+force_error)/drone.dry_mass;
+//    Eigen::Vector<T, 3> thrust;
+//    thrust << (T) 0, (T) 0, (T) 0;
+//
+//    //TODO
+//    Eigen::Matrix<T, 3, 1> force_error = x.segment(13, 4);
+//    z.segment(0, 3) = (thrust+force_error)/drone.dry_mass;
+    z.segment(0, 3) = z.segment(10, 3);
 }
 
 void DroneEKF::fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pdot) {

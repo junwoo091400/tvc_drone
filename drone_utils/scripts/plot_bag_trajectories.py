@@ -51,6 +51,13 @@ for topic, msg, t in bag.read_messages(topics=['/drone_state']):
         state_array = np.append(t.to_sec() - time_init, convert_state_to_array(msg))
         kalman_state_history = np.vstack((kalman_state_history, state_array))
 
+
+optitrack_state_history = np.empty((0, NX + 1))
+for topic, msg, t in bag.read_messages(topics=['/optitrack_state']):
+    if t.to_sec() > time_init and t.to_sec() < t_end:
+        state_array = np.append(t.to_sec() - time_init, convert_state_to_array(msg))
+        optitrack_state_history = np.vstack((optitrack_state_history, state_array))
+
 integrator_state_history = np.empty((0, NX + 1))
 for topic, msg, t in bag.read_messages(topics=['/simu_drone_state']):
     if t.to_sec() > time_init and t.to_sec() < t_end:
@@ -83,13 +90,8 @@ for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
         state_horizon_history = np.dstack((state_horizon_history, state_horizon))
         control_horizon_history = np.dstack((control_horizon_history, control_horizon))
 
-# control_history = np.empty((0, 14))
-# for topic, msg, t in bag.read_messages(topics=['/drone_control']):
-#     if t.to_sec() > time_init and t.to_sec() < t_end:
-#         state_array = np.append(t.to_sec() - time_init, convert_state_to_array(msg))
-#         integrator_state_history = np.vstack((integrator_state_history, state_array))
-
 fig, axe = plt.subplots(5, 4, figsize=(15, 10))
+fig.subplots_adjust(wspace=0.4, hspace=0.5)
 
 var_indexes = {
     "t": 0,
@@ -156,40 +158,47 @@ plot_ranges = {
     "top": [0, 100],
 }
 
+
 # set plot ranges
 for plot_idx, (x_name, y_name) in state_plot_indexes.iteritems():
     axe[plot_idx].axis(xmin=plot_ranges[x_name][0],
                        xmax=plot_ranges[x_name][1],
                        ymin=plot_ranges[y_name][0],
                        ymax=plot_ranges[y_name][1])
+    axe[plot_idx].set_xlabel(x_name)
+    axe[plot_idx].set_ylabel(y_name)
 
 for plot_idx, (x_name, y_name) in control_plot_indexes.iteritems():
     axe[plot_idx].axis(xmin=plot_ranges[x_name][0],
                        xmax=plot_ranges[x_name][1],
                        ymin=plot_ranges[y_name][0],
                        ymax=plot_ranges[y_name][1])
+    axe[plot_idx].set_xlabel(x_name)
+    axe[plot_idx].set_ylabel(y_name)
 
 
 def plot_history(history, plot_indexes, axe, name):
+    if history.shape[0] == 0:
+        return
     line_list = []
 
     for plot_idx, (x_name, y_name) in plot_indexes.iteritems():
         x_data = history[:, var_indexes[x_name]]
         y_data = history[:, var_indexes[y_name]]
-        line, = axe[plot_idx].plot(x_data, y_data)
+        line, = axe[plot_idx].plot(x_data, y_data, label=name)
         line_list.append((line, plot_idx))
 
     return line_list
 
 
-for state_history, name in zip([integrator_state_history, kalman_state_history], ["real", "kal"]):
+for state_history, name in zip([integrator_state_history, kalman_state_history, optitrack_state_history], ["integrator", "kalman", "optitrack"]):
     plot_history(state_history, state_plot_indexes, axe, name)
 
 
 plot_history(control_history, control_plot_indexes, axe, name)
 
-control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc")
-state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc")
+control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon")
+state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon")
 
 plt.subplots_adjust(left=0.15, bottom=0.25)
 ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor='white')
@@ -221,4 +230,5 @@ def update(val):
 
 slider.on_changed(update)
 
+axe[0][0].legend(loc='upper left')
 plt.show()

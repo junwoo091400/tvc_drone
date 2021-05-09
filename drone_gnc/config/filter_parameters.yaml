@@ -1,12 +1,12 @@
 # MPC parameters
 predict_vars:
-  x: 0
-  z: 0
+  x: 1000
+  z: 1000
   dx: 100
   dz: 100
-  att: 1
-  datt: 1
-  ddx: 0
+  att: 1000
+  datt: 1000
+  ddx: 1000
   thrust_scaling: 0
   disturbance_torque: 0
 

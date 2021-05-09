@@ -13,6 +13,9 @@
               --import real_time_simulator drone_gnc"/>
 
     <node pkg="rosbag" type="record" name="recorder" args="record -a -O $(find drone_utils)/log/log.bag"/>
+
+
+<!--    <node name ="benchmark" pkg="drone_utils" type="send_command_apogees.py" output="screen"/>-->
 </launch>
 
 

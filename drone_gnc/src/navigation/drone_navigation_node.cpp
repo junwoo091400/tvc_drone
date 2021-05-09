@@ -24,7 +24,7 @@ public:
     // Callback function to store last received sensor data
     void sensorCallback(const drone_gnc::Sensor::ConstPtr &sensor) {
         DroneEKF::sensor_data new_data;
-        new_data.segment(0, 3) << sensor->IMU_acc.x, sensor->IMU_acc.y, sensor->IMU_acc.z;
+        new_data.segment(0, 3) << sensor->IMU_gyro.x, sensor->IMU_gyro.y, sensor->IMU_gyro.z;
 
         kalman.predictStep();
         kalman.updateStep(new_data);
@@ -55,7 +55,7 @@ public:
         // Subscribe to time_keeper for fsm and time
         control_sub = nh.subscribe("/drone_control", 100, &DroneEKF::updateCurrentControl, &kalman);
 
-        sensor_sub = nh.subscribe("/simu_sensor_pub", 100,  &DroneNavigationNode::sensorCallback, this);
+        sensor_sub = nh.subscribe("/sensors", 100,  &DroneNavigationNode::sensorCallback, this);
     }
 
 
