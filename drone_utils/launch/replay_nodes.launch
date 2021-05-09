@@ -1,0 +1,24 @@
+<launch>
+    <machine name="gnc_machine" address="localhost"/>
+    <rosparam param="/is_simu">false</rosparam>
+
+    <group ns="rocket">
+        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+    </group>
+
+    <group ns="filter">
+        <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
+    </group>
+
+<!--    <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>-->
+
+    <node name="navigation" pkg="drone_gnc" type="drone_navigation_optitrack" machine="gnc_machine" cwd="node" output="screen">
+        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0, 1, 0,0,0]</rosparam>
+        <rosparam param="drone_dome">true</rosparam>
+    </node>
+
+    <node pkg="rosbag" type="record" name="recorder" args="record -a -O $(find drone_utils)/log/log.bag"/>
+
+</launch>
+
+

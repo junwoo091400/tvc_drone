@@ -12,16 +12,23 @@ import time
 import rosbag
 import csv
 
-NX = 13
+NX = 12
 NU = 4
-NNODE = 8
+NNODE = 0
 
+rospack = rospkg.RosPack()
+bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
+
+for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
+    NNODE = len(msg.trajectory)
+    break
 
 def convert_state_to_array(state):
+    r = R.from_quat([state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w])
+    attitude_euler = r.as_euler('zyx', degrees=True)
     state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
                             state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
-                            state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z,
-                            state.pose.orientation.w,
+                            attitude_euler[0], attitude_euler[1], attitude_euler[2],
                             state.twist.angular.x, state.twist.angular.y, state.twist.angular.z])
     return state_array
 
@@ -31,15 +38,12 @@ def convert_control_to_array(control):
     return control_array
 
 
-rospack = rospkg.RosPack()
-bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
-
 time_init = 0
 for topic, msg, t in bag.read_messages(topics=['/commands']):
     time_init = t.to_sec()
     break
 
-t_end = time_init + 5
+t_end = time_init + 3
 
 kalman_state_history = np.empty((0, NX + 1))
 for topic, msg, t in bag.read_messages(topics=['/drone_state']):
@@ -95,13 +99,12 @@ var_indexes = {
     "dx": 4,
     "dy": 5,
     "dz": 6,
-    "q_x": 7,
-    "q_y": 8,
-    "q_z": 9,
-    "q_w": 10,
-    "dyaw (x)": 11,
-    "dpitch (y)": 12,
-    "droll (z)": 13,
+    "yaw (x)": 7,
+    "pitch (y)": 8,
+    "roll (z)": 9,
+    "dyaw (x)": 10,
+    "dpitch (y)": 11,
+    "droll (z)": 12,
     "servo1": 1,
     "servo2": 2,
     "bottom": 3,
@@ -117,10 +120,9 @@ state_plot_indexes = {
     (1, 1): ("t", "dy"),
     (1, 2): ("t", "dz"),
 
-    (2, 0): ("t", "q_x"),
-    (2, 1): ("t", "q_y"),
-    (2, 2): ("t", "q_z"),
-    (2, 3): ("t", "q_w"),
+    (2, 0): ("t", "yaw (x)"),
+    (2, 1): ("t", "pitch (y)"),
+    (2, 2): ("t", "roll (z)"),
 
     (3, 0): ("t", "dyaw (x)"),
     (3, 1): ("t", "dpitch (y)"),
@@ -136,16 +138,15 @@ control_plot_indexes = {
 
 plot_ranges = {
     "t": [0, t_end - time_init],
-    "x": [-2, 2],
-    "y": [-2, 2],
-    "z": [-2, 2],
-    "dx": [-2, 2],
-    "dy": [-2, 2],
-    "dz": [-2, 2],
-    "q_x": [-0.3, 0.3],
-    "q_y": [-0.3, 0.3],
-    "q_z": [-0.3, 0.3],
-    "q_w": [0.7, 1.3],
+    "x": [-1, 1],
+    "y": [-1, 1],
+    "z": [-1, 1],
+    "dx": [-0.2, 0.2],
+    "dy": [-0.2, 0.2],
+    "dz": [-0.2, 0.2],
+    "yaw (x)": [-15, 15],
+    "pitch (y)": [-15, 15],
+    "roll (z)": [-15, 15],
     "dyaw (x)": [-0.3, 0.3],
     "dpitch (y)": [-0.3, 0.3],
     "droll (z)": [-0.3, 0.3],
