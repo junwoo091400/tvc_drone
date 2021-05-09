@@ -7,14 +7,12 @@
 
 class Rocket {
 public:
-    float dry_mass;
-    float dry_mass_inv;
+    double dry_mass;
+    double dry_mass_inv;
 
-    float dry_CM;
-    float total_CM; // Current Cm of rocket, in real time
+    double total_CM; // Current Cm of rocket, in real time
 
-    std::vector<float> dry_Inertia{0, 0, 0};
-    std::vector<float> total_Inertia{0, 0, 0};
+    std::vector<double> dry_Inertia{0, 0, 0};
 
     Eigen::Vector<double, 3> gravity_vector;
     Eigen::Vector<double, 3> inertia;
@@ -28,8 +26,6 @@ public:
         else {
             ROS_ERROR("Failed to get rocket parameters");
         }
-
-        total_Inertia = dry_Inertia;
 
         inertia << dry_Inertia[0], dry_Inertia[1], dry_Inertia[2];
         inertia_inv = inertia.cwiseInverse();

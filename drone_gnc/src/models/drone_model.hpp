@@ -12,6 +12,17 @@ public:
     static const int NU = 4;
     static const int NP = 4;
 
+    template<typename T>
+    using state_t = Eigen::Matrix<T, NX, 1>;
+    using state = state_t<double>;
+    template<typename T>
+    using control_t = Eigen::Matrix<T, NU, 1>;
+    using control = control_t<double>;
+    template<typename T>
+    using parameters_t = Eigen::Matrix<T, NP, 1>;
+    using parameters = parameters_t<double>;
+
+
     double minPropellerSpeed;
     double maxPropellerSpeed;
     double maxPropellerDelta;
@@ -19,19 +30,24 @@ public:
     double maxServo1Angle;
     double maxServo2Angle;
 
+
     double thrust_scaling;
     Eigen::Vector3d disturbance_torque;
 
     void init(ros::NodeHandle &n) {
+        double maxServo1Angle_degree, maxServo2Angle_degree;
         if (n.getParam("/rocket/minPropellerSpeed", minPropellerSpeed) &&
             n.getParam("/rocket/maxPropellerSpeed", maxPropellerSpeed) &&
             n.getParam("/rocket/maxPropellerDelta", maxPropellerDelta) &&
-            n.getParam("/rocket/maxServo1Angle", maxServo1Angle) &&
-            n.getParam("/rocket/maxServo2Angle", maxServo2Angle) &&
+            n.getParam("/rocket/maxServo1Angle", maxServo1Angle_degree) &&
+            n.getParam("/rocket/maxServo2Angle", maxServo2Angle_degree) &&
             n.getParam("/rocket/CM_to_thrust_distance", total_CM)) {}
         else {
             ROS_ERROR("Failed to get drone parameters");
         }
+
+        maxServo1Angle = maxServo1Angle_degree * (M_PI/180);
+        maxServo2Angle = maxServo2Angle_degree * (M_PI/180);
 
         Rocket::init(n);
 
@@ -40,9 +56,9 @@ public:
     }
 
     template<typename T, typename state>
-    inline void state_dynamics(const Eigen::Matrix<T, NX, 1> &x,
-                               const Eigen::Matrix<T, NU, 1> &u,
-                               const Eigen::Matrix<T, NP, 1> &params,
+    inline void state_dynamics(const state_t<T> &x,
+                               const control_t<T> &u,
+                               const parameters_t<T> &params,
                                state &xdot) const {
         Eigen::Matrix<T, 4, 1> input;
         input << u(0), u(1), u(2), u(3);
@@ -119,25 +135,16 @@ public:
     }
 
 
-    void stepRK4(const Eigen::Matrix<double, NX, 1> x0, const Eigen::Matrix<double, NU, 1> u, double dT,
-                 Eigen::Matrix<double, NX, 1> &x_next) {
-        Eigen::Matrix<double, NX, 1> k1, k2, k3, k4;
+    void stepRK4(const state x0, const control u, double dT, state &x_next) {
+        state k1, k2, k3, k4;
 
-        Eigen::Matrix<double, NU, 1> params;
+        parameters params;
         getParams(params);
 
         state_dynamics(x0, u, params, k1);
-        //TODO
-        k1.segment(3, 3) = 1e-2 * k1.segment(3, 3);
         state_dynamics((x0 + k1 * dT / 2).eval(), u, params, k2);
-        //TODO
-        k2.segment(3, 3) = 1e-2 * k2.segment(3, 3);
         state_dynamics((x0 + k2 * dT / 2).eval(), u, params, k3);
-        //TODO
-        k3.segment(3, 3) = 1e-2 * k3.segment(3, 3);
         state_dynamics((x0 + k3 * dT).eval(), u, params, k4);
-        //TODO
-        k4.segment(3, 3) = 1e-2 * k4.segment(3, 3);
 
         x_next = x0 + (k1 + 2 * k2 + 2 * k3 + k4) * dT / 6;
     }
