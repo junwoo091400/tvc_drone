@@ -80,7 +80,6 @@ public:
                 current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
                 current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
 
-        drone_mpc.mpc.ocp().scaleState(x0);
         drone_mpc.drone->setParams(current_state.thrust_scaling, current_state.disturbance_torque.x,
                                    current_state.disturbance_torque.y, current_state.disturbance_torque.z);
 
@@ -99,7 +98,7 @@ public:
         if (USE_BACKUP_CONTROLLER) {
             drone_control = backupController.getControl(current_state, target_apogee);
         } else {
-            drone_control = drone_mpc.interpolateControlSplineService();
+            drone_control = drone_mpc.getControlCurrentTime();
         }
 
         ROS_INFO_STREAM("published at " << ros::Time::now().toSec() - drone_mpc.init_time);
@@ -112,8 +111,8 @@ public:
         drone_gnc::Trajectory trajectory_msg;
         drone_gnc::DroneTrajectory horizon_msg;
         for (int i = 0; i < drone_mpc.mpc.ocp().NUM_NODES; i++) {
-            DroneMPC::state state_val = drone_mpc.mpc.solution_x_at(i);
-            drone_mpc.mpc.ocp().unScaleState(state_val);
+            DroneMPC::state state_val = drone_mpc.mpc.solution_x_at(i).cwiseProduct(
+                    drone_mpc.mpc.ocp().x_unscaling_vec);
 
             drone_gnc::Waypoint point;
             point.time = drone_mpc.mpc.time_grid(i);
@@ -141,8 +140,8 @@ public:
             state_msg.twist.angular.y = state_val(11);
             state_msg.twist.angular.z = state_val(12);
 
-            DroneMPC::control control_val = drone_mpc.mpc.solution_u_at(i);
-            drone_mpc.mpc.ocp().unScaleControl(control_val);
+            DroneMPC::control control_val = drone_mpc.mpc.solution_u_at(i).cwiseProduct(
+                    drone_mpc.mpc.ocp().u_unscaling_vec);
             drone_gnc::DroneControl control_msg;
             control_msg.servo1 = control_val(0);
             control_msg.servo2 = control_val(1);
@@ -184,10 +183,8 @@ public:
                 0, 0, 0,
                 0, 0, 0, 1,
                 0, 0, 0;
-        drone_mpc.mpc.ocp().scaleState(target_state);
 
         target_control << 0, 0, drone->getHoverSpeedAverage(), 0;
-        drone_mpc.mpc.ocp().scaleControl(target_control);
 //        }
 
         drone_mpc.setTarget(target_state, target_control);

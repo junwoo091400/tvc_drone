@@ -25,7 +25,7 @@ public:
 
     void solve(state &x0);
 
-    drone_gnc::DroneControl interpolateControlSplineService();
+    drone_gnc::DroneControl getControlCurrentTime();
 
     void setTarget(state &target_state, control &target_control);
 

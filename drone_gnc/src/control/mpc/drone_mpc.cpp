@@ -25,19 +25,14 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
 
     // Initial state
     state x0;
-    state previous_x0;
     x0 << 0, 0, 0,
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
-    previous_x0 << 0, 0, 0,
-            0, 0, 0,
-            0, 0, 0, 1,
-            0, 0, 0;
-    mpc.x_guess(x0.replicate(mpc.ocp().NUM_NODES, 1));
+    mpc.x_guess(x0.cwiseProduct(mpc.ocp().x_scaling_vec).replicate(mpc.ocp().NUM_NODES, 1));
     control u0;
     u0 << 0, 0, drone->getHoverSpeedAverage(), 0;
-    mpc.u_guess(u0.replicate(mpc.ocp().NUM_NODES, 1));
+    mpc.u_guess(u0.cwiseProduct(mpc.ocp().u_scaling_vec).replicate(mpc.ocp().NUM_NODES, 1));
 
     control target_control;
     target_control.setZero();
@@ -50,12 +45,11 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
 }
 
 
-drone_gnc::DroneControl DroneMPC::interpolateControlSplineService() {
+drone_gnc::DroneControl DroneMPC::getControlCurrentTime() {
     double interp_time = ros::Time::now().toSec() - solution_time;
     interp_time = std::max(std::min(interp_time, horizon_length), 0.0);
     ROS_INFO_STREAM("interpolation time " << interp_time);
-    control interpolated_control = mpc.solution_u_at(interp_time);
-    mpc.ocp().unScaleControl(interpolated_control);
+    control interpolated_control = mpc.solution_u_at(interp_time).cwiseProduct(mpc.ocp().u_unscaling_vec);
 
     drone_gnc::DroneControl drone_control;
     drone_control.servo1 = interpolated_control(0);
@@ -76,8 +70,8 @@ drone_gnc::DroneControl DroneMPC::interpolateControlSplineService() {
 
 
 void DroneMPC::setTarget(state &target_state, control &target_control) {
-    mpc.ocp().xs << target_state;
-    mpc.ocp().us << target_control;
+    mpc.ocp().xs << target_state.cwiseProduct(mpc.ocp().x_scaling_vec);
+    mpc.ocp().us << target_control.cwiseProduct(mpc.ocp().u_scaling_vec);
 }
 
 void DroneMPC::warmStart() {
@@ -118,7 +112,7 @@ void DroneMPC::solve(state &x0) {
 
 //    ROS_INFO_STREAM("predicted x0 " <<predicted_x0.transpose().head(6)*100);
 
-    mpc.initial_conditions(predicted_x0);
+    mpc.initial_conditions(predicted_x0.cwiseProduct(mpc.ocp().x_scaling_vec));
 //    warmStart();
 
 
@@ -145,14 +139,12 @@ void DroneMPC::integrateX0(const state x0, state &new_x0){
 
     int i;
     for(i = 0; i<max_ff_index-1; i++){
-        control interpolated_control = mpc.solution_u_at(feedforward_period*i);
-        mpc.ocp().unScaleControl(interpolated_control);
+        control interpolated_control = mpc.solution_u_at(feedforward_period*i).cwiseProduct(mpc.ocp().u_unscaling_vec);
         drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
     }
     i++;
 
-    control interpolated_control = mpc.solution_u_at(feedforward_period*i);
-    mpc.ocp().unScaleControl(interpolated_control);
+    control interpolated_control = mpc.solution_u_at(feedforward_period*i).cwiseProduct(mpc.ocp().u_unscaling_vec);
     drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
 }
 

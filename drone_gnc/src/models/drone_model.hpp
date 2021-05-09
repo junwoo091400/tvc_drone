@@ -90,17 +90,6 @@ public:
         Rocket::generic_rocket_dynamics(x_body, thrust_vector, (propeller_torque + dist_torque).eval(), xdot_body);
     }
 
-    template<typename T, typename state_dot>
-    inline void scaled_state_dynamics(const state_t<T> &x,
-                                      const control_t<T> &u,
-                                      const parameters_t<T> &params,
-                                      state_dot &xdot) const noexcept {
-
-        control_t<T> u_scaled;
-//        scaleControl()
-        state_dynamics(x, u, params, xdot);
-    }
-
     //thrust 3rd order model
     const double a = 1.4902e-04;
     const double b = 0.0143;
@@ -146,25 +135,16 @@ public:
     }
 
 
-    void stepRK4(const state x0, const control u, double dT,
-                 state &x_next) {
+    void stepRK4(const state x0, const control u, double dT, state &x_next) {
         state k1, k2, k3, k4;
 
         parameters params;
         getParams(params);
 
         state_dynamics(x0, u, params, k1);
-        //TODO
-        k1.segment(3, 3) = 1 * k1.segment(3, 3);
         state_dynamics((x0 + k1 * dT / 2).eval(), u, params, k2);
-        //TODO
-        k2.segment(3, 3) = 1 * k2.segment(3, 3);
         state_dynamics((x0 + k2 * dT / 2).eval(), u, params, k3);
-        //TODO
-        k3.segment(3, 3) = 1 * k3.segment(3, 3);
         state_dynamics((x0 + k3 * dT).eval(), u, params, k4);
-        //TODO
-        k4.segment(3, 3) = 1 * k4.segment(3, 3);
 
         x_next = x0 + (k1 + 2 * k2 + 2 * k3 + k4) * dT / 6;
     }
