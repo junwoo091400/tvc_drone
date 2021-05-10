@@ -28,8 +28,8 @@ scaling_z: 4
 
 horizon_length: 1.0
 
-max_iter: 2
-line_search_max_iter: 5
+max_iter: 1
+line_search_max_iter: 4
 mpc_period: 0.02
 feedforward_period: 0.02
 
