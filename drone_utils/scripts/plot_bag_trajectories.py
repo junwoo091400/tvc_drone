@@ -12,6 +12,8 @@ import time
 import rosbag
 import csv
 
+from math import acos
+
 NX = 12
 NU = 4
 NNODE = 0
@@ -72,11 +74,21 @@ for topic, msg, t in bag.read_messages(topics=['/drone_control']):
 
 state_horizon_history = np.empty((NNODE, NX + 1, 0))
 control_horizon_history = np.empty((NNODE, NU + 1, 0))
+i = 0
 for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
     if t.to_sec() > time_init and t.to_sec() < t_end:
         state_horizon = np.empty((0, NX + 1))
         control_horizon = np.empty((0, NU + 1))
         for waypoint_stamped in msg.trajectory:
+            x = waypoint_stamped.state.pose.orientation.x
+            y = waypoint_stamped.state.pose.orientation.y
+            z = waypoint_stamped.state.pose.orientation.z
+            w = waypoint_stamped.state.pose.orientation.w
+            if i==1:
+                print(x, y, z, w)
+                print(z**2 + w**2 -x**2 - y**2)
+                # print(acos(z**2 + w**2 -x**2 - y**2)*180/math.pi)
+
             state_array = np.concatenate((
                 np.array([waypoint_stamped.header.stamp.to_sec() - time_init]),
                 convert_state_to_array(waypoint_stamped.state)
@@ -87,6 +99,7 @@ for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
             ))
             state_horizon = np.vstack((state_horizon, state_array))
             control_horizon = np.vstack((control_horizon, control_array))
+        i += 1
         state_horizon_history = np.dstack((state_horizon_history, state_horizon))
         control_horizon_history = np.dstack((control_horizon_history, control_horizon))
 

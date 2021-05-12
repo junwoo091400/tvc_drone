@@ -77,7 +77,7 @@ public:
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
 //        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
-        scalar_t maxAttitudeAngle_degree;
+        scalar_t maxAttitudeAngle_degree, weight_scaling;
         if (nh.getParam("/mpc/min_z", min_z) &&
             nh.getParam("/mpc/min_dz", min_dz) &&
             nh.getParam("/mpc/max_dx", max_dx) &&
@@ -85,6 +85,7 @@ public:
             nh.getParam("/mpc/max_datt", max_datt) &&
             nh.getParam("/mpc/scaling_x", scaling_x) &&
             nh.getParam("/mpc/scaling_z", scaling_z) &&
+            nh.getParam("/mpc/weight_scaling", weight_scaling) &&
 
             //                nh.getParam("/mpc/state_costs/x", x_cost) &&
             //            nh.getParam("/mpc/state_costs/dz", dx_cost) &&
@@ -123,10 +124,7 @@ public:
                     0.16346, 0, 0, 0.14597, 0, 0, 0, 1.1173, 0, 0, 0, 0.10168, 0,
                     0, 0, 0, 0, 0, 0, 0, 0, 0.96154, 0, 0, 0, 1.3467;
 
-
             ROS_INFO_STREAM("QN" << QN);
-//            scaleCost(Q);
-//            scaleCost(QN);
 
             maxAttitudeAngle = maxAttitudeAngle_degree * (M_PI / 180);
 
@@ -137,15 +135,8 @@ public:
             x_scaling_vec = x_unscaling_vec.cwiseInverse();
 
             u_unscaling_vec << drone->maxServo1Angle, drone->maxServo2Angle,
-                    drone->maxPropellerSpeed, drone->maxPropellerDelta;
+                    drone->maxPropellerSpeed, drone->maxPropellerDelta/2;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
-
-
-            x_unscaling_vec.setOnes();
-            x_scaling_vec.setOnes();
-
-            u_unscaling_vec.setOnes();
-            u_scaling_vec.setOnes();
 
             //scale costs
             Q = Q.cwiseProduct(x_unscaling_vec).cwiseProduct(x_unscaling_vec);
@@ -160,10 +151,9 @@ public:
             ROS_INFO_STREAM("Q" << Q);
             ROS_INFO_STREAM("R" << R);
             ROS_INFO_STREAM("QN" << QN);
-            double additional_scaling = 1;
-            R /= additional_scaling;
-            Q /= additional_scaling;
-            QN /= additional_scaling;
+            R /= weight_scaling;
+            Q /= weight_scaling;
+            QN /= weight_scaling;
         } else {
             ROS_ERROR("Failed to get MPC parameter");
         }
@@ -177,11 +167,10 @@ public:
         const double eps = 1e-1;
 
         lbu << -drone->maxServo1Angle, -drone->maxServo2Angle,
-                drone->minPropellerSpeed, -drone->maxPropellerDelta; // lower bound on control
+                drone->minPropellerSpeed, -drone->maxPropellerDelta/2; // lower bound on control
         ubu << drone->maxServo1Angle, drone->maxServo2Angle,
-                drone->maxPropellerSpeed, drone->maxPropellerDelta; // upper bound on control
+                drone->maxPropellerSpeed, drone->maxPropellerDelta/2; // upper bound on control
 
-        //TODO change state constraints
         lbx << -inf, -inf, min_z + eps,
                 -max_dx, -max_dx, min_dz,
                 -inf, -inf, -inf, -inf,
@@ -192,12 +181,9 @@ public:
                 inf, inf, inf, inf,
                 max_datt, max_datt, inf;
 
-        ROS_INFO_STREAM(lbx.transpose());
-        ROS_INFO_STREAM(ubx.transpose());
-
         //TODO fix attitude constraint [cos(maxAttitudeAngle) 1]
-        lbg << drone->minPropellerSpeed, drone->minPropellerSpeed, -inf;
-        ubg << drone->maxPropellerSpeed, drone->maxPropellerSpeed, inf;
+        lbg << cos(maxAttitudeAngle), drone->minPropellerSpeed, drone->minPropellerSpeed;
+        ubg << inf, drone->maxPropellerSpeed, drone->maxPropellerSpeed;
         ROS_INFO_STREAM(lbg);
 
         lbu = lbu.cwiseProduct(u_scaling_vec);
@@ -207,6 +193,9 @@ public:
 
         lbx = lbx.cwiseProduct(x_scaling_vec);
         ubx = ubx.cwiseProduct(x_scaling_vec);
+        ROS_INFO_STREAM(lbx.transpose());
+        ROS_INFO_STREAM(ubx.transpose());
+
     }
 
     template<typename T>
@@ -232,7 +221,7 @@ public:
         drone->state_dynamics(x_drone, u_drone, params, xdot);
 
         //unscale
-        xdot = xdot.cwiseProduct(x_scaling_vec.template cast<T>());
+        xdot.segment(0, 13) = xdot.segment(0, 13).cwiseProduct(x_scaling_vec.template cast<T>());
     }
 
     template<typename T>
@@ -243,14 +232,16 @@ public:
 
     g) const noexcept
     {
-        T attitude_error_cos = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
         Eigen::Matrix<T, 4, 1> u_drone = u.segment(0, 4);
 
         u_drone = u_drone.cwiseProduct(u_unscaling_vec.template cast<T>());
 
-        g(0) = u_drone(2) + u_drone(3);
-        g(1) = u_drone(2) - u_drone(3);
-        g(2) = attitude_error_cos;
+        g(0) = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
+        //TODO
+        g(1) = 50;
+        g(2) = 50;
+//        g(1) = u_drone(2) + u_drone(3);
+//        g(2) = u_drone(2) - u_drone(3);
     }
 
     template<typename T>

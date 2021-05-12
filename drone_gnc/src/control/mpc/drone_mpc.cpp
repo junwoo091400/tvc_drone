@@ -12,6 +12,7 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
 
     mpc.settings().max_iter = max_iter;
     mpc.settings().line_search_max_iter = line_search_max_iter;
+    ROS_INFO_STREAM("max_ter" << line_search_max_iter);
 
     nh.getParam("/mpc/horizon_length", horizon_length);
     mpc.set_time_limits(0, horizon_length);
@@ -85,7 +86,7 @@ void DroneMPC::warmStart() {
     control u_interp;
     double previous_interp_time = 0;
 
-    double time_since_last_solve = ros::Time::now().toSec() - solution_time;
+    double time_since_last_solve = feedforward_period;
 
     for (int i = 0; i < NUM_NODES; i++) {
         double interp_time = mpc.time_grid(i) + time_since_last_solve;
@@ -93,7 +94,11 @@ void DroneMPC::warmStart() {
             x_interp = mpc.solution_x_at(interp_time);
             u_interp = mpc.solution_u_at(interp_time);
         } else {
-            drone->stepRK4(x_interp, u_interp, interp_time - previous_interp_time, x_interp);
+//            drone->stepRK4(x_interp.cwiseProduct(mpc.ocp().x_unscaling_vec),
+//                           u_interp.cwiseProduct(mpc.ocp().u_unscaling_vec),
+//                           interp_time - previous_interp_time,
+//                           x_interp);
+//            x_interp = x_interp.cwiseProduct(mpc.ocp().x_scaling_vec);
         }
         x_guess.segment((NUM_NODES - i - 1) * NX, NX) = x_interp;
         u_guess.segment((NUM_NODES - i - 1) * NU, NU) = u_interp;
