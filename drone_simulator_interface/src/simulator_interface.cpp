@@ -5,11 +5,12 @@
 #include "drone_gnc/DroneState.h"
 #include "real_time_simulator/Control.h"
 #include <Eigen/Eigen>
+#include <std_msgs/String.h>
 #include "drone_model.hpp"
 
 using namespace Eigen;
 
-ros::Publisher rocket_control_pub, drone_state_pub, kalman_rocket_state_pub;
+ros::Publisher rocket_control_pub, drone_state_pub, kalman_rocket_state_pub, command_pub;
 
 float CM_to_thrust_distance = 0.205;
 
@@ -22,7 +23,9 @@ Matrix<double, 2, 1> x_servo2;
 
 Drone drone;
 
-float CM_OFFSET_X = 0;
+double CM_OFFSET_X = 0;
+
+bool first_command = true;
 
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
 
@@ -62,6 +65,13 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
     converted_control.force.z = thrust_vector.z();
 
     rocket_control_pub.publish(converted_control);
+
+    if (first_command){
+        first_command = false;
+        std_msgs::String msg;
+        msg.data = "Launch";
+        command_pub.publish(msg);
+    }
 }
 
 void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_state) {
@@ -108,7 +118,7 @@ int main(int argc, char **argv) {
     ros::Subscriber drone_control_sub = nh.subscribe("/drone_control", 10, publishConvertedControl);
 
     // Create control publisher
-    rocket_control_pub = nh.advertise<real_time_simulator::Control>("/control_pub", 10);
+    rocket_control_pub = nh.advertise<real_time_simulator::Control>("/control_measured", 10);
 
     // Subscribe to rocket state
     ros::Subscriber rocket_state_sub = nh.subscribe("/rocket_state", 10, publishConvertedState);
@@ -116,6 +126,7 @@ int main(int argc, char **argv) {
     // Create drone state publisher
     drone_state_pub = nh.advertise<drone_gnc::DroneState>("/simu_drone_state", 10);
 
+    command_pub = nh.advertise<std_msgs::String>("/commands", 10);
     // Automatic callback of service and publisher from here
     ros::spin();
 }

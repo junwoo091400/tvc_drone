@@ -3,16 +3,17 @@
 DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solution_time(0), drone(drone_ptr) {
     // Initialize rocket class with useful parameters
     mpc.ocp().init(nh, drone);
-    int max_iter, line_search_max_iter;
-    nh.getParam("/mpc/max_iter", max_iter);
-    nh.getParam("/mpc/line_search_max_iter", line_search_max_iter);
+    int max_sqp_iter, max_qp_iter, max_line_search_iter;
+    nh.getParam("/mpc/max_sqp_iter", max_sqp_iter);
+    nh.getParam("/mpc/max_line_search_iter", max_line_search_iter);
     nh.getParam("/mpc/mpc_period", mpc_period);
     nh.getParam("/mpc/feedforward_period", feedforward_period);
+    nh.getParam("/mpc/max_qp_iter", max_qp_iter);
     nh.param("/is_simu", is_simu, true);
 
-    mpc.settings().max_iter = max_iter;
-    mpc.settings().line_search_max_iter = line_search_max_iter;
-    ROS_INFO_STREAM("max_ter" << line_search_max_iter);
+    mpc.settings().max_iter = max_sqp_iter;
+    mpc.settings().line_search_max_iter = max_line_search_iter;
+    mpc.qp_settings().max_iter = max_qp_iter;
 
     nh.getParam("/mpc/horizon_length", horizon_length);
     mpc.set_time_limits(0, horizon_length);
@@ -115,8 +116,21 @@ void DroneMPC::solve(state &x0) {
     integrateX0(x0, predicted_x0);
 
 //    ROS_INFO_STREAM("predicted x0 " <<predicted_x0.transpose().head(6)*100);
-
     mpc.initial_conditions(predicted_x0.cwiseProduct(mpc.ocp().x_scaling_vec));
+
+    //servo rate constraint
+//    control previous_u = mpc.solution_u_at(0).cwiseProduct(mpc.ocp().u_unscaling_vec);
+//    double maxServoRate = drone->maxServoRate;
+//    control lbu0;
+//    lbu0 << previous_u(0) - maxServoRate*mpc_period, previous_u(1) - maxServoRate*mpc_period,
+//            drone->minPropellerSpeed, -drone->maxPropellerDelta/2; // lower bound on control
+//    control ubu0;
+//    ubu0 << previous_u(0) + maxServoRate*mpc_period, previous_u(1) + maxServoRate*mpc_period,
+//            drone->maxPropellerSpeed, drone->maxPropellerDelta/2; // upper bound on control
+//
+//    mpc.solver().lower_bound_x().template segment<control_ocp::NU>(mpc.varx_size + mpc.varu_size - control_ocp::NU) = lbu0.cwiseProduct(mpc.ocp().u_scaling_vec);
+//    mpc.solver().upper_bound_x().template segment<control_ocp::NU>(mpc.varx_size + mpc.varu_size - control_ocp::NU) = ubu0.cwiseProduct(mpc.ocp().u_scaling_vec);
+
 //    warmStart();
 
 
