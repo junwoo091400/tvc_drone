@@ -1,7 +1,0 @@
-<launch>
-    <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
-    <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
-<!--    <param name="gnc_fsm/initial_state" value="Launch"/>-->
-
-    <node name="plot_results" pkg="model_comparisons" type="compare.py" output="screen"/>
-</launch>

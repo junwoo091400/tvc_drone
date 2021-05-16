@@ -101,7 +101,6 @@ public:
             drone_control = drone_mpc.getControlCurrentTime();
         }
 
-        ROS_INFO_STREAM("published at " << ros::Time::now().toSec() - drone_mpc.init_time);
         drone_control_pub.publish(drone_control);
     }
 

@@ -9,15 +9,17 @@
 #include <cmath>
 #include <drone_model.hpp>
 
+using namespace Eigen;
+
 class DroneBackupController {
 public:
     static const int NX = 12;
     static const int NU = 4;
 
-    using state = Eigen::Matrix<double, NX, 1>;
-    using control = Eigen::Matrix<double, NU, 1>;
+    using state = Matrix<double, NX, 1>;
+    using control = Matrix<double, NU, 1>;
 
-    Eigen::Matrix<double, NU, NX> K;
+    Matrix<double, NU, NX> K;
     state xs;
     control us;
 

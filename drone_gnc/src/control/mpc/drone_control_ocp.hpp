@@ -24,20 +24,8 @@ using namespace Eigen;
 
 using namespace std;
 
-typedef std::chrono::time_point<std::chrono::system_clock> time_point;
-
-//time_point get_time() {
-//    /** OS dependent */
-//#ifdef __APPLE__
-//    return std::chrono::system_clock::now();
-//#else
-//    return std::chrono::high_resolution_clock::now();
-//#endif
-//}
-
 #define POLY_ORDER 7
 #define NUM_SEG    1
-#define NUM_EXP    1
 
 /** benchmark the new collocation class */
 using Polynomial = polympc::Chebyshev<POLY_ORDER, polympc::GAUSS_LOBATTO, double>;
@@ -49,12 +37,12 @@ class control_ocp : public ContinuousOCP<control_ocp, Approximation, SPARSE> {
 public:
     ~control_ocp() = default;
 
-    Eigen::Matrix<scalar_t, NX, 1> Q;
-    Eigen::Matrix<scalar_t, NU, 1> R;
-    Eigen::Matrix<scalar_t, NX, NX> QN;
+    Matrix<scalar_t, NX, 1> Q;
+    Matrix<scalar_t, NU, 1> R;
+    Matrix<scalar_t, NX, NX> QN;
 
-    Eigen::Matrix<scalar_t, NX, 1> xs;
-    Eigen::Matrix<scalar_t, NU, 1> us;
+    Matrix<scalar_t, NX, 1> xs;
+    Matrix<scalar_t, NU, 1> us;
 
     shared_ptr<Drone> drone;
 
@@ -68,11 +56,11 @@ public:
     scalar_t scaling_x;
     scalar_t scaling_z;
 
-    Eigen::Matrix<scalar_t, NX, 1> x_unscaling_vec;
-    Eigen::Matrix<scalar_t, NU, 1> u_unscaling_vec;
+    Matrix<scalar_t, NX, 1> x_unscaling_vec;
+    Matrix<scalar_t, NU, 1> u_unscaling_vec;
 
-    Eigen::Matrix<scalar_t, NX, 1> x_scaling_vec;
-    Eigen::Matrix<scalar_t, NU, 1> u_scaling_vec;
+    Matrix<scalar_t, NX, 1> x_scaling_vec;
+    Matrix<scalar_t, NU, 1> u_scaling_vec;
 
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
@@ -141,7 +129,7 @@ public:
             //scale costs
             Q = Q.cwiseProduct(x_unscaling_vec).cwiseProduct(x_unscaling_vec);
 
-            Eigen::Matrix<scalar_t, NX, NX> x_unscaling_mat;
+            Matrix<scalar_t, NX, NX> x_unscaling_mat;
             x_unscaling_mat.setZero();
             x_unscaling_mat.diagonal() << x_unscaling_vec;
             QN = x_unscaling_mat * QN * x_unscaling_mat;
@@ -199,18 +187,18 @@ public:
     }
 
     template<typename T>
-    inline void dynamics_impl(const Eigen::Ref<const state_t <T>> x,
-                              const Eigen::Ref<const control_t <T>> u,
-                              const Eigen::Ref<const parameter_t <T>> p,
-                              const Eigen::Ref<const static_parameter_t> &d,
-                              const T &t, Eigen::Ref<state_t < T>>
+    inline void dynamics_impl(const Ref<const state_t <T>> x,
+                              const Ref<const control_t <T>> u,
+                              const Ref<const parameter_t <T>> p,
+                              const Ref<const static_parameter_t> &d,
+                              const T &t, Ref<state_t < T>>
 
     xdot)  const noexcept{
-        Eigen::Matrix<T, Drone::NX, 1> x_drone = x.segment(0, Drone::NX);
+        Matrix<T, Drone::NX, 1> x_drone = x.segment(0, Drone::NX);
 
-        Eigen::Matrix<T, Drone::NU, 1> u_drone = u.segment(0, Drone::NU);
+        Matrix<T, Drone::NU, 1> u_drone = u.segment(0, Drone::NU);
 
-        Eigen::Matrix<T, Drone::NP, 1> params;
+        Matrix<T, Drone::NP, 1> params;
 
         drone->getParams(params);
 
@@ -226,13 +214,13 @@ public:
 
     template<typename T>
     EIGEN_STRONG_INLINE void
-    inequality_constraints_impl(const Eigen::Ref<const state_t <T>> x, const Eigen::Ref<const control_t <T>> u,
-                                const Eigen::Ref<const parameter_t <T>> p, const Eigen::Ref<const static_parameter_t> d,
-                                const scalar_t &t, Eigen::Ref<constraint_t < T>>
+    inequality_constraints_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
+                                const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
+                                const scalar_t &t, Ref<constraint_t < T>>
 
     g) const noexcept
     {
-        Eigen::Matrix<T, 4, 1> u_drone = u.segment(0, 4);
+        Matrix<T, 4, 1> u_drone = u.segment(0, 4);
 
         u_drone = u_drone.cwiseProduct(u_unscaling_vec.template cast<T>());
 
@@ -245,22 +233,22 @@ public:
     }
 
     template<typename T>
-    inline void lagrange_term_impl(const Eigen::Ref<const state_t <T>> x, const Eigen::Ref<const control_t <T>> u,
-                                   const Eigen::Ref<const parameter_t <T>> p,
-                                   const Eigen::Ref<const static_parameter_t> d,
+    inline void lagrange_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
+                                   const Ref<const parameter_t <T>> p,
+                                   const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
-        Eigen::Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
-        Eigen::Matrix<T, NU, 1> u_error = u - us.template cast<T>();
+        Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
+        Matrix<T, NU, 1> u_error = u - us.template cast<T>();
 
         lagrange = x_error.dot(Q.template cast<T>().cwiseProduct(x_error)) +
                    u_error.dot(R.template cast<T>().cwiseProduct(u_error));
     }
 
     template<typename T>
-    inline void mayer_term_impl(const Eigen::Ref<const state_t <T>> x, const Eigen::Ref<const control_t <T>> u,
-                                const Eigen::Ref<const parameter_t <T>> p, const Eigen::Ref<const static_parameter_t> d,
+    inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
+                                const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        Eigen::Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
+        Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
 
         mayer = x_error.dot(QN.template cast<T>() * x_error);
     }

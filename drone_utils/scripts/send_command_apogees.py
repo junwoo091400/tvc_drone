@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # Init ROS
     rospy.init_node('benchmark', anonymous=True)
 
-    rospy.Subscriber("/drone_state", DroneState, stateCallback)
+    rospy.Subscriber("/simu_drone_state", DroneState, stateCallback)
 
     rospy.wait_for_service('/getFSM_gnc')
     client_fsm = rospy.ServiceProxy('/getFSM_gnc', GetFSM)
@@ -73,12 +73,16 @@ if __name__ == '__main__':
     # Node rate in Hz
     rate = rospy.Rate(10)
     while not rospy.is_shutdown() and i < len(trajectory):
+        print "i", i
+        print "target_pos", target_pos
+        print "current_pos", current_pos
         x1 = current_pos.x
         y1 = current_pos.y
         z1 = current_pos.z
         x2 = target_pos.x
         y2 = target_pos.y
         z2 = target_pos.z
+        print ((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2) ** 0.5
         if ((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2) ** 0.5 < 0.1:
             i += 1
             target_pos = trajectory[i]

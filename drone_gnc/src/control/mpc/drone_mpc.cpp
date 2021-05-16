@@ -49,7 +49,6 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
 drone_gnc::DroneControl DroneMPC::getControlCurrentTime() {
     double interp_time = ros::Time::now().toSec() - solution_time;
     interp_time = std::max(std::min(interp_time, horizon_length), 0.0);
-    ROS_INFO_STREAM("interpolation time " << interp_time);
     control interpolated_control = mpc.solution_u_at(interp_time).cwiseProduct(mpc.ocp().u_unscaling_vec);
 
     drone_gnc::DroneControl drone_control;
