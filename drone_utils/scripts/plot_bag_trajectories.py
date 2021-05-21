@@ -26,7 +26,10 @@ for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
     break
 
 def convert_state_to_array(state):
-    r = R.from_quat([state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w])
+    q = [state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w]
+    if np.isnan(q).any():
+        q = [0, 0, 0, 1]
+    r = R.from_quat(q)
     attitude_euler = r.as_euler('zyx', degrees=True)
     state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
                             state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
@@ -84,7 +87,7 @@ for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
             y = waypoint_stamped.state.pose.orientation.y
             z = waypoint_stamped.state.pose.orientation.z
             w = waypoint_stamped.state.pose.orientation.w
-            if i==1:
+            if i==0:
                 print(x, y, z, w)
                 print(z**2 + w**2 -x**2 - y**2)
                 # print(acos(z**2 + w**2 -x**2 - y**2)*180/math.pi)

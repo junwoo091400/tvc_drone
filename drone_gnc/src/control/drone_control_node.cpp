@@ -109,12 +109,11 @@ public:
         // Send optimal trajectory computed by control. Send only position for now
         drone_gnc::Trajectory trajectory_msg;
         drone_gnc::DroneTrajectory horizon_msg;
-        for (int i = 0; i < drone_mpc.mpc.ocp().NUM_NODES; i++) {
-            DroneMPC::state state_val = drone_mpc.mpc.solution_x_at(i).cwiseProduct(
-                    drone_mpc.mpc.ocp().x_unscaling_vec);
+        for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
+            DroneMPC::state state_val = drone_mpc.solution_x_at(i);
 
             drone_gnc::Waypoint point;
-            point.time = drone_mpc.mpc.time_grid(i);
+            point.time = drone_mpc.node_time(i);
             point.position.x = state_val(0);
             point.position.y = state_val(1);
             point.position.z = state_val(2);
@@ -139,8 +138,7 @@ public:
             state_msg.twist.angular.y = state_val(11);
             state_msg.twist.angular.z = state_val(12);
 
-            DroneMPC::control control_val = drone_mpc.mpc.solution_u_at(i).cwiseProduct(
-                    drone_mpc.mpc.ocp().u_unscaling_vec);
+            DroneMPC::control control_val = drone_mpc.solution_u_at(i);
             drone_gnc::DroneControl control_msg;
             control_msg.servo1 = control_val(0);
             control_msg.servo2 = control_val(1);
@@ -150,7 +148,7 @@ public:
             drone_gnc::DroneWaypointStamped state_msg_stamped;
             state_msg_stamped.state = state_msg;
             state_msg_stamped.control = control_msg;
-            state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(drone_mpc.mpc.time_grid(i));
+            state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(drone_mpc.node_time(i));
             state_msg_stamped.header.frame_id = ' ';
 
 
@@ -199,7 +197,7 @@ public:
 
         ROS_INFO("Ctr T= %.2f ms", drone_mpc.last_computation_time);
 
-        average_status.push_back(drone_mpc.mpc.info().status.value);
+        average_status.push_back(drone_mpc.info().status.value);
         average_time.push_back(time_compute_start);
     }
 
@@ -216,8 +214,8 @@ public:
     }
 
     void publishDebugInfo() {
-        sqp_iter_pub.publish(drone_mpc.mpc.info().iter);
-        qp_iter_pub.publish(drone_mpc.mpc.info().qp_solver_iter);
+        sqp_iter_pub.publish(drone_mpc.info().iter);
+        qp_iter_pub.publish(drone_mpc.info().qp_solver_iter);
         computation_time_pub.publish(drone_mpc.last_computation_time);
     }
 
@@ -264,8 +262,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "control");
     ros::NodeHandle nh("control");
 
-    std::shared_ptr<Drone> drone = make_shared<Drone>();
-    drone->init(nh);
+    std::shared_ptr<Drone> drone = make_shared<Drone>(nh);
 
     DroneControlNode droneControlNode(nh, drone);
 

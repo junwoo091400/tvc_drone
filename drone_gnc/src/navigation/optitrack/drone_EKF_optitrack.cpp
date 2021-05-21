@@ -1,6 +1,6 @@
 #include "drone_EKF_optitrack.h"
 
-void DroneEKF::initEKF(ros::NodeHandle &nh) {
+DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
     double x_var, dx_var, z_var, dz_var, att_var, datt_var, thrust_scaling_var, disturbance_torque_var;
     if (nh.getParam("/filter/predict_vars/x", x_var) &&
         nh.getParam("/filter/predict_vars/dz", dx_var) &&
@@ -40,8 +40,6 @@ void DroneEKF::initEKF(ros::NodeHandle &nh) {
         // H(6, 2) = 1; //baro
 
         H.setZero();
-
-        drone.init(nh);
 
         current_control.servo1 = 0;
         current_control.servo2 = 0;

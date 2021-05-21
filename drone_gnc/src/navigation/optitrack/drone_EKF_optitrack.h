@@ -45,7 +45,7 @@ public:
     template<typename T>
     void measurementModel(const state_t<T> &x, sensor_data_t<T> &z);
 
-    void initEKF(ros::NodeHandle &nh);
+    DroneEKF(ros::NodeHandle &nh);
 
     void fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pnext);
 

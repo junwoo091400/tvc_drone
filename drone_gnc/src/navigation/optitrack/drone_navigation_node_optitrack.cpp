@@ -37,12 +37,9 @@ public:
         received_optitrack = true;
     }
 
-    DroneNavigationNode(ros::NodeHandle &nh) {
+    DroneNavigationNode(ros::NodeHandle &nh) : kalman(nh) {
         // init publishers and subscribers
         initTopics(nh);
-
-        // init EKF
-        kalman.initEKF(nh);
 
         // Initialize fsm
         current_fsm.time_now = 0;

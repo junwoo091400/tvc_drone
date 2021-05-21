@@ -35,15 +35,15 @@ public:
     double thrust_scaling;
     Eigen::Vector3d disturbance_torque;
 
-    void init(ros::NodeHandle &n) {
+    Drone(ros::NodeHandle &nh) : Rocket(nh) {
         double maxServo1Angle_degree, maxServo2Angle_degree, maxServoRate_degree;
-        if (n.getParam("/rocket/minPropellerSpeed", minPropellerSpeed) &&
-            n.getParam("/rocket/maxPropellerSpeed", maxPropellerSpeed) &&
-            n.getParam("/rocket/maxPropellerDelta", maxPropellerDelta) &&
-            n.getParam("/rocket/maxServo1Angle", maxServo1Angle_degree) &&
-            n.getParam("/rocket/maxServo2Angle", maxServo2Angle_degree) &&
-            n.getParam("/rocket/max_servo_rate", maxServoRate_degree) &&
-            n.getParam("/rocket/CM_to_thrust_distance", total_CM)) {}
+        if (nh.getParam("/rocket/minPropellerSpeed", minPropellerSpeed) &&
+            nh.getParam("/rocket/maxPropellerSpeed", maxPropellerSpeed) &&
+            nh.getParam("/rocket/maxPropellerDelta", maxPropellerDelta) &&
+            nh.getParam("/rocket/maxServo1Angle", maxServo1Angle_degree) &&
+            nh.getParam("/rocket/maxServo2Angle", maxServo2Angle_degree) &&
+            nh.getParam("/rocket/max_servo_rate", maxServoRate_degree) &&
+            nh.getParam("/rocket/CM_to_thrust_distance", total_CM)) {}
         else {
             ROS_ERROR("Failed to get drone parameters");
         }
@@ -52,7 +52,6 @@ public:
         maxServo2Angle = maxServo2Angle_degree * (M_PI/180);
         maxServoRate = maxServoRate_degree * (M_PI/180);
 
-        Rocket::init(n);
 
         thrust_scaling = 1;
         disturbance_torque.setZero();

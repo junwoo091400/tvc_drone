@@ -173,6 +173,7 @@ public:
         lbg << cos(maxAttitudeAngle), drone->minPropellerSpeed, drone->minPropellerSpeed;
         ubg << inf, drone->maxPropellerSpeed, drone->maxPropellerSpeed;
         ROS_INFO_STREAM(lbg);
+        ROS_INFO_STREAM("min cos" << cos(maxAttitudeAngle));
 
         lbu = lbu.cwiseProduct(u_scaling_vec);
         ubu = ubu.cwiseProduct(u_scaling_vec);

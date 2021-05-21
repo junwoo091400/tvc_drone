@@ -20,7 +20,7 @@ public:
 
 //    Eigen::Vector<double, 3> euler_coefs;
 
-    virtual void init(ros::NodeHandle n) {
+Rocket(ros::NodeHandle n) {
         if (n.getParam("/rocket/dry_mass", dry_mass) &&
             n.getParam("/rocket/dry_I", dry_Inertia)) {}
         else {

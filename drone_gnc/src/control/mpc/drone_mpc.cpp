@@ -2,7 +2,7 @@
 
 DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solution_time(0), drone(drone_ptr) {
     // Initialize rocket class with useful parameters
-    mpc.ocp().init(nh, drone);
+    ocp().init(nh, drone);
     int max_sqp_iter, max_qp_iter, max_line_search_iter;
     nh.getParam("/mpc/max_sqp_iter", max_sqp_iter);
     nh.getParam("/mpc/max_line_search_iter", max_line_search_iter);
@@ -11,19 +11,19 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     nh.getParam("/mpc/max_qp_iter", max_qp_iter);
     nh.param("/is_simu", is_simu, true);
 
-    mpc.settings().max_iter = max_sqp_iter;
-    mpc.settings().line_search_max_iter = max_line_search_iter;
-    mpc.qp_settings().max_iter = max_qp_iter;
+    settings().max_iter = max_sqp_iter;
+    settings().line_search_max_iter = max_line_search_iter;
+    qp_settings().max_iter = max_qp_iter;
 
     nh.getParam("/mpc/horizon_length", horizon_length);
-    mpc.set_time_limits(0, horizon_length);
+    set_time_limits(0, horizon_length);
 
     // Setup constraints
     state lbx, ubx; control lbu, ubu; constraint ubg, lbg;
-    mpc.ocp().getConstraints(lbx, ubx, lbu, ubu, lbg, ubg);
-    mpc.state_bounds(lbx, ubx);
-    mpc.control_bounds(lbu, ubu);
-    mpc.constraints_bounds(lbg, ubg);
+    ocp().getConstraints(lbx, ubx, lbu, ubu, lbg, ubg);
+    state_bounds(lbx, ubx);
+    control_bounds(lbu, ubu);
+    constraints_bounds(lbg, ubg);
 
     // Initial state
     state x0;
@@ -31,10 +31,10 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
-    mpc.x_guess(x0.cwiseProduct(mpc.ocp().x_scaling_vec).replicate(mpc.ocp().NUM_NODES, 1));
+    x_guess(x0.cwiseProduct(ocp().x_scaling_vec).replicate(ocp().NUM_NODES, 1));
     control u0;
     u0 << 0, 0, drone->getHoverSpeedAverage(), 0;
-    mpc.u_guess(u0.cwiseProduct(mpc.ocp().u_scaling_vec).replicate(mpc.ocp().NUM_NODES, 1));
+    u_guess(u0.cwiseProduct(ocp().u_scaling_vec).replicate(ocp().NUM_NODES, 1));
 
     control target_control;
     target_control.setZero();
@@ -50,7 +50,7 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
 drone_gnc::DroneControl DroneMPC::getControlCurrentTime() {
     double interp_time = ros::Time::now().toSec() - solution_time;
     interp_time = std::max(std::min(interp_time, horizon_length), 0.0);
-    control interpolated_control = mpc.solution_u_at(interp_time).cwiseProduct(mpc.ocp().u_unscaling_vec);
+    control interpolated_control = solution_u_at(interp_time);
 
     drone_gnc::DroneControl drone_control;
     drone_control.servo1 = interpolated_control(0);
@@ -71,17 +71,17 @@ drone_gnc::DroneControl DroneMPC::getControlCurrentTime() {
 
 
 void DroneMPC::setTarget(state &target_state, control &target_control) {
-    mpc.ocp().xs << target_state.cwiseProduct(mpc.ocp().x_scaling_vec);
-    mpc.ocp().us << target_control.cwiseProduct(mpc.ocp().u_scaling_vec);
+    ocp().xs << target_state.cwiseProduct(ocp().x_scaling_vec);
+    ocp().us << target_control.cwiseProduct(ocp().u_scaling_vec);
 }
 
 void DroneMPC::warmStart() {
     //warm start
-    mpc_t::traj_state_t x_guess;
-    mpc_t::traj_control_t u_guess;
-    int NX = mpc.ocp().NX;
-    int NU = mpc.ocp().NU;
-    int NUM_NODES = mpc.ocp().NUM_NODES;
+    traj_state_t x_guess;
+    traj_control_t u_guess;
+    int NX = ocp().NX;
+    int NU = ocp().NU;
+    int NUM_NODES = ocp().NUM_NODES;
     state x_interp;
     control u_interp;
     double previous_interp_time = 0;
@@ -89,10 +89,10 @@ void DroneMPC::warmStart() {
     double time_since_last_solve = feedforward_period;
 
     for (int i = 0; i < NUM_NODES; i++) {
-        double interp_time = mpc.time_grid(i) + time_since_last_solve;
+        double interp_time = time_grid(i) + time_since_last_solve;
         if (interp_time <= horizon_length) {
-            x_interp = mpc.solution_x_at(interp_time);
-            u_interp = mpc.solution_u_at(interp_time);
+            x_interp = solution_x_at(interp_time);
+            u_interp = solution_u_at(interp_time);
         } else {
 //            drone->stepRK4(x_interp.cwiseProduct(mpc.ocp().x_unscaling_vec),
 //                           u_interp.cwiseProduct(mpc.ocp().u_unscaling_vec),
@@ -104,19 +104,38 @@ void DroneMPC::warmStart() {
         u_guess.segment((NUM_NODES - i - 1) * NU, NU) = u_interp;
         previous_interp_time = interp_time;
     }
-    mpc.x_guess(x_guess);
-    mpc.u_guess(u_guess);
+    x_guess(x_guess);
+    u_guess(u_guess);
+}
+
+
+DroneMPC::state DroneMPC::solution_x_at(const double t){
+    return MPC::solution_x_at(t).cwiseProduct(ocp().x_unscaling_vec);
+}
+
+DroneMPC::control DroneMPC::solution_u_at(const double t){
+    return MPC::solution_u_at(t).cwiseProduct(ocp().u_unscaling_vec);
+}
+
+DroneMPC::state DroneMPC::solution_x_at(const int t){
+    return MPC::solution_x_at(t).cwiseProduct(ocp().x_unscaling_vec);
+}
+
+DroneMPC::control DroneMPC::solution_u_at(const int t){
+    return MPC::solution_u_at(t).cwiseProduct(ocp().u_unscaling_vec);
+}
+
+double DroneMPC::node_time(int i){
+    return time_grid(i);
 }
 
 void DroneMPC::solve(state &x0) {
     double computation_start_time = ros::Time::now().toSec();
-//    ROS_INFO_STREAM("x0     " <<x0.transpose().head(6)*100);
 
     state predicted_x0;
     integrateX0(x0, predicted_x0);
 
-//    ROS_INFO_STREAM("predicted x0 " <<predicted_x0.transpose().head(6)*100);
-    mpc.initial_conditions(predicted_x0.cwiseProduct(mpc.ocp().x_scaling_vec));
+    initial_conditions(predicted_x0.cwiseProduct(ocp().x_scaling_vec));
 
     //servo rate constraint
 //    control previous_u = mpc.solution_u_at(0).cwiseProduct(mpc.ocp().u_unscaling_vec);
@@ -133,14 +152,13 @@ void DroneMPC::solve(state &x0) {
 
 //    warmStart();
 
-
     if (is_simu){
         // in simulation, sleep to account fo
         ros::Duration(mpc_period-feedforward_period).sleep();
     }
 
     double time_now = ros::Time::now().toSec();
-    mpc.solve();
+    MPC::solve();
     last_computation_time = (ros::Time::now().toSec()-time_now)*1000;
 
     time_now = ros::Time::now().toSec();
@@ -157,12 +175,12 @@ void DroneMPC::integrateX0(const state x0, state &new_x0){
 
     int i;
     for(i = 0; i<max_ff_index-1; i++){
-        control interpolated_control = mpc.solution_u_at(feedforward_period*i).cwiseProduct(mpc.ocp().u_unscaling_vec);
+        control interpolated_control = solution_u_at(feedforward_period*i);
         drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
     }
     i++;
 
-    control interpolated_control = mpc.solution_u_at(feedforward_period*i).cwiseProduct(mpc.ocp().u_unscaling_vec);
+    control interpolated_control = solution_u_at(feedforward_period*i);
     drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
 }
 

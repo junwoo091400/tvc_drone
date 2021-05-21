@@ -50,7 +50,6 @@ using ad_control2 = AutoDiffScalar<control_t<ad_control>>;
 
 
 
-Drone drone;
 
 //void linearize(const state &x_bar,
 //               const control &u_bar,
@@ -66,7 +65,7 @@ int main(int argc, char **argv) {
     // Init ROS time keeper node
     ros::init(argc, argv, "control");
     ros::NodeHandle nh("util");
-    drone.init(nh);
+    Drone drone(nh);
 
     state x_bar;
     x_bar << 0, 0, 0,

@@ -8,18 +8,15 @@
 
 #include "polympc_redef.hpp"
 
-class DroneMPC {
+class DroneMPC : public MPC<control_ocp, Solver> {
 
 public:
 //    using admm = boxADMM<control_ocp::VAR_SIZE, control_ocp::NUM_EQ, control_ocp::scalar_t,
 //            control_ocp::MATRIXFMT, linear_solver_traits<control_ocp::MATRIXFMT>::default_solver>;
 //    using osqp_solver_t = polympc::OSQP<control_ocp::VAR_SIZE, control_ocp::NUM_EQ, control_ocp::scalar_t>;
-    using mpc_t = MPC<control_ocp, Solver>;
-    using state = mpc_t::state_t;
-    using control = mpc_t::control_t;
-    using constraint = mpc_t::constraint_t;
-
-    mpc_t mpc;
+    using state = state_t;
+    using control = control_t;
+    using constraint = constraint_t;
 
     DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
 
@@ -28,6 +25,12 @@ public:
     drone_gnc::DroneControl getControlCurrentTime();
 
     void setTarget(state &target_state, control &target_control);
+
+    state solution_x_at(const double t);
+    control solution_u_at(const double t);
+    state solution_x_at(const int t);
+    control solution_u_at(const int t);
+    double node_time(int i);
 
     void integrateX0(const state x0, state &new_x0);
     std::shared_ptr<Drone> drone;

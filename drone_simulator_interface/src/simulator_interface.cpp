@@ -21,16 +21,15 @@ Matrix<double, 1, 2> sysC;
 Matrix<double, 2, 1> x_servo1;
 Matrix<double, 2, 1> x_servo2;
 
-Drone drone;
-
 double CM_OFFSET_X = 0;
 
 bool first_command = true;
+Drone* drone;
 
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
 
-    float thrust = drone.getThrust((drone_control->bottom +drone_control->top)*0.5);
-    float torque = drone.getTorque(drone_control->top - drone_control->bottom);
+    float thrust = drone->getThrust((drone_control->bottom +drone_control->top)*0.5);
+    float torque = drone->getTorque(drone_control->top - drone_control->bottom);
 
     // ss model for fixed ts//TODO use integrator time step instead
     x_servo1 = sysA * x_servo1 + sysB * ((double) drone_control->servo1);
@@ -109,7 +108,8 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "drone_interface");
     ros::NodeHandle nh("control_interface");
 
-    drone.init(nh);
+    Drone drone_obj(nh);
+    drone = &drone_obj;
 
     nh.getParam("/rocket/CM_to_thrust_distance", CM_to_thrust_distance);
     nh.getParam("/rocket/CM_offset_x", CM_OFFSET_X);
