@@ -74,7 +74,7 @@ public:
     void computeControl() {
         time_compute_start = ros::Time::now().toSec();
 
-        DroneMPC::state x0;
+        Drone::state x0;
         x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
                 current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
                 current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
@@ -110,7 +110,7 @@ public:
         drone_gnc::Trajectory trajectory_msg;
         drone_gnc::DroneTrajectory horizon_msg;
         for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
-            DroneMPC::state state_val = drone_mpc.solution_x_at(i);
+            Drone::state state_val = drone_mpc.solution_x_at(i);
 
             drone_gnc::Waypoint point;
             point.time = drone_mpc.node_time(i);
@@ -138,7 +138,7 @@ public:
             state_msg.twist.angular.y = state_val(11);
             state_msg.twist.angular.z = state_val(12);
 
-            DroneMPC::control control_val = drone_mpc.solution_u_at(i);
+            Drone::control control_val = drone_mpc.solution_u_at(i);
             drone_gnc::DroneControl control_msg;
             control_msg.servo1 = control_val(0);
             control_msg.servo2 = control_val(1);
@@ -161,8 +161,8 @@ public:
 
 
     void fetchNewTarget() {
-        DroneMPC::state target_state;
-        DroneMPC::control target_control;
+        Drone::state target_state;
+        Drone::control target_control;
 
 //        if (client_waypoint.call(srv_waypoint)) {
 //            target_state << srv_waypoint.response.target_point.position.x * 1e-2,

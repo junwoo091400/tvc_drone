@@ -31,18 +31,18 @@ using namespace std;
 using Polynomial = polympc::Chebyshev<POLY_ORDER, polympc::GAUSS_LOBATTO, double>;
 using Approximation = polympc::Spline<Polynomial, NUM_SEG>;
 
-POLYMPC_FORWARD_DECLARATION(/*Name*/ control_ocp, /*NX*/ 13, /*NU*/ 4, /*NP*/ 0, /*ND*/ 0, /*NG*/3, /*TYPE*/ double)
+POLYMPC_FORWARD_DECLARATION(/*Name*/ control_ocp, /*NX*/ 15, /*NU*/ 4, /*NP*/ 0, /*ND*/ 0, /*NG*/3, /*TYPE*/ double)
 
 class control_ocp : public ContinuousOCP<control_ocp, Approximation, SPARSE> {
 public:
     ~control_ocp() = default;
 
-    Matrix<scalar_t, NX, 1> Q;
-    Matrix<scalar_t, NU, 1> R;
-    Matrix<scalar_t, NX, NX> QN;
+    Matrix<scalar_t, Drone::NX, 1> Q;
+    Matrix<scalar_t, Drone::NU, 1> R;
+    Matrix<scalar_t, Drone::NX, Drone::NX> QN;
 
-    Matrix<scalar_t, NX, 1> xs;
-    Matrix<scalar_t, NU, 1> us;
+    Matrix<scalar_t, Drone::NX, 1> xs;
+    Matrix<scalar_t, Drone::NU, 1> us;
 
     shared_ptr<Drone> drone;
 
@@ -61,6 +61,11 @@ public:
 
     Matrix<scalar_t, NX, 1> x_scaling_vec;
     Matrix<scalar_t, NU, 1> u_scaling_vec;
+
+    Matrix<scalar_t, Drone::NX, 1> x_drone_unscaling_vec;
+    Matrix<scalar_t, Drone::NU, 1> u_drone_unscaling_vec;
+    Matrix<scalar_t, Drone::NX, 1> x_drone_scaling_vec;
+    Matrix<scalar_t, Drone::NU, 1> u_drone_scaling_vec;
 
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
@@ -119,22 +124,36 @@ public:
             x_unscaling_vec << scaling_x, scaling_x, scaling_z,
                     max_dx, max_dx, max_dz,
                     1, 1, 1, 1,
-                    max_datt, max_datt, max_datt;
+                    max_datt, max_datt, max_datt,
+                    drone->maxServo1Angle, drone->maxServo2Angle;
             x_scaling_vec = x_unscaling_vec.cwiseInverse();
 
-            u_unscaling_vec << drone->maxServo1Angle, drone->maxServo2Angle,
+            u_unscaling_vec << drone->maxServoRate, drone->maxServoRate,
                     drone->maxPropellerSpeed, drone->maxPropellerDelta/2;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
+            //TODO remove
+            x_unscaling_vec.setOnes();
+            x_scaling_vec.setOnes();
+            u_unscaling_vec.setOnes();
+            u_scaling_vec.setOnes();
+
             //scale costs
-            Q = Q.cwiseProduct(x_unscaling_vec).cwiseProduct(x_unscaling_vec);
+            x_drone_unscaling_vec = x_unscaling_vec.segment(0, Drone::NX);
+            u_drone_unscaling_vec.segment(0, 2) = x_unscaling_vec.segment(Drone::NX, 2);
+            u_drone_unscaling_vec.segment(2, 2) = u_unscaling_vec.segment(2, 2);
 
-            Matrix<scalar_t, NX, NX> x_unscaling_mat;
-            x_unscaling_mat.setZero();
-            x_unscaling_mat.diagonal() << x_unscaling_vec;
-            QN = x_unscaling_mat * QN * x_unscaling_mat;
+            x_drone_scaling_vec = x_drone_unscaling_vec.cwiseInverse();
+            u_drone_scaling_vec = u_drone_unscaling_vec.cwiseInverse();
 
-            R = R.cwiseProduct(u_unscaling_vec).cwiseProduct(u_unscaling_vec);
+            Q = Q.cwiseProduct(x_drone_unscaling_vec).cwiseProduct(x_drone_unscaling_vec);
+
+            Matrix<scalar_t, Drone::NX, Drone::NX> Q_unscaling_mat;
+            Q_unscaling_mat.setZero();
+            Q_unscaling_mat.diagonal() << x_drone_unscaling_vec;
+            QN = Q_unscaling_mat * QN * Q_unscaling_mat;
+
+            R = R.cwiseProduct(u_drone_unscaling_vec).cwiseProduct(u_drone_unscaling_vec);
 
             ROS_INFO_STREAM("Q" << Q);
             ROS_INFO_STREAM("R" << R);
@@ -154,27 +173,29 @@ public:
         const double inf = std::numeric_limits<double>::infinity();
         const double eps = 1e-1;
 
-        lbu << -drone->maxServo1Angle, -drone->maxServo2Angle,
+        lbu << -drone->maxServoRate, -drone->maxServoRate,
                 drone->minPropellerSpeed, -drone->maxPropellerDelta/2; // lower bound on control
-        ubu << drone->maxServo1Angle, drone->maxServo2Angle,
+        ubu << drone->maxServoRate, drone->maxServoRate,
                 drone->maxPropellerSpeed, drone->maxPropellerDelta/2; // upper bound on control
 
         lbx << -inf, -inf, min_z + eps,
                 -max_dx, -max_dx, min_dz,
                 -inf, -inf, -inf, -inf,
-                -max_datt, -max_datt, -inf;
+                -max_datt, -max_datt, -inf,
+                -drone->maxServo1Angle, -drone->maxServo2Angle;
 
         ubx << inf, inf, inf,
                 max_dx, max_dx, max_dz,
                 inf, inf, inf, inf,
-                max_datt, max_datt, inf;
+                max_datt, max_datt, inf,
+                drone->maxServo1Angle, drone->maxServo2Angle;
 
         //TODO fix attitude constraint [cos(maxAttitudeAngle) 1]
         lbg << cos(maxAttitudeAngle), drone->minPropellerSpeed, drone->minPropellerSpeed;
         ubg << inf, drone->maxPropellerSpeed, drone->maxPropellerSpeed;
         ROS_INFO_STREAM(lbg);
         ROS_INFO_STREAM("min cos" << cos(maxAttitudeAngle));
-
+//
         lbu = lbu.cwiseProduct(u_scaling_vec);
         ubu = ubu.cwiseProduct(u_scaling_vec);
         ROS_INFO_STREAM("lbu" << lbu);
@@ -195,22 +216,25 @@ public:
                               const T &t, Ref<state_t < T>>
 
     xdot)  const noexcept{
-        Matrix<T, Drone::NX, 1> x_drone = x.segment(0, Drone::NX);
+        Matrix<T, NX, 1> x_unscaled = x.cwiseProduct(x_unscaling_vec.template cast<T>());
+        Matrix<T, NU, 1> u_unscaled = u.cwiseProduct(u_unscaling_vec.template cast<T>());
 
-        Matrix<T, Drone::NU, 1> u_drone = u.segment(0, Drone::NU);
+        Matrix<T, Drone::NX, 1> x_drone = x_unscaled.segment(0, Drone::NX);
+
+        Matrix<T, Drone::NU, 1> u_drone;
+        u_drone.segment(0, 2) = x_unscaled.segment(Drone::NX, 2);
+        u_drone.segment(2, 2) = u_unscaled.segment(2, 2);
 
         Matrix<T, Drone::NP, 1> params;
 
         drone->getParams(params);
 
-        //scale
-        u_drone = u_drone.cwiseProduct(u_unscaling_vec.template cast<T>());
-        x_drone = x_drone.cwiseProduct(x_unscaling_vec.template cast<T>());
-
         drone->state_dynamics(x_drone, u_drone, params, xdot);
+        xdot.segment(13, 2) = u_unscaled.segment(0, 2);
 
         //unscale
-        xdot.segment(0, 13) = xdot.segment(0, 13).cwiseProduct(x_scaling_vec.template cast<T>());
+        xdot = xdot.cwiseProduct(x_scaling_vec.template cast<T>());
+
     }
 
     template<typename T>
@@ -221,9 +245,8 @@ public:
 
     g) const noexcept
     {
-        Matrix<T, 4, 1> u_drone = u.segment(0, 4);
+        Matrix<T, 4, 1> u_drone = u.segment(2, 4).cwiseProduct(u_unscaling_vec.segment(2, 4).template cast<T>());;
 
-        u_drone = u_drone.cwiseProduct(u_unscaling_vec.template cast<T>());
 
         g(0) = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
         //TODO
@@ -238,8 +261,12 @@ public:
                                    const Ref<const parameter_t <T>> p,
                                    const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
-        Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
-        Matrix<T, NU, 1> u_error = u - us.template cast<T>();
+        Matrix<T, 13, 1> x_error = x.segment(0, 13) - xs.template cast<T>();
+        Matrix<T, 4, 1> u_drone;
+        u_drone.segment(0, 2) = x.segment(13, 2);
+        u_drone.segment(2, 2) = u.segment(2, 2);
+        Matrix<T, NU, 1> u_error = u_drone - us.template cast<T>();
+
 
         lagrange = x_error.dot(Q.template cast<T>().cwiseProduct(x_error)) +
                    u_error.dot(R.template cast<T>().cwiseProduct(u_error));
@@ -249,7 +276,7 @@ public:
     inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
+        Matrix<T, 13, 1> x_error = x.segment(0, 13) - xs.template cast<T>();
 
         mayer = x_error.dot(QN.template cast<T>() * x_error);
     }

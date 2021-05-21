@@ -36,4 +36,4 @@ max_line_search_iter: 4
 mpc_period: 0.02
 feedforward_period: 0.02
 
-weight_scaling: 64
+weight_scaling: 1
