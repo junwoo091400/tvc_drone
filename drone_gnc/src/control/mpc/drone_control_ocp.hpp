@@ -37,9 +37,9 @@ class control_ocp : public ContinuousOCP<control_ocp, Approximation, SPARSE> {
 public:
     ~control_ocp() = default;
 
-    Matrix<scalar_t, Drone::NX, 1> Q;
+    Matrix<scalar_t, 11, 1> Q;
     Matrix<scalar_t, Drone::NU, 1> R;
-    Matrix<scalar_t, Drone::NX, Drone::NX> QN;
+    Matrix<scalar_t, 11, 11> QN;
 
     Matrix<scalar_t, Drone::NX, 1> xs;
     Matrix<scalar_t, Drone::NU, 1> us;
@@ -99,23 +99,21 @@ public:
 //                    datt_cost, datt_cost, droll_cost;
             Q << 1, 1, 5,
                     0.1, 0.1, 0.5,
-                    1, 1, 1, 0,
-                    1, 1, 1;
+                    1, 1,
+                    1, 1, 5;
             R << 5, 5, 0.01, 0.01;
 
-            QN << 1.0862, 0, 0, 0.53991, 0, 0, 0, 2.9102, 0, 0, 0, 0.16346, 0,
-                    0, 1.0808, 0, 0, 0.53405, 0, -2.8447, 0, 0, 0, -0.15106, 0, 0,
-                    0, 0, 3.5931, 0, 0, 1.041, 0, 0, 0, 0, 0, 0, 0,
-                    0.53991, 0, 0, 0.43811, 0, 0, 0, 2.8341, 0, 0, 0, 0.14597, 0,
-                    0, 0.53405, 0, 0, 0.4322, 0, -2.7724, 0, 0, 0, -0.13452, 0, 0,
-                    0, 0, 1.041, 0, 0, 0.74812, 0, 0, 0, 0, 0, 0, 0,
-                    0, -2.8447, 0, 0, -2.7724, 0, 24.528, 0, 0, 0, 1.0231, 0, 0,
-                    2.9102, 0, 0, 2.8341, 0, 0, 0, 25.1, 0, 0, 0, 1.1173, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 2.8011, 0, 0, 0, 0.96154,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, -0.15106, 0, 0, -0.13452, 0, 1.0231, 0, 0, 0, 0.090937, 0, 0,
-                    0.16346, 0, 0, 0.14597, 0, 0, 0, 1.1173, 0, 0, 0, 0.10168, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0.96154, 0, 0, 0, 1.3467;
+            QN << 1.0862, 0, 0, 0.53991, 0, 0, 0, 2.9102, 0, 0.16346, 0
+                    , 0, 1.0808, 0, 0, 0.53405, 0, -2.8447, 0, -0.15106, 0, 0
+                    , 0, 0, 3.5931, 0, 0, 1.041, 0, 0, 0, 0, 0
+                    , 0.53991, 0, 0, 0.43811, 0, 0, 0, 2.8341, 0, 0.14597, 0
+                    , 0, 0.53405, 0, 0, 0.4322, 0, -2.7724, 0, -0.13452, 0, 0
+                    , 0, 0, 1.041, 0, 0, 0.74812, 0, 0, 0, 0, 0
+                    , 0, -2.8447, 0, 0, -2.7724, 0, 24.528, 0, 1.0231, 0, 0
+                    , 2.9102, 0, 0, 2.8341, 0, 0, 0, 25.1, 0, 1.1173, 0
+                    , 0, -0.15106, 0, 0, -0.13452, 0, 1.0231, 0, 0.090937, 0, 0
+                    , 0.16346, 0, 0, 0.14597, 0, 0, 0, 1.1173, 0, 0.10168, 0
+                    , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1501;
 
             ROS_INFO_STREAM("QN" << QN);
 
@@ -129,7 +127,7 @@ public:
             x_scaling_vec = x_unscaling_vec.cwiseInverse();
 
             u_unscaling_vec << drone->maxServoRate, drone->maxServoRate,
-                    drone->maxPropellerSpeed, drone->maxPropellerDelta/2;
+                    drone->maxPropellerSpeed, drone->maxPropellerDelta / 2;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
             //TODO remove
@@ -146,12 +144,13 @@ public:
             x_drone_scaling_vec = x_drone_unscaling_vec.cwiseInverse();
             u_drone_scaling_vec = u_drone_unscaling_vec.cwiseInverse();
 
-            Q = Q.cwiseProduct(x_drone_unscaling_vec).cwiseProduct(x_drone_unscaling_vec);
+            //TODO fix
+//            Q = Q.cwiseProduct(x_drone_unscaling_vec).cwiseProduct(x_drone_unscaling_vec);
 
-            Matrix<scalar_t, Drone::NX, Drone::NX> Q_unscaling_mat;
-            Q_unscaling_mat.setZero();
-            Q_unscaling_mat.diagonal() << x_drone_unscaling_vec;
-            QN = Q_unscaling_mat * QN * Q_unscaling_mat;
+//            Matrix<scalar_t, Drone::NX, Drone::NX> Q_unscaling_mat;
+//            Q_unscaling_mat.setZero();
+//            Q_unscaling_mat.diagonal() << x_drone_unscaling_vec;
+//            QN = Q_unscaling_mat * QN * Q_unscaling_mat;
 
             R = R.cwiseProduct(u_drone_unscaling_vec).cwiseProduct(u_drone_unscaling_vec);
 
@@ -174,9 +173,9 @@ public:
         const double eps = 1e-1;
 
         lbu << -drone->maxServoRate, -drone->maxServoRate,
-                drone->minPropellerSpeed, -drone->maxPropellerDelta/2; // lower bound on control
+                drone->minPropellerSpeed, -drone->maxPropellerDelta / 2; // lower bound on control
         ubu << drone->maxServoRate, drone->maxServoRate,
-                drone->maxPropellerSpeed, drone->maxPropellerDelta/2; // upper bound on control
+                drone->maxPropellerSpeed, drone->maxPropellerDelta / 2; // upper bound on control
 
         lbx << -inf, -inf, min_z + eps,
                 -max_dx, -max_dx, min_dz,
@@ -262,13 +261,19 @@ public:
                                    const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
         Matrix<T, 13, 1> x_error = x.segment(0, 13) - xs.template cast<T>();
+        Matrix<T, 11, 1> x_error2;
+        x_error2.segment(0, 6) = x_error.segment(0, 6);
+        x_error2(6) = x_error(9)*x_error(6)-x_error(7)*x_error(8);
+        x_error2(7) = x_error(9)*x_error(7)+x_error(6)*x_error(8);
+        x_error2.segment(8, 3) = x_error.segment(10, 3);
+
         Matrix<T, 4, 1> u_drone;
         u_drone.segment(0, 2) = x.segment(13, 2);
         u_drone.segment(2, 2) = u.segment(2, 2);
         Matrix<T, NU, 1> u_error = u_drone - us.template cast<T>();
 
 
-        lagrange = x_error.dot(Q.template cast<T>().cwiseProduct(x_error)) +
+        lagrange = x_error2.dot(Q.template cast<T>().cwiseProduct(x_error2)) +
                    u_error.dot(R.template cast<T>().cwiseProduct(u_error));
     }
 
@@ -277,8 +282,13 @@ public:
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
         Matrix<T, 13, 1> x_error = x.segment(0, 13) - xs.template cast<T>();
+        Matrix<T, 11, 1> x_error2;
+        x_error2.segment(0, 6) = x_error.segment(0, 6);
+        x_error2(6) = x_error(9)*x_error(6)-x_error(7)*x_error(8);
+        x_error2(7) = x_error(9)*x_error(7)+x_error(6)*x_error(8);
+        x_error2.segment(8, 3) = x_error.segment(10, 3);
 
-        mayer = x_error.dot(QN.template cast<T>() * x_error);
+        mayer = x_error2.dot(QN.template cast<T>() * x_error2);
     }
 };
 
