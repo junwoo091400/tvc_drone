@@ -81,7 +81,7 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
         Eigen::Matrix<T, 4, 1> params = x.segment(13, 4);
 
         //state derivatives
-        drone.state_dynamics(x_drone, u, params, xdot);
+//        drone.state_dynamics(x_drone, u, params, xdot);
     }
     else{
         Eigen::Vector<T, 3> g0;

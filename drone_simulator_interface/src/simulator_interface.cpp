@@ -24,12 +24,16 @@ Matrix<double, 2, 1> x_servo2;
 double CM_OFFSET_X = 0;
 
 bool first_command = true;
+double thrust_scaling =1.04;
+double torque_scaling =1.005;
+double servo1_offset = 0.01;
+double servo2_offset = -0.02;
 Drone* drone;
 
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
 
-    float thrust = drone->getThrust((drone_control->bottom +drone_control->top)*0.5);
-    float torque = drone->getTorque(drone_control->top - drone_control->bottom);
+    float thrust = thrust_scaling*drone->getThrust((drone_control->bottom +drone_control->top)*0.5);
+    float torque = torque_scaling*drone->getTorque(drone_control->top - drone_control->bottom);
 
     // ss model for fixed ts//TODO use integrator time step instead
     x_servo1 = sysA * x_servo1 + sysB * ((double) drone_control->servo1);
@@ -41,8 +45,8 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
     //quaternion representing the rotation of the servos around the Y-axis followed by the rotation around the X-axis
     Eigen::Quaterniond
             thrust_rotation(
-            AngleAxisd(drone_control->servo1, Vector3d::UnitY()) *
-            AngleAxisd(drone_control->servo2, Vector3d::UnitX())
+            AngleAxisd(drone_control->servo1 + servo1_offset, Vector3d::UnitY()) *
+            AngleAxisd(drone_control->servo2 + servo2_offset, Vector3d::UnitX())
     );
 
     //rotated thrust vector, in body frame
@@ -62,7 +66,6 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
     converted_control.force.x = thrust_vector.x();
     converted_control.force.y = thrust_vector.y();
     converted_control.force.z = thrust_vector.z();
-
     rocket_control_pub.publish(converted_control);
 
     if (first_command){

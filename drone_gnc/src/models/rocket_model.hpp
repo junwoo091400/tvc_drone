@@ -40,11 +40,12 @@ Rocket(ros::NodeHandle n) {
     }
 
 
-    template<typename T>
+    template<typename T, typename state>
     inline void generic_rocket_dynamics(const Eigen::Matrix<T, 13, 1> x,
                                         const Eigen::Matrix<T, 3, 1> thrust_vector,
                                         const Eigen::Matrix<T, 3, 1> torque,
-                                        Eigen::Ref<Eigen::Matrix<T, 13, 1>> xdot) const noexcept {
+                                        const Eigen::Matrix<T, 3, 1> disturbance_force,
+                                        state &xdot) const noexcept {
         // -------------- Simulation parameters -------------- -------------
         // Earth gravity in [m/s^2]
 
@@ -57,7 +58,7 @@ Rocket(ros::NodeHandle n) {
 
         // Total force in inertial frame [N]
         Eigen::Vector<T, 3> total_force;
-        total_force = attitude._transformVector(thrust_vector) + gravity_vector.template cast<T>();
+        total_force = attitude._transformVector(thrust_vector) + gravity_vector.template cast<T>() + disturbance_force;
 
         // Angular velocity omega in quaternion format to compute quaternion derivative
         Eigen::Quaternion<T> omega_quat((T) 0.0, x(10), x(11), x(12));

@@ -10,7 +10,7 @@ class Drone : public Rocket {
 public:
     static const int NX = 13;
     static const int NU = 4;
-    static const int NP = 4;
+    static const int NP = 10;
 
     template<typename T>
     using state_t = Eigen::Matrix<T, NX, 1>;
@@ -34,6 +34,11 @@ public:
 
     double thrust_scaling;
     Eigen::Vector3d disturbance_torque;
+    Eigen::Vector3d disturbance_force;
+
+    double torque_scaling;
+    double servo1_offset;
+    double servo2_offset;
 
     Drone(ros::NodeHandle &nh) : Rocket(nh) {
         double maxServo1Angle_degree, maxServo2Angle_degree, maxServoRate_degree;
@@ -48,12 +53,16 @@ public:
             ROS_ERROR("Failed to get drone parameters");
         }
 
-        maxServo1Angle = maxServo1Angle_degree * (M_PI/180);
-        maxServo2Angle = maxServo2Angle_degree * (M_PI/180);
-        maxServoRate = maxServoRate_degree * (M_PI/180);
+        maxServo1Angle = maxServo1Angle_degree * (M_PI / 180);
+        maxServo2Angle = maxServo2Angle_degree * (M_PI / 180);
+        maxServoRate = maxServoRate_degree * (M_PI / 180);
 
 
         thrust_scaling = 1;
+        torque_scaling = 1;
+        servo1_offset = 0;
+        servo2_offset = 0;
+        disturbance_force.setZero();
         disturbance_torque.setZero();
     }
 
@@ -65,16 +74,20 @@ public:
         Eigen::Matrix<T, 4, 1> input;
         input << u(0), u(1), u(2), u(3);
 
-        T servo1 = input(0);
-        T servo2 = input(1);
+        T thrust_scaling = params(0);
+        T torque_scaling = params(1);
+        T servo1_offset = params(2);
+        T servo2_offset = params(3);
+        Eigen::Matrix<T, 3, 1> dist_force = params.segment(4, 3);
+        Eigen::Matrix<T, 3, 1> dist_torque = params.segment(7, 3);
+
+        T servo1 = input(0) + servo1_offset;
+        T servo2 = input(1) + servo2_offset;
         T prop_av = input(2);
         T prop_delta = input(3);
 
-        T thrust_scaling = params(0);
-        Eigen::Matrix<T, 3, 1> dist_torque = params.segment(1, 3);
-
         T thrust = getThrust(prop_av) * thrust_scaling;
-        T torque = getTorque(prop_delta);
+        T torque = getTorque(prop_delta) * torque_scaling;
 
         // servomotors thrust vector rotation (see drone_interface for equivalent quaternion implementation)
         Eigen::Matrix<T, 3, 1> thrust_direction;
@@ -89,7 +102,7 @@ public:
         Eigen::Matrix<T, 13, 1> x_body = x.segment(0, 13);
         Eigen::Ref<Eigen::Matrix<T, 13, 1>> xdot_body = xdot.segment(0, 13);
 
-        Rocket::generic_rocket_dynamics(x_body, thrust_vector, (propeller_torque + dist_torque).eval(), xdot_body);
+        Rocket::generic_rocket_dynamics(x_body, thrust_vector, (propeller_torque + dist_torque).eval(), dist_force, xdot_body);
     }
 
     //thrust 3rd order model
@@ -125,15 +138,26 @@ public:
         return torque;
     }
 
-    void setParams(double thrust_scaling_val, double tx, double ty, double tz) {
+    void setParams(double thrust_scaling_val,
+                   double torque_scaling_val,
+                   double servo1_offset_val, double servo2_offset_val,
+                   double fx, double fy, double fz,
+                   double mx, double my, double mz) {
         thrust_scaling = thrust_scaling_val;
-        disturbance_torque << tx, ty, tz;
+        torque_scaling = torque_scaling_val;
+        servo1_offset = servo1_offset_val;
+        servo2_offset = servo2_offset_val;
+        disturbance_force << fx, fy, fz;
+        disturbance_torque << mx, my, mz;
     }
 
     template<typename T>
-    inline void getParams(Eigen::Matrix<T, 4, 1> &params) {
-        params
-                << (T) thrust_scaling, (T) disturbance_torque.x(), (T) disturbance_torque.y(), (T) disturbance_torque.z();
+    inline void getParams(parameters_t<T> &params) {
+        params << (T) thrust_scaling,
+                (T) torque_scaling,
+                (T) servo1_offset, (T) servo2_offset,
+                (T) disturbance_force.x(), (T) disturbance_force.y(), (T) disturbance_force.z(),
+                (T) disturbance_torque.x(), (T) disturbance_torque.y(), (T) disturbance_torque.z();
     }
 
 

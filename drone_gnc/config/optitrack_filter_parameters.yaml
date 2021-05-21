@@ -6,5 +6,8 @@ predict_vars:
   dz: 500
   att: 0.05
   datt: 10000
-  thrust_scaling: 1
+  thrust_scaling: 0.3
+  torque_scaling: 0.2
+  servo_offset: 0.2
   disturbance_torque: 50
+  disturbance_force: 0

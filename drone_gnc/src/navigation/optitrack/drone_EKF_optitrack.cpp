@@ -1,7 +1,7 @@
 #include "drone_EKF_optitrack.h"
 
 DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
-    double x_var, dx_var, z_var, dz_var, att_var, datt_var, thrust_scaling_var, disturbance_torque_var;
+    double x_var, dx_var, z_var, dz_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, servo_offset_var, disturbance_force_var, disturbance_torque_var;
     if (nh.getParam("/filter/predict_vars/x", x_var) &&
         nh.getParam("/filter/predict_vars/dz", dx_var) &&
         nh.getParam("/filter/predict_vars/z", z_var) &&
@@ -9,7 +9,11 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
         nh.getParam("/filter/predict_vars/att", att_var) &&
         nh.getParam("/filter/predict_vars/datt", datt_var) &&
         nh.getParam("/filter/predict_vars/thrust_scaling", thrust_scaling_var) &&
+        nh.getParam("/filter/predict_vars/torque_scaling", torque_scaling_var) &&
+        nh.getParam("/filter/predict_vars/servo_offset", servo_offset_var) &&
+        nh.getParam("/filter/predict_vars/disturbance_force", disturbance_force_var) &&
         nh.getParam("/filter/predict_vars/disturbance_torque", disturbance_torque_var)) {
+
 
         std::vector<double> initial_state;
         nh.getParam("initial_state", initial_state);
@@ -22,6 +26,9 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
                 att_var, att_var, att_var, att_var,
                 datt_var, datt_var, datt_var,
                 thrust_scaling_var,
+                torque_scaling_var,
+                servo_offset_var, servo_offset_var,
+                torque_scaling_var, torque_scaling_var, torque_scaling_var,
                 disturbance_torque_var, disturbance_torque_var, disturbance_torque_var;
 
         P.setZero();
@@ -76,7 +83,7 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
         Eigen::Matrix<T, 4, 1> u;
         u << current_control.servo1, current_control.servo2, (current_control.bottom + current_control.top)/2, current_control.top - current_control.bottom;
 
-        Eigen::Matrix<T, 4, 1> params = x.segment(13, 4);
+        Eigen::Matrix<T, 10, 1> params = x.segment(13, 4);
 
         //state derivatives
         drone.state_dynamics(x_drone, u, params, xdot);
@@ -96,7 +103,7 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
     }
 
     // assume parameters unchanged
-    xdot.segment(13, 4) << 0.0, 0.0, 0.0, 0.0;
+    xdot.segment(13, 10).setZero();
 }
 
 template<typename T>

@@ -80,8 +80,11 @@ public:
                 current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
                 current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
 
-        drone_mpc.drone->setParams(current_state.thrust_scaling, current_state.disturbance_torque.x,
-                                   current_state.disturbance_torque.y, current_state.disturbance_torque.z);
+        drone_mpc.drone->setParams(current_state.thrust_scaling,
+                                   current_state.torque_scaling,
+                                   current_state.servo1_offset, current_state.servo2_offset,
+                                   current_state.disturbance_force.x, current_state.disturbance_force.y,  current_state.disturbance_force.z,
+                                   current_state.disturbance_torque.x,  current_state.disturbance_torque.y,  current_state.disturbance_torque.z);
 
         drone_mpc.solve(x0);
 

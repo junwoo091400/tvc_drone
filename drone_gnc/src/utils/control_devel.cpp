@@ -30,6 +30,7 @@
 
 static const int NX = 13;
 static const int NU = 4;
+static const int NP = 10;
 
 using namespace Eigen;
 
@@ -78,8 +79,8 @@ int main(int argc, char **argv) {
 
     ROS_INFO_STREAM("u_bar" << u_bar);
 
-    Matrix<double, 4, 1> params;
-    params << 1.0, 0.0, 0.0, 0.0;
+    Drone::parameters params;
+    params << 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
     Matrix<double, NX, NX> A;
     Matrix<double, NX, NU> B;
@@ -100,7 +101,7 @@ int main(int argc, char **argv) {
 
     control_t<ad_state> ad_u_bar(u_bar);
     for (int i = 0; i < ad_u_bar.size(); ++i) ad_u_bar(i).derivatives().setZero();
-    Matrix<ad_state, 4, 1> ad_params(params);
+    Matrix<ad_state, NP, 1> ad_params(params);
     for (int i = 0; i < ad_params.size(); ++i) ad_params(i).derivatives().setZero();
     drone.state_dynamics(ADx,
                          ad_u_bar,
@@ -128,7 +129,7 @@ int main(int argc, char **argv) {
     state_t<ad_control> ad_x_bar(x_bar);
     for (int i = 0; i < ad_x_bar.size(); ++i) ad_x_bar(i).derivatives().setZero();
 
-    Matrix<ad_control, 4, 1> ad_params2(params);
+    Matrix<ad_control, NP, 1> ad_params2(params);
     for (int i = 0; i < ad_params2.size(); ++i) ad_params2(i).derivatives().setZero();
 
     drone.state_dynamics(ad_x_bar,

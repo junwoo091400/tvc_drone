@@ -43,12 +43,25 @@ def convert_control_to_array(control):
     return control_array
 
 
+for topic, msg, t in bag.read_messages(topics=['/optitrack_state']):
+
+    # print initial optitrack
+    state = msg
+    r = R.from_quat([state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w])
+    omega_body = np.array([state.twist.angular.x, state.twist.angular.y, state.twist.angular.z])
+    omega_inertial = r.apply(omega_body)
+    state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
+                            state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
+                            state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w,
+                            omega_inertial[0], omega_inertial[1], omega_inertial[2]])
+    print(state_array)
+    break
 time_init = 0
-for topic, msg, t in bag.read_messages(topics=['/commands']):
+for topic, msg, t in bag.read_messages(topics=['/simu_drone_state']):
     time_init = t.to_sec()
     break
 
-t_end = time_init + 3
+t_end = time_init + 4
 
 kalman_state_history = np.empty((0, NX + 1))
 for topic, msg, t in bag.read_messages(topics=['/drone_state']):
@@ -65,6 +78,7 @@ for topic, msg, t in bag.read_messages(topics=['/optitrack_state']):
 
 integrator_state_history = np.empty((0, NX + 1))
 for topic, msg, t in bag.read_messages(topics=['/simu_drone_state']):
+    # print(msg)
     if t.to_sec() > time_init and t.to_sec() < t_end:
         state_array = np.append(t.to_sec() - time_init, convert_state_to_array(msg))
         integrator_state_history = np.vstack((integrator_state_history, state_array))
@@ -87,9 +101,9 @@ for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
             y = waypoint_stamped.state.pose.orientation.y
             z = waypoint_stamped.state.pose.orientation.z
             w = waypoint_stamped.state.pose.orientation.w
-            if i==0:
-                print(x, y, z, w)
-                print(z**2 + w**2 -x**2 - y**2)
+            # if i==1:
+            #     print(x, y, z, w)
+            #     print(z**2 + w**2 -x**2 - y**2)
                 # print(acos(z**2 + w**2 -x**2 - y**2)*180/math.pi)
 
             state_array = np.concatenate((
@@ -156,18 +170,18 @@ control_plot_indexes = {
 
 plot_ranges = {
     "t": [0, t_end - time_init],
-    "x": [-1, 1],
-    "y": [-1, 1],
-    "z": [-1, 1],
-    "dx": [-0.2, 0.2],
-    "dy": [-0.2, 0.2],
-    "dz": [-0.2, 0.2],
+    "x": [-2, 2],
+    "y": [-2, 2],
+    "z": [0, 4],
+    "dx": [-2, 2],
+    "dy": [-0.5, 0.5],
+    "dz": [-0.5, 0.5],
     "yaw (x)": [-15, 15],
     "pitch (y)": [-15, 15],
     "roll (z)": [-15, 15],
-    "dyaw (x)": [-0.3, 0.3],
-    "dpitch (y)": [-0.3, 0.3],
-    "droll (z)": [-0.3, 0.3],
+    "dyaw (x)": [-2, 2],
+    "dpitch (y)": [-2, 2],
+    "droll (z)": [-1, 1],
     "servo1": [-0.15, 0.15],
     "servo2": [-0.15, 0.15],
     "bottom": [0, 100],
@@ -207,14 +221,17 @@ def plot_history(history, plot_indexes, axe, name):
     return line_list
 
 
-for state_history, name in zip([integrator_state_history, kalman_state_history, optitrack_state_history], ["integrator", "kalman", "optitrack"]):
+for state_history, name in zip([integrator_state_history, optitrack_state_history], ["integrator", "optitrack"]):
     plot_history(state_history, state_plot_indexes, axe, name)
 
 
 plot_history(control_history, control_plot_indexes, axe, name)
 
-control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon")
-state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon")
+# control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon")
+# state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon")
+
+control_mpc_line_list = []
+state_mpc_line_list = []
 
 plt.subplots_adjust(left=0.15, bottom=0.25)
 ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor='white')
