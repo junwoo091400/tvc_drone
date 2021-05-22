@@ -249,15 +249,12 @@ public:
 
     g) const noexcept
     {
-        Matrix<T, 2, 1> u_drone = u.segment(2, 4).cwiseProduct(u_unscaling_vec.segment(2, 4).template cast<T>());;
+        Matrix<T, 2, 1> u_drone = u.segment(2, 2).cwiseProduct(u_unscaling_vec.segment(2, 2).template cast<T>());;
 
 
         g(0) = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
-        //TODO
-        g(1) = 50;
-        g(2) = 50;
-//        g(1) = u_drone(2) + u_drone(3);
-//        g(2) = u_drone(2) - u_drone(3);
+        g(1) = u_drone(0) + u_drone(1);
+        g(2) = u_drone(0) - u_drone(1);
     }
 
     template<typename T>
