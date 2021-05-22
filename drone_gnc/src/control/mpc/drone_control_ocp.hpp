@@ -24,7 +24,7 @@ using namespace Eigen;
 
 using namespace std;
 
-#define POLY_ORDER 7
+#define POLY_ORDER 6
 #define NUM_SEG    1
 
 /** benchmark the new collocation class */
@@ -130,11 +130,10 @@ public:
                     drone->maxPropellerSpeed, drone->maxPropellerDelta / 2;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
-            //TODO remove
-            x_unscaling_vec.setOnes();
-            x_scaling_vec.setOnes();
-            u_unscaling_vec.setOnes();
-            u_scaling_vec.setOnes();
+//            u_unscaling_vec.setOnes();
+//            u_scaling_vec.setOnes();
+//            x_unscaling_vec.setOnes();
+//            x_scaling_vec.setOnes();
 
             //scale costs
             x_drone_unscaling_vec = x_unscaling_vec.segment(0, Drone::NX);
@@ -144,15 +143,18 @@ public:
             x_drone_scaling_vec = x_drone_unscaling_vec.cwiseInverse();
             u_drone_scaling_vec = u_drone_unscaling_vec.cwiseInverse();
 
-            //TODO fix
-//            Q = Q.cwiseProduct(x_drone_unscaling_vec).cwiseProduct(x_drone_unscaling_vec);
+            Matrix<scalar_t, 11, 1> Q_unscaling_vec;
+            Q_unscaling_vec.segment(0, 8) = x_unscaling_vec.segment(0, 8);
+            Q_unscaling_vec.segment(8, 3) = x_unscaling_vec.segment(10, 3);
+            Q = Q.cwiseProduct(Q_unscaling_vec).cwiseProduct(Q_unscaling_vec);
 
-//            Matrix<scalar_t, Drone::NX, Drone::NX> Q_unscaling_mat;
-//            Q_unscaling_mat.setZero();
-//            Q_unscaling_mat.diagonal() << x_drone_unscaling_vec;
-//            QN = Q_unscaling_mat * QN * Q_unscaling_mat;
+            Matrix<scalar_t, 11, 11> Q_unscaling_mat;
+            Q_unscaling_mat.setZero();
+            Q_unscaling_mat.diagonal() << Q_unscaling_vec;
+            QN = Q_unscaling_mat * QN * Q_unscaling_mat;
 
             R = R.cwiseProduct(u_drone_unscaling_vec).cwiseProduct(u_drone_unscaling_vec);
+            ROS_INFO_STREAM("u_drone_scale" << u_drone_unscaling_vec);
 
             ROS_INFO_STREAM("Q" << Q);
             ROS_INFO_STREAM("R" << R);
@@ -160,6 +162,9 @@ public:
             R /= weight_scaling;
             Q /= weight_scaling;
             QN /= weight_scaling;
+            R = R.eval();
+            Q = Q.eval();
+            QN = QN.eval();
         } else {
             ROS_ERROR("Failed to get MPC parameter");
         }
@@ -197,13 +202,13 @@ public:
 //
         lbu = lbu.cwiseProduct(u_scaling_vec);
         ubu = ubu.cwiseProduct(u_scaling_vec);
-        ROS_INFO_STREAM("lbu" << lbu);
-        ROS_INFO_STREAM("ubu" << ubu);
+        ROS_INFO_STREAM("lbu" << lbu.transpose());
+        ROS_INFO_STREAM("ubu" << ubu.transpose());
 
         lbx = lbx.cwiseProduct(x_scaling_vec);
         ubx = ubx.cwiseProduct(x_scaling_vec);
-        ROS_INFO_STREAM(lbx.transpose());
-        ROS_INFO_STREAM(ubx.transpose());
+        ROS_INFO_STREAM("lbx" << lbx.transpose());
+        ROS_INFO_STREAM("ubx" << ubx.transpose());
 
     }
 
@@ -244,7 +249,7 @@ public:
 
     g) const noexcept
     {
-        Matrix<T, 4, 1> u_drone = u.segment(2, 4).cwiseProduct(u_unscaling_vec.segment(2, 4).template cast<T>());;
+        Matrix<T, 2, 1> u_drone = u.segment(2, 4).cwiseProduct(u_unscaling_vec.segment(2, 4).template cast<T>());;
 
 
         g(0) = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);

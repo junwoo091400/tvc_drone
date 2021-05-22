@@ -5,7 +5,7 @@ predict_vars:
   dx: 500
   dz: 500
   att: 0.05
-  datt: 10000
+  datt: 1000
   thrust_scaling: 0.3
   torque_scaling: 0.2
   servo_offset: 0.2

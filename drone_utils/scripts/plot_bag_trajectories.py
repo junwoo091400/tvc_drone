@@ -227,11 +227,11 @@ for state_history, name in zip([integrator_state_history, optitrack_state_histor
 
 plot_history(control_history, control_plot_indexes, axe, name)
 
-# control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon")
-# state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon")
+control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon")
+state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon")
 
-control_mpc_line_list = []
-state_mpc_line_list = []
+# control_mpc_line_list = []
+# state_mpc_line_list = []
 
 plt.subplots_adjust(left=0.15, bottom=0.25)
 ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor='white')

@@ -47,4 +47,4 @@ maxPropellerDelta: 30
 maxServo1Angle: 15
 maxServo2Angle: 15
 
-max_servo_rate: 35
+max_servo_rate: 150

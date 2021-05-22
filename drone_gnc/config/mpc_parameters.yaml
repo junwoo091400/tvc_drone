@@ -15,7 +15,7 @@ input_costs:
 
 # constraints (+ used for scaling)
 min_z: -1
-min_dz: -0.8
+min_dz: -0.6
 
 max_dx: 1.2
 max_dz: 2
@@ -36,4 +36,4 @@ max_line_search_iter: 4
 mpc_period: 0.02
 feedforward_period: 0.02
 
-weight_scaling: 1
+weight_scaling: 64
