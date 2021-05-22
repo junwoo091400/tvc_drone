@@ -11,28 +11,25 @@
 class DroneMPC : public MPC<control_ocp, Solver> {
 
 public:
-//    using admm = boxADMM<control_ocp::VAR_SIZE, control_ocp::NUM_EQ, control_ocp::scalar_t,
-//            control_ocp::MATRIXFMT, linear_solver_traits<control_ocp::MATRIXFMT>::default_solver>;
-//    using osqp_solver_t = polympc::OSQP<control_ocp::VAR_SIZE, control_ocp::NUM_EQ, control_ocp::scalar_t>;
-    using state = state_t;
-    using control = control_t;
-    using constraint = constraint_t;
+    using ocp_state = state_t;
+    using ocp_control = control_t;
+    using ocp_constraint = constraint_t;
 
     DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
 
-    void solve(state &x0);
+    void solve(Drone::state &x0);
 
     drone_gnc::DroneControl getControlCurrentTime();
 
-    void setTarget(state &target_state, control &target_control);
+    void setTarget(Drone::state &target_state, Drone::control &target_control);
 
-    state solution_x_at(const double t);
-    control solution_u_at(const double t);
-    state solution_x_at(const int t);
-    control solution_u_at(const int t);
+    Drone::state solution_x_at(const double t);
+    Drone::control solution_u_at(const double t);
+    Drone::state solution_x_at(const int t);
+    Drone::control solution_u_at(const int t);
     double node_time(int i);
 
-    void integrateX0(const state x0, state &new_x0);
+    void integrateX0(const Drone::state x0, Drone::state &new_x0);
     std::shared_ptr<Drone> drone;
     double mpc_period;
     double feedforward_period;

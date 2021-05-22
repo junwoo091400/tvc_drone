@@ -1,21 +1,5 @@
 #include "ros/ros.h"
 
-#include "drone_gnc/FSM.h"
-#include "drone_gnc/DroneState.h"
-#include "drone_gnc/DroneWaypointStamped.h"
-#include "drone_gnc/Waypoint.h"
-#include "drone_gnc/Trajectory.h"
-#include "drone_gnc/DroneTrajectory.h"
-
-#include "drone_gnc/DroneControl.h"
-#include "geometry_msgs/Vector3.h"
-
-#include "std_msgs/Int32.h"
-#include "std_msgs/Float64.h"
-
-#include "drone_gnc/GetFSM.h"
-#include "drone_gnc/GetWaypoint.h"
-
 #include <time.h>
 
 #include <iostream>
@@ -28,9 +12,10 @@
 #include <autodiff/AutoDiffScalar.h>
 #include <drone_model.hpp>
 
+#include "polymath.h"
+
 static const int NX = 13;
 static const int NU = 4;
-static const int NP = 10;
 
 using namespace Eigen;
 
@@ -46,28 +31,9 @@ using control = control_t<double>;
 using ad_state = AutoDiffScalar<state>;
 using ad_control = AutoDiffScalar<control>;
 
-using ad_state2 = AutoDiffScalar<state_t<ad_state>>;
-using ad_control2 = AutoDiffScalar<control_t<ad_control>>;
-
-
-
-
-//void linearize(const state &x_bar,
-//               const control &u_bar,
-//               const Matrix<double, 4, 1> &params,
-//               Matrix<double, NX, NX> &A,
-//               Matrix<double, NX, NU> &B) {
-//
-//
-//}
-
-
-int main(int argc, char **argv) {
-    // Init ROS time keeper node
-    ros::init(argc, argv, "control");
-    ros::NodeHandle nh("util");
-    Drone drone(nh);
-
+void compute_linearized_model(Drone &drone,
+                              Matrix<double, NX, NX> &A,
+                              Matrix<double, NX, NU> &B) {
     state x_bar;
     x_bar << 0, 0, 0,
             0, 0, 0,
@@ -79,11 +45,9 @@ int main(int argc, char **argv) {
 
     ROS_INFO_STREAM("u_bar" << u_bar);
 
-    Drone::parameters params;
-    params << 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    Matrix<double, 4, 1> params;
+    params << 1.0, 0.0, 0.0, 0.0;
 
-    Matrix<double, NX, NX> A;
-    Matrix<double, NX, NU> B;
 
 //    linearize(x_bar, u_bar, params, A, B);
 
@@ -101,7 +65,7 @@ int main(int argc, char **argv) {
 
     control_t<ad_state> ad_u_bar(u_bar);
     for (int i = 0; i < ad_u_bar.size(); ++i) ad_u_bar(i).derivatives().setZero();
-    Matrix<ad_state, NP, 1> ad_params(params);
+    Matrix<ad_state, 4, 1> ad_params(params);
     for (int i = 0; i < ad_params.size(); ++i) ad_params(i).derivatives().setZero();
     drone.state_dynamics(ADx,
                          ad_u_bar,
@@ -123,13 +87,12 @@ int main(int argc, char **argv) {
         derivative_idx2++;
     }
 
-
     state_t<ad_control> Xdot2;
 
     state_t<ad_control> ad_x_bar(x_bar);
     for (int i = 0; i < ad_x_bar.size(); ++i) ad_x_bar(i).derivatives().setZero();
 
-    Matrix<ad_control, NP, 1> ad_params2(params);
+    Matrix<ad_control, 4, 1> ad_params2(params);
     for (int i = 0; i < ad_params2.size(); ++i) ad_params2(i).derivatives().setZero();
 
     drone.state_dynamics(ad_x_bar,
@@ -141,10 +104,41 @@ int main(int argc, char **argv) {
     for (int i = 0; i < Xdot2.size(); i++) {
         B.row(i) = Xdot2(i).derivatives();
     }
-    ROS_INFO_STREAM("Linearized continuous time model:");
+}
+
+void compute_LQR_terminal_cost(Drone &drone, Matrix<double, NX - 1, NX - 1> &QN) {
+    Matrix<double, NX, NX> A_;
+    Matrix<double, NX, NU> B_;
+
+
+    compute_linearized_model(drone, A_, B_);
+
+    Matrix<double, NX - 1, NX - 1> A;
+    A.block(0, 0, 9, 9) = A_.block(0, 0, 9, 9);
+    A.block(9, 0, 3, 9) = A_.block(10, 0, 3, 9);
+    A.block(0, 9, 9, 3) = A_.block(0, 10, 9, 3);
+    A.block(9, 9, 3, 3) = A_.block(10, 10, 3, 3);
+    Matrix<double, NX - 1, NU> B;
+    B.block(0, 0, 9, 4) = B_.block(0, 0, 9, 4);
+    B.block(9, 0, 3, 4) = B_.block(10, 0, 3, 4);
+
     ROS_INFO_STREAM("A = DF/DX\n" << A);
     ROS_INFO_STREAM("B = DF/DU\n" << B);
+    Matrix<double, NX - 1, NX - 1> C;
+    C.setOnes();
+//    polymath::LinearSystem sys(A,B,C);
 
-    //sample other A values
+    Matrix<double, NX - 1, NX - 1> Q;
+    Q.setZero();
+    Q.diagonal() << 1, 1, 5,
+            0.1, 0.1, 0.5,
+            1, 1, 1,
+            1, 1, 1;
+    Matrix<double, NU, NU> R;
+    R.setZero();
+    R.diagonal() << 5, 5, 0.01, 0.01;
+
+    QN = polymath::oc::care(A, B * R.inverse() * B.transpose(), Q);
+//    Eigen::MatrixXd K = polymath::oc::lqr(sys, Q, R, M);
 
 }

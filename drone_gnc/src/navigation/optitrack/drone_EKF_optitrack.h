@@ -14,7 +14,7 @@ using namespace Eigen;
 
 class DroneEKF {
 public:
-    static const int NX = 17;
+    static const int NX = 23;
     static const int NU = 4;
     static const int NZ = 7;
 
