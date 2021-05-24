@@ -61,18 +61,14 @@ if __name__ == '__main__':
     pi = pigpio.pi()
 
     pi.set_servo_pulsewidth(top_motor_pin, 0)
-    time.sleep(1)
-    pi.set_servo_pulsewidth(top_motor_pin, 2000)
-    time.sleep(1)
-    pi.set_servo_pulsewidth(top_motor_pin, 1000)
-    time.sleep(1)
-
     pi.set_servo_pulsewidth(bottom_motor_pin, 0)
     time.sleep(1)
+    pi.set_servo_pulsewidth(top_motor_pin, 2000)
     pi.set_servo_pulsewidth(bottom_motor_pin, 2000)
     time.sleep(1)
+    pi.set_servo_pulsewidth(top_motor_pin, 1000)
     pi.set_servo_pulsewidth(bottom_motor_pin, 1000)
-    time.sleep(1)
+    time.sleep(0.5)
 
     pi.set_servo_pulsewidth(yaw_pin, 1500)
     pi.set_servo_pulsewidth(pitch_pin, 1500)

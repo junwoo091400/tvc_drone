@@ -47,7 +47,7 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     setTarget(target_state, target_control);
 
     init_time = ros::Time::now().toSec();
-    fixed_computation_time = mpc_period*0.98;
+    fixed_computation_time = mpc_period*0.93;
 }
 
 

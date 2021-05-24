@@ -16,7 +16,7 @@ export ROS_MASTER_URI=http://$(getent hosts raspberrypi.local | awk '{ print $1 
 # roslaunch drone_utils raspberrypi_benchmark.launch
 
 (roslaunch drone_utils raspberrypi_benchmark.launch)&
-sleep 3
+sleep 6
 rosrun drone_utils benchmark.py
 
 #sleep 5
