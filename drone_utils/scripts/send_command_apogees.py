@@ -23,9 +23,9 @@ from drone_gnc.srv import InterpolateControlSpline
 
 trajectory = np.array([
     Vector3(0, 0, 1),
-    Vector3(-0.4, 0, 0.3),
-    Vector3(-0.8, 0, 1),
-    Vector3(-0.8, 0, 0),
+    Vector3(0, -0.4, 0.3),
+    Vector3(0, -0.8, 1),
+    Vector3(0, -0.8, 0),
 ])
 
 computation_time_array = np.empty((0))
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # Init ROS
     rospy.init_node('benchmark', anonymous=True)
 
-    rospy.Subscriber("/simu_drone_state", DroneState, stateCallback)
+    rospy.Subscriber("/drone_state", DroneState, stateCallback)
 
     rospy.wait_for_service('/getFSM_gnc')
     client_fsm = rospy.ServiceProxy('/getFSM_gnc', GetFSM)

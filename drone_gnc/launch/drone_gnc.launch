@@ -16,7 +16,7 @@
     </group>
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node" output="screen">
-        <rosparam param="target_apogee">[0,0,0]</rosparam>
+        <rosparam param="target_apogee">[0,0,0.5]</rosparam>
     </node>
 
 <!--    <node name="low_level_control" pkg="drone_gnc" type="low_level_control_node.py" output="screen"/>-->
@@ -26,7 +26,7 @@
     </node>
 
     <node name="navigation" pkg="drone_gnc" type="drone_navigation_optitrack" machine="gnc_machine" cwd="node" output="screen">
-        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0, 1.04, 1.005, 0.01,-0.02, 0,0,0, 0,0,0]</rosparam>
+        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0, 1.04, 1.005, -0.01, 0.02, 0,0,0, 0,0,0]</rosparam>
         <rosparam param="drone_dome">true</rosparam>
     </node>
 </launch>
