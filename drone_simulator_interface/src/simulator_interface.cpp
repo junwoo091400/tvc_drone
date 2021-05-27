@@ -26,8 +26,8 @@ double CM_OFFSET_X = 0;
 bool first_command = true;
 double thrust_scaling =1.04;
 double torque_scaling =1.005;
-double servo1_offset = 0.01;
-double servo2_offset = -0.02;
+double servo1_offset = -0.01;
+double servo2_offset = 0.02;
 Drone* drone;
 
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
