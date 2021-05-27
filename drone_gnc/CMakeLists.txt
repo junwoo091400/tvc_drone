@@ -186,6 +186,7 @@ include_directories(src/utils src/control src/models src/navigation submodule/po
 
 add_subdirectory(src/utils)
 add_subdirectory(src/control)
+add_subdirectory(src/guidance)
 add_subdirectory(src/models)
 add_subdirectory(src/navigation)
 add_subdirectory(src/utils/drone_dome)

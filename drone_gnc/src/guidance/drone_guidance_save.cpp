@@ -13,6 +13,8 @@
 #include "std_msgs/String.h"
 
 
+
+
 // Global variable with last requested fsm
 drone_gnc::FSM current_fsm;
 

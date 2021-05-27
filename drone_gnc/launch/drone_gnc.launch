@@ -19,6 +19,11 @@
         <rosparam param="target_apogee">[0,0,0.5]</rosparam>
     </node>
 
+
+    <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" cwd="node" output="screen">
+        <rosparam param="target_apogee">[0,0,0.5]</rosparam>
+    </node>
+
 <!--    <node name="low_level_control" pkg="drone_gnc" type="low_level_control_node.py" output="screen"/>-->
 
     <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" cwd="node">
