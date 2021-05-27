@@ -25,7 +25,7 @@
 
 #define USE_BACKUP_CONTROLLER false
 
-class DroneControlNode {
+class DroneGuidanceNode {
 public:
     // Callback function to store last received state
     void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
@@ -38,7 +38,7 @@ public:
         target_apogee = target;
     }
 
-    DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
+    DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
                                                                               drone(drone_ptr){
         initTopics(nh);
 
@@ -52,8 +52,8 @@ public:
 
     void initTopics(ros::NodeHandle &nh) {
         // Subscribers
-        rocket_state_sub = nh.subscribe("/drone_state", 100, &DroneControlNode::stateCallback, this);
-        target_sub = nh.subscribe("/target_apogee", 100, &DroneControlNode::targetCallback, this);
+        rocket_state_sub = nh.subscribe("/drone_state", 100, &DroneGuidanceNode::stateCallback, this);
+        target_sub = nh.subscribe("/target_apogee", 100, &DroneGuidanceNode::targetCallback, this);
 
         // Publishers
         horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/target_trajectory", 10);
@@ -98,7 +98,6 @@ public:
     }
 
     void publishTrajectory() {
-
         // Send optimal trajectory computed by control. Send only position for now
         drone_gnc::Trajectory trajectory_msg;
         drone_gnc::DroneTrajectory horizon_msg;
@@ -254,13 +253,11 @@ int main(int argc, char **argv) {
 
     std::shared_ptr<Drone> drone = make_shared<Drone>(nh);
 
-    DroneControlNode droneControlNode(nh, drone);
+    DroneGuidanceNode droneGuidanceNode(nh, drone);
 
     double mpc_period, feedforward_period;
-    nh.getParam("/mpc/mpc_period", mpc_period);
-    nh.getParam("/mpc/feedforward_period", feedforward_period);
-
-    int max_ff_index = std::round(mpc_period / feedforward_period) - 1;
+    nh.getParam("mpc/mpc_period", mpc_period);
+    nh.getParam("mpc/feedforward_period", feedforward_period);
 
     ros::ServiceClient client_fsm = nh.serviceClient<drone_gnc::GetFSM>("/getFSM_gnc");
 
@@ -271,63 +268,42 @@ int main(int argc, char **argv) {
     current_fsm.time_now = 0;
     current_fsm.state_machine = "Idle";
 
-    int ff_index = 0;
-    // Thread to feedforward spline control interpolations
-    ros::Timer low_level_control_thread = nh.createTimer(
-            ros::Duration(feedforward_period), [&](const ros::TimerEvent &) {
-                if (ff_index < max_ff_index) {
-                    droneControlNode.publishFeedforwardControl();
-                    ff_index++;
-                }
-
-            });
-
-
-
     // Get current FSM and time
     ros::Timer fsm_update_thread = nh.createTimer(
-            ros::Duration(mpc_period), [&](const ros::TimerEvent &) {
+            ros::Duration(0.1), [&](const ros::TimerEvent &) {
                 if (client_fsm.call(srv_fsm)) {
                     current_fsm = srv_fsm.response.fsm;
                 }
             });
 
-    // Thread to compute control. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(mpc_period), [&](const ros::TimerEvent &) {
+//    // Thread to compute control. Duration defines interval time in seconds
+    ros::Timer control_thread = nh.createTimer(ros::Duration(0.2), [&](const ros::TimerEvent &) {
         double loop_start_time = ros::Time::now().toSec();
         // State machine ------------------------------------------
         if ((current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) &&
-            droneControlNode.received_state) {
+                droneGuidanceNode.received_state) {
 
-            droneControlNode.fetchNewTarget();
-            if (!USE_BACKUP_CONTROLLER) {
-                droneControlNode.computeControl();
-            }
+            droneGuidanceNode.fetchNewTarget();
+
+            droneGuidanceNode.computeControl();
 
 
-            droneControlNode.publishTrajectory();
-            droneControlNode.saveDebugInfo();
-            droneControlNode.publishDebugInfo();
-
-            if (current_fsm.state_machine.compare("Launch") == 0) {
-                low_level_control_thread.stop();
-                droneControlNode.publishFeedforwardControl();
-                ff_index = 0;
-                low_level_control_thread.start();
-            }
+            droneGuidanceNode.publishTrajectory();
+            droneGuidanceNode.saveDebugInfo();
+            droneGuidanceNode.publishDebugInfo();
 
         } else if (current_fsm.state_machine.compare("Coast") == 0) {
             // Slow down control to 10s period for reducing useless computation
             control_thread.setPeriod(ros::Duration(10.0));
 
-            droneControlNode.printDebugInfo();
+            droneGuidanceNode.printDebugInfo();
 
         }
         ROS_INFO_STREAM("loop period " << 1000 * (ros::Time::now().toSec() - loop_start_time) << " ms");
     });
 
     // Start spinner on a different thread to allow spline evaluation while a new solution is computed
-    ros::AsyncSpinner spinner(3);
+    ros::AsyncSpinner spinner(1);
     spinner.start();
     ros::waitForShutdown();
 

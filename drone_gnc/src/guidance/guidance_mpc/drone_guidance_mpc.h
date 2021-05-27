@@ -29,7 +29,6 @@ public:
     Drone::control solution_u_at(const int t);
     double node_time(int i);
 
-    void integrateX0(const Drone::state x0, Drone::state &new_x0);
     std::shared_ptr<Drone> drone;
     double mpc_period;
     double feedforward_period;

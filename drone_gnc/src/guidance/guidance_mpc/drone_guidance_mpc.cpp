@@ -4,11 +4,11 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     // Initialize rocket class with useful parameters
     ocp().init(nh, drone);
     int max_sqp_iter, max_qp_iter, max_line_search_iter;
-    nh.getParam("/mpc/max_sqp_iter", max_sqp_iter);
-    nh.getParam("/mpc/max_line_search_iter", max_line_search_iter);
-    nh.getParam("/mpc/mpc_period", mpc_period);
-    nh.getParam("/mpc/feedforward_period", feedforward_period);
-    nh.getParam("/mpc/max_qp_iter", max_qp_iter);
+    nh.getParam("mpc/max_sqp_iter", max_sqp_iter);
+    nh.getParam("mpc/max_line_search_iter", max_line_search_iter);
+    nh.getParam("mpc/mpc_period", mpc_period);
+    nh.getParam("mpc/feedforward_period", feedforward_period);
+    nh.getParam("mpc/max_qp_iter", max_qp_iter);
 
 //    horizon_length = 5;
 //    max_sqp_iter = 5;
@@ -21,7 +21,7 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     settings().line_search_max_iter = max_line_search_iter;
     qp_settings().max_iter = max_qp_iter;
 
-    nh.getParam("/mpc/horizon_length", horizon_length);
+    nh.getParam("mpc/horizon_length", horizon_length);
     set_time_limits(0, horizon_length);
 
     // Setup constraints
@@ -147,19 +147,16 @@ double DroneGuidanceMPC::node_time(int i){
 void DroneGuidanceMPC::solve(Drone::state &x0) {
     double computation_start_time = ros::Time::now().toSec();
 
-    Drone::state predicted_x0;
-    integrateX0(x0, predicted_x0);
-
     //servo rate constraint
     ocp_state previous_x = MPC::solution_x_at(0).cwiseProduct(ocp().x_unscaling_vec);
     double maxServoRate = drone->maxServoRate;
     ocp_state lbx0;
-    lbx0.segment(0, 13) = predicted_x0;
+    lbx0.segment(0, 13) = x0;
     lbx0(13) = previous_x(13) - maxServoRate*mpc_period;
     lbx0(14) = previous_x(14) - maxServoRate*mpc_period;
 
     ocp_state ubx0;
-    ubx0.segment(0, 13) = predicted_x0;
+    ubx0.segment(0, 13) = x0;
     ubx0(13) = previous_x(13) + maxServoRate*mpc_period;
     ubx0(14) = previous_x(14) + maxServoRate*mpc_period;
 
@@ -182,20 +179,3 @@ void DroneGuidanceMPC::solve(Drone::state &x0) {
 
     solution_time = ros::Time::now().toSec();
 }
-
-void DroneGuidanceMPC::integrateX0(const Drone::state x0, Drone::state &new_x0){
-    new_x0 = x0;
-
-    int max_ff_index = std::round(mpc_period/feedforward_period);
-
-    int i;
-    for(i = 0; i<max_ff_index-1; i++){
-        Drone::control interpolated_control = solution_u_at(feedforward_period*i);
-        drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
-    }
-    i++;
-
-    Drone::control interpolated_control = solution_u_at(feedforward_period*i);
-    drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
-}
-

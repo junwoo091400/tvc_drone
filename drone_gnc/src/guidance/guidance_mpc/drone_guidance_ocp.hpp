@@ -24,8 +24,8 @@ using namespace Eigen;
 
 using namespace std;
 
-#define POLY_ORDER 5
-#define NUM_SEG    1
+#define POLY_ORDER 7
+#define NUM_SEG    2
 
 /** benchmark the new collocation class */
 using Polynomial = polympc::Chebyshev<POLY_ORDER, polympc::GAUSS_LOBATTO, double>;
@@ -71,14 +71,14 @@ public:
         drone = drone_ptr;
 //        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
         scalar_t maxAttitudeAngle_degree, weight_scaling;
-        if (nh.getParam("/mpc/min_z", min_z) &&
-            nh.getParam("/mpc/min_dz", min_dz) &&
-            nh.getParam("/mpc/max_dx", max_dx) &&
-            nh.getParam("/mpc/max_dz", max_dz) &&
-            nh.getParam("/mpc/max_datt", max_datt) &&
-            nh.getParam("/mpc/scaling_x", scaling_x) &&
-            nh.getParam("/mpc/scaling_z", scaling_z) &&
-            nh.getParam("/mpc/weight_scaling", weight_scaling) &&
+        if (nh.getParam("mpc/min_z", min_z) &&
+            nh.getParam("mpc/min_dz", min_dz) &&
+            nh.getParam("mpc/max_dx", max_dx) &&
+            nh.getParam("mpc/max_dz", max_dz) &&
+            nh.getParam("mpc/max_datt", max_datt) &&
+            nh.getParam("mpc/scaling_x", scaling_x) &&
+            nh.getParam("mpc/scaling_z", scaling_z) &&
+            nh.getParam("mpc/weight_scaling", weight_scaling) &&
 
             //                nh.getParam("/mpc/state_costs/x", x_cost) &&
             //            nh.getParam("/mpc/state_costs/dz", dx_cost) &&
@@ -91,7 +91,7 @@ public:
             //            nh.getParam("/mpc/input_costs/thrust", thrust_cost) &&
             //            nh.getParam("/mpc/input_costs/torque", torque_cost) &&
 
-            nh.getParam("/mpc/max_attitude_angle", maxAttitudeAngle_degree)) {
+            nh.getParam("mpc/max_attitude_angle", maxAttitudeAngle_degree)) {
 
 //            Q << x_cost, x_cost, z_cost,
 //                    dx_cost, dx_cost, dz_cost,
@@ -130,10 +130,10 @@ public:
                     drone->maxPropellerSpeed, drone->maxPropellerDelta / 2;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
-//            u_unscaling_vec.setOnes();
-//            u_scaling_vec.setOnes();
-//            x_unscaling_vec.setOnes();
-//            x_scaling_vec.setOnes();
+            u_unscaling_vec.setOnes();
+            u_scaling_vec.setOnes();
+            x_unscaling_vec.setOnes();
+            x_scaling_vec.setOnes();
 
             //scale costs
             x_drone_unscaling_vec = x_unscaling_vec.segment(0, Drone::NX);
@@ -159,6 +159,7 @@ public:
             ROS_INFO_STREAM("Q" << Q);
             ROS_INFO_STREAM("R" << R);
             ROS_INFO_STREAM("QN" << QN);
+
             R /= weight_scaling;
             Q /= weight_scaling;
             QN /= weight_scaling;

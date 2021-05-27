@@ -270,8 +270,8 @@ int main(int argc, char **argv) {
     DroneControlNode droneControlNode(nh, drone);
 
     double mpc_period, feedforward_period;
-    nh.getParam("/mpc/mpc_period", mpc_period);
-    nh.getParam("/mpc/feedforward_period", feedforward_period);
+    nh.getParam("mpc/mpc_period", mpc_period);
+    nh.getParam("mpc/feedforward_period", feedforward_period);
 
     int max_ff_index = std::round(mpc_period / feedforward_period) - 1;
 
@@ -299,7 +299,7 @@ int main(int argc, char **argv) {
 
     // Get current FSM and time
     ros::Timer fsm_update_thread = nh.createTimer(
-            ros::Duration(mpc_period), [&](const ros::TimerEvent &) {
+            ros::Duration(0.2), [&](const ros::TimerEvent &) {
                 if (client_fsm.call(srv_fsm)) {
                     current_fsm = srv_fsm.response.fsm;
                 }

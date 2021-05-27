@@ -4,18 +4,18 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     // Initialize rocket class with useful parameters
     ocp().init(nh, drone);
     int max_sqp_iter, max_qp_iter, max_line_search_iter;
-    nh.getParam("/mpc/max_sqp_iter", max_sqp_iter);
-    nh.getParam("/mpc/max_line_search_iter", max_line_search_iter);
-    nh.getParam("/mpc/mpc_period", mpc_period);
-    nh.getParam("/mpc/feedforward_period", feedforward_period);
-    nh.getParam("/mpc/max_qp_iter", max_qp_iter);
+    nh.getParam("mpc/max_sqp_iter", max_sqp_iter);
+    nh.getParam("mpc/max_line_search_iter", max_line_search_iter);
+    nh.getParam("mpc/mpc_period", mpc_period);
+    nh.getParam("mpc/feedforward_period", feedforward_period);
+    nh.getParam("mpc/max_qp_iter", max_qp_iter);
     nh.param("/is_simu", is_simu, true);
 
     settings().max_iter = max_sqp_iter;
     settings().line_search_max_iter = max_line_search_iter;
     qp_settings().max_iter = max_qp_iter;
 
-    nh.getParam("/mpc/horizon_length", horizon_length);
+    nh.getParam("mpc/horizon_length", horizon_length);
     set_time_limits(0, horizon_length);
 
     // Setup constraints
