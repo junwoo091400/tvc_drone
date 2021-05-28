@@ -36,8 +36,7 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     x0 << 0, 0, 0,
             0, 0, 0,
             0, 0, 0, 1,
-            0, 0, 0,
-            0, 0;
+            0, 0, 0;
     x_guess(x0.cwiseProduct(ocp().x_scaling_vec).replicate(ocp().NUM_NODES, 1));
     ocp_control u0;
     u0 << 0, 0, drone->getHoverSpeedAverage(), 0;
@@ -123,10 +122,7 @@ Drone::state DroneGuidanceMPC::solution_x_at(const double t){
 }
 
 Drone::control DroneGuidanceMPC::solution_u_at(const double t){
-    Drone::control u;
-    u.segment(0, 2) =  MPC::solution_x_at(t).segment(13, 2);
-    u.segment(2, 2) =  MPC::solution_u_at(t).segment(2, 2);
-    return u.cwiseProduct(ocp().u_drone_unscaling_vec);
+    return MPC::solution_u_at(t).cwiseProduct(ocp().u_drone_unscaling_vec);
 }
 
 Drone::state DroneGuidanceMPC::solution_x_at(const int t){
@@ -134,10 +130,7 @@ Drone::state DroneGuidanceMPC::solution_x_at(const int t){
 }
 
 Drone::control DroneGuidanceMPC::solution_u_at(const int t){
-    Drone::control u;
-    u.segment(0, 2) =  MPC::solution_x_at(t).segment(13, 2);
-    u.segment(2, 2) =  MPC::solution_u_at(t).segment(2, 2);
-    return u.cwiseProduct(ocp().u_drone_unscaling_vec);
+    return MPC::solution_u_at(t).cwiseProduct(ocp().u_drone_unscaling_vec);
 }
 
 double DroneGuidanceMPC::node_time(int i){
@@ -147,35 +140,17 @@ double DroneGuidanceMPC::node_time(int i){
 void DroneGuidanceMPC::solve(Drone::state &x0) {
     double computation_start_time = ros::Time::now().toSec();
 
-    //servo rate constraint
-    ocp_state previous_x = MPC::solution_x_at(0).cwiseProduct(ocp().x_unscaling_vec);
-    double maxServoRate = drone->maxServoRate;
-    ocp_state lbx0;
-    lbx0.segment(0, 13) = x0;
-    lbx0(13) = previous_x(13) - maxServoRate*mpc_period;
-    lbx0(14) = previous_x(14) - maxServoRate*mpc_period;
-
-    ocp_state ubx0;
-    ubx0.segment(0, 13) = x0;
-    ubx0(13) = previous_x(13) + maxServoRate*mpc_period;
-    ubx0(14) = previous_x(14) + maxServoRate*mpc_period;
-
-    initial_conditions(lbx0.cwiseProduct(ocp().x_scaling_vec), ubx0.cwiseProduct(ocp().x_scaling_vec));
+    initial_conditions(x0);
 
 //    warmStart();
 
-    if (is_simu){
-        // in simulation, sleep to account fo
-        ros::Duration(mpc_period-feedforward_period).sleep();
-    }
-
     double time_now = ros::Time::now().toSec();
+
     MPC::solve();
+
     last_computation_time = (ros::Time::now().toSec()-time_now)*1000;
 
     time_now = ros::Time::now().toSec();
-    while (ros::Time::now().toSec() < computation_start_time+fixed_computation_time);
-    ROS_INFO_STREAM("stalled duration " << (ros::Time::now().toSec() - time_now)*1000);
 
     solution_time = ros::Time::now().toSec();
 }

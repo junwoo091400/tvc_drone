@@ -19,7 +19,7 @@
         <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
     </group>
 
-    <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node" output="screen">
+    <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node">
         <rosparam param="target_apogee">[0,0,0.5]</rosparam>
     </node>
 

@@ -31,7 +31,7 @@ using namespace std;
 using Polynomial = polympc::Chebyshev<POLY_ORDER, polympc::GAUSS_LOBATTO, double>;
 using Approximation = polympc::Spline<Polynomial, NUM_SEG>;
 
-POLYMPC_FORWARD_DECLARATION(/*Name*/ guidance_ocp, /*NX*/ 15, /*NU*/ 4, /*NP*/ 0, /*ND*/ 0, /*NG*/3, /*TYPE*/ double)
+POLYMPC_FORWARD_DECLARATION(/*Name*/ guidance_ocp, /*NX*/ 13, /*NU*/ 4, /*NP*/ 0, /*ND*/ 0, /*NG*/3, /*TYPE*/ double)
 
 class guidance_ocp : public ContinuousOCP<guidance_ocp, Approximation, SPARSE> {
 public:
@@ -102,18 +102,20 @@ public:
                     2, 2,
                     1, 1, 5;
             R << 5, 5, 0.01, 0.01;
-
-            QN << 1.0895, 0, 0, 0.54349, 0, 0, 0, 2.9144, 0, 0.16422, 0
-                    , 0, 1.0841, 0, 0, 0.53764, 0, -2.8486, 0, -0.15177, 0, 0
-                    , 0, 0, 3.5931, 0, 0, 1.041, 0, 0, 0, 0, 0
-                    , 0.54349, 0, 0, 0.44359, 0, 0, 0, 2.8468, 0, 0.1473, 0
-                    , 0, 0.53764, 0, 0, 0.43767, 0, -2.7847, 0, -0.13575, 0, 0
-                    , 0, 0, 1.041, 0, 0, 0.74812, 0, 0, 0, 0, 0
-                    , 0, -2.8486, 0, 0, -2.7847, 0, 24.722, 0, 1.0287, 0, 0
-                    , 2.9144, 0, 0, 2.8468, 0, 0, 0, 25.297, 0, 1.1234, 0
-                    , 0, -0.15177, 0, 0, -0.13575, 0, 1.0287, 0, 0.091271, 0, 0
-                    , 0.16422, 0, 0, 0.1473, 0, 0, 0, 1.1234, 0, 0.10206, 0
-                    , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1501;
+//
+//            QN << 1.0895, 0, 0, 0.54349, 0, 0, 0, 2.9144, 0, 0.16422, 0
+//                    , 0, 1.0841, 0, 0, 0.53764, 0, -2.8486, 0, -0.15177, 0, 0
+//                    , 0, 0, 3.5931, 0, 0, 1.041, 0, 0, 0, 0, 0
+//                    , 0.54349, 0, 0, 0.44359, 0, 0, 0, 2.8468, 0, 0.1473, 0
+//                    , 0, 0.53764, 0, 0, 0.43767, 0, -2.7847, 0, -0.13575, 0, 0
+//                    , 0, 0, 1.041, 0, 0, 0.74812, 0, 0, 0, 0, 0
+//                    , 0, -2.8486, 0, 0, -2.7847, 0, 24.722, 0, 1.0287, 0, 0
+//                    , 2.9144, 0, 0, 2.8468, 0, 0, 0, 25.297, 0, 1.1234, 0
+//                    , 0, -0.15177, 0, 0, -0.13575, 0, 1.0287, 0, 0.091271, 0, 0
+//                    , 0.16422, 0, 0, 0.1473, 0, 0, 0, 1.1234, 0, 0.10206, 0
+//                    , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1501;
+            QN.setZero();
+            QN.diagonal() << Q;
 
             ROS_INFO_STREAM("QN" << QN);
 
@@ -122,11 +124,10 @@ public:
             x_unscaling_vec << scaling_x, scaling_x, scaling_z,
                     max_dx, max_dx, max_dz,
                     1, 1, 1, 1,
-                    max_datt, max_datt, max_datt,
-                    drone->maxServo1Angle, drone->maxServo2Angle;
+                    max_datt, max_datt, max_datt;
             x_scaling_vec = x_unscaling_vec.cwiseInverse();
 
-            u_unscaling_vec << drone->maxServoRate, drone->maxServoRate,
+            u_unscaling_vec << drone->maxServo1Angle, drone->maxServo2Angle,
                     drone->maxPropellerSpeed, drone->maxPropellerDelta / 2;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
@@ -136,9 +137,8 @@ public:
             x_scaling_vec.setOnes();
 
             //scale costs
-            x_drone_unscaling_vec = x_unscaling_vec.segment(0, Drone::NX);
-            u_drone_unscaling_vec.segment(0, 2) = x_unscaling_vec.segment(Drone::NX, 2);
-            u_drone_unscaling_vec.segment(2, 2) = u_unscaling_vec.segment(2, 2);
+            x_drone_unscaling_vec = x_unscaling_vec;
+            u_drone_unscaling_vec = u_unscaling_vec;
 
             x_drone_scaling_vec = x_drone_unscaling_vec.cwiseInverse();
             u_drone_scaling_vec = u_drone_unscaling_vec.cwiseInverse();
@@ -178,22 +178,20 @@ public:
         const double inf = std::numeric_limits<double>::infinity();
         const double eps = 1e-1;
 
-        lbu << -drone->maxServoRate, -drone->maxServoRate,
+        lbu << -drone->maxServo1Angle, -drone->maxServo2Angle,
                 drone->minPropellerSpeed, -drone->maxPropellerDelta / 2; // lower bound on control
-        ubu << drone->maxServoRate, drone->maxServoRate,
+        ubu << drone->maxServo1Angle, drone->maxServo2Angle,
                 drone->maxPropellerSpeed, drone->maxPropellerDelta / 2; // upper bound on control
 
         lbx << -inf, -inf, min_z + eps,
                 -max_dx, -max_dx, min_dz,
                 -inf, -inf, -inf, -inf,
-                -max_datt, -max_datt, -inf,
-                -drone->maxServo1Angle, -drone->maxServo2Angle;
+                -max_datt, -max_datt, -inf;
 
         ubx << inf, inf, inf,
                 max_dx, max_dx, max_dz,
                 inf, inf, inf, inf,
-                max_datt, max_datt, inf,
-                drone->maxServo1Angle, drone->maxServo2Angle;
+                max_datt, max_datt, inf;
 
         //TODO fix attitude constraint [cos(maxAttitudeAngle) 1]
         lbg << cos(maxAttitudeAngle), drone->minPropellerSpeed, drone->minPropellerSpeed;
@@ -224,18 +222,11 @@ public:
         Matrix<T, NX, 1> x_unscaled = x.cwiseProduct(x_unscaling_vec.template cast<T>());
         Matrix<T, NU, 1> u_unscaled = u.cwiseProduct(u_unscaling_vec.template cast<T>());
 
-        Matrix<T, Drone::NX, 1> x_drone = x_unscaled.segment(0, Drone::NX);
-
-        Matrix<T, Drone::NU, 1> u_drone;
-        u_drone.segment(0, 2) = x_unscaled.segment(Drone::NX, 2);
-        u_drone.segment(2, 2) = u_unscaled.segment(2, 2);
-
         Matrix<T, Drone::NP, 1> params;
 
         drone->getParams(params);
 
-        drone->state_dynamics(x_drone, u_drone, params, xdot);
-        xdot.segment(13, 2) = u_unscaled.segment(0, 2);
+        drone->state_dynamics(x_unscaled, u_unscaled, params, xdot);
 
         //unscale
         xdot = xdot.cwiseProduct(x_scaling_vec.template cast<T>());
@@ -263,17 +254,14 @@ public:
                                    const Ref<const parameter_t <T>> p,
                                    const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
-        Matrix<T, 13, 1> x_error = x.segment(0, 13) - xs.template cast<T>();
+        Matrix<T, 13, 1> x_error = x - xs.template cast<T>();
         Matrix<T, 11, 1> x_error2;
         x_error2.segment(0, 6) = x_error.segment(0, 6);
         x_error2(6) = x_error(9) * x_error(6) - x_error(7) * x_error(8);
         x_error2(7) = x_error(9) * x_error(7) + x_error(6) * x_error(8);
         x_error2.segment(8, 3) = x_error.segment(10, 3);
 
-        Matrix<T, 4, 1> u_drone;
-        u_drone.segment(0, 2) = x.segment(13, 2);
-        u_drone.segment(2, 2) = u.segment(2, 2);
-        Matrix<T, NU, 1> u_error = u_drone - us.template cast<T>();
+        Matrix<T, NU, 1> u_error = u - us.template cast<T>();
 
 
         lagrange = x_error2.dot(Q.template cast<T>().cwiseProduct(x_error2)) +
@@ -284,7 +272,7 @@ public:
     inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        Matrix<T, 13, 1> x_error = x.segment(0, 13) - xs.template cast<T>();
+        Matrix<T, 13, 1> x_error = x - xs.template cast<T>();
         Matrix<T, 11, 1> x_error2;
         x_error2.segment(0, 6) = x_error.segment(0, 6);
         x_error2(6) = x_error(9) * x_error(6) - x_error(7) * x_error(8);
