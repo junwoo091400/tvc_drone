@@ -39,6 +39,70 @@ public:
         target_apogee = target;
     }
 
+    static const int GUIDANCE_POLY_ORDER = 7;
+    static const int GUIDANCE_NUM_SEG = 2;
+    static const int GUIDANCE_NUM_NODE = GUIDANCE_POLY_ORDER*GUIDANCE_NUM_SEG+1;
+
+    Eigen::Matrix<double, Drone::NX, GUIDANCE_NUM_NODE> guidanceTrajectory;
+
+    Eigen::Matrix<double, GUIDANCE_POLY_ORDER + 1, GUIDANCE_POLY_ORDER + 1> m_basis;
+    bool received_trajectory = false;
+    double guidanceTraj_t0;
+
+    double sgm_length = 0;
+
+    void targetTrajectoryCallback(const drone_gnc::DroneTrajectory::ConstPtr &target) {
+        if (!received_trajectory) {
+            // init lagrange basis
+            double t0 = target->trajectory.at(0).header.stamp.toSec();
+            Eigen::Matrix<double, GUIDANCE_POLY_ORDER + 1, 1> time_grid;
+            for (int i = 0; i < GUIDANCE_POLY_ORDER + 1; i++) {
+                time_grid(i) = target->trajectory.at(i).header.stamp.toSec() - t0;
+            }
+            polympc::LagrangeSpline::compute_lagrange_basis(time_grid, m_basis);
+            received_trajectory = true;
+        }
+
+        guidanceTraj_t0 = target->trajectory.at(0).header.stamp.toSec();
+
+        int i = 0;
+        for (auto waypoint: target->trajectory) {
+            guidanceTrajectory.col(i)
+                    << waypoint.state.pose.position.x, waypoint.state.pose.position.y, waypoint.state.pose.position.z,
+                    waypoint.state.twist.linear.x, waypoint.state.twist.linear.y, waypoint.state.twist.linear.z,
+                    waypoint.state.pose.orientation.x, waypoint.state.pose.orientation.y, waypoint.state.pose.orientation.z, waypoint.state.pose.orientation.w,
+                    waypoint.state.twist.angular.x, waypoint.state.twist.angular.y, waypoint.state.twist.angular.z;
+            i++;
+        }
+    }
+
+
+    Drone::state sampleTargetTrajectory(double t) {
+        Eigen::Index idx = (Eigen::Index) std::floor(t / sgm_length);
+        idx = std::max(Eigen::Index(0),
+                       std::min(idx, (Eigen::Index) GUIDANCE_NUM_SEG - 1)); // clip idx to stay within the spline bounds
+
+        Drone::state state = polympc::LagrangeSpline::eval(t - idx * sgm_length,
+                                                           guidanceTrajectory.block<Drone::NX, GUIDANCE_POLY_ORDER + 1>(
+                                                                   0, idx * GUIDANCE_POLY_ORDER), m_basis);
+        return state;
+    }
+
+    void sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_traj) {
+        double time_delta = ros::Time::now().toSec() - guidanceTraj_t0;
+
+        for (int i = 0; i < DroneMPC::num_nodes; i++) {
+            double t = time_delta + drone_mpc.time_grid(i);
+            Eigen::Index idx = (Eigen::Index) std::floor(t / sgm_length);
+            idx = std::max(Eigen::Index(0), std::min(idx, (Eigen::Index) GUIDANCE_NUM_SEG - 1));
+
+            Drone::state state = polympc::LagrangeSpline::eval(t - idx * sgm_length, guidanceTrajectory.block<Drone::NX,
+                    GUIDANCE_POLY_ORDER + 1>(0, idx * GUIDANCE_POLY_ORDER), m_basis);
+            mpc_target_traj.col(i) = state;
+        }
+    }
+
+
     DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
                                                                               drone(drone_ptr),
                                                                               backupController(drone_ptr) {
@@ -49,6 +113,11 @@ public:
         target_apogee.x = initial_target_apogee.at(0);
         target_apogee.y = initial_target_apogee.at(1);
         target_apogee.z = initial_target_apogee.at(2);
+
+        //init segment length
+        double guidance_horizon_length;
+        nh.getParam("guidance/mpc/horizon_length", guidance_horizon_length);
+        sgm_length = guidance_horizon_length/GUIDANCE_NUM_SEG;
     }
 
 
@@ -56,13 +125,15 @@ public:
         // Subscribers
         rocket_state_sub = nh.subscribe("/drone_state", 100, &DroneControlNode::stateCallback, this);
         target_sub = nh.subscribe("/target_apogee", 100, &DroneControlNode::targetCallback, this);
+        target_traj_sub = nh.subscribe("/guidance/horizon", 100, &DroneControlNode::targetTrajectoryCallback, this);
+
 
         // Publishers
         horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/mpc_horizon", 10);
         drone_control_pub = nh.advertise<drone_gnc::DroneControl>("/drone_control", 10);
 
         // Service clients
-        client_waypoint = nh.serviceClient<drone_gnc::GetWaypoint>("/getWaypoint");
+        client_waypoint = nh.serviceClient<drone_gnc::GetWaypoint>("/getWaypoint", true);
 
         // Debug
         sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
@@ -74,6 +145,7 @@ public:
     void computeControl() {
         time_compute_start = ros::Time::now().toSec();
 
+
         Drone::state x0;
         x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
                 current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
@@ -83,8 +155,15 @@ public:
         drone_mpc.drone->setParams(current_state.thrust_scaling,
                                    current_state.torque_scaling,
                                    current_state.servo1_offset, current_state.servo2_offset,
-                                   current_state.disturbance_force.x, current_state.disturbance_force.y,  current_state.disturbance_force.z,
-                                   current_state.disturbance_torque.x,  current_state.disturbance_torque.y,  current_state.disturbance_torque.z);
+                                   current_state.disturbance_force.x, current_state.disturbance_force.y,
+                                   current_state.disturbance_force.z,
+                                   current_state.disturbance_torque.x, current_state.disturbance_torque.y,
+                                   current_state.disturbance_torque.z);
+
+        Matrix<double, Drone::NX, DroneMPC::num_nodes> mpc_target_traj;
+        sampleTargetTrajectory(mpc_target_traj);
+        //TODO separate
+        drone_mpc.ocp().targetTrajectory = mpc_target_traj;
 
         drone_mpc.solve(x0);
 
@@ -237,6 +316,7 @@ private:
 
     ros::Subscriber rocket_state_sub;
     ros::Subscriber target_sub;
+    ros::Subscriber target_traj_sub;
 
     // Publishers
     ros::Publisher horizon_viz_pub;
@@ -310,7 +390,7 @@ int main(int argc, char **argv) {
         double loop_start_time = ros::Time::now().toSec();
         // State machine ------------------------------------------
         if ((current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) &&
-            droneControlNode.received_state) {
+            droneControlNode.received_trajectory) {
 
             droneControlNode.fetchNewTarget();
             if (!USE_BACKUP_CONTROLLER) {

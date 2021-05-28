@@ -61,7 +61,7 @@ public:
         // Debug
         sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
         qp_iter_pub = nh.advertise<std_msgs::Int32>("debug/qp_iter", 10);
-        horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("debug/horizon", 10);
+        horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("horizon", 10);
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
     }
 
@@ -94,6 +94,9 @@ public:
         // Send optimal trajectory computed by control. Send only position for now
         drone_gnc::Trajectory trajectory_msg;
         drone_gnc::DroneTrajectory horizon_msg;
+
+        ros::Time trajectory_t0 = ros::Time::now();
+
         for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
             Drone::state state_val = drone_mpc.solution_x_at(i);
 
@@ -133,7 +136,7 @@ public:
             drone_gnc::DroneWaypointStamped state_msg_stamped;
             state_msg_stamped.state = state_msg;
             state_msg_stamped.control = control_msg;
-            state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(drone_mpc.node_time(i));
+            state_msg_stamped.header.stamp = trajectory_t0 + ros::Duration(drone_mpc.node_time(i));
             state_msg_stamped.header.frame_id = ' ';
 
 

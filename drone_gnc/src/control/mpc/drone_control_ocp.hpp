@@ -44,6 +44,8 @@ public:
     Matrix<scalar_t, Drone::NX, 1> xs;
     Matrix<scalar_t, Drone::NU, 1> us;
 
+    Matrix<scalar_t, Drone::NX, NUM_NODES> targetTrajectory;
+
     shared_ptr<Drone> drone;
 
     scalar_t maxAttitudeAngle;

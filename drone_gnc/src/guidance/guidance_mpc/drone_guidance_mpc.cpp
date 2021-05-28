@@ -10,10 +10,6 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     nh.getParam("mpc/feedforward_period", feedforward_period);
     nh.getParam("mpc/max_qp_iter", max_qp_iter);
 
-//    horizon_length = 5;
-//    max_sqp_iter = 5;
-//    max_line_search_iter = 5;
-//    max_qp_iter = 500;
 
     nh.param("/is_simu", is_simu, true);
 
@@ -149,7 +145,6 @@ void DroneGuidanceMPC::solve(Drone::state &x0) {
     MPC::solve();
 
     last_computation_time = (ros::Time::now().toSec()-time_now)*1000;
-
     time_now = ros::Time::now().toSec();
 
     solution_time = ros::Time::now().toSec();
