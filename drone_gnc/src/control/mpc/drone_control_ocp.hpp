@@ -41,7 +41,7 @@ public:
     Matrix<scalar_t, Drone::NU, 1> R;
     Matrix<scalar_t, 11, 11> QN;
 
-    Matrix<scalar_t, Drone::NX, 1> xs;
+//    Matrix<scalar_t, Drone::NX, 1> xs;
     Matrix<scalar_t, Drone::NU, 1> us;
 
     Matrix<scalar_t, Drone::NX, NUM_NODES> targetTrajectory;
@@ -100,7 +100,7 @@ public:
 //                    0, 0, 0, 0,
 //                    datt_cost, datt_cost, droll_cost;
             Q << 1, 1, 5,
-                    0.1, 0.1, 0.5,
+                    1, 1, 5,
                     2, 2,
                     2, 2, 5;
             R << 5, 5, 0.01, 0.01;
@@ -259,12 +259,15 @@ public:
         g(2) = u_drone(0) - u_drone(1);
     }
 
+    //workaround to get the current node index in cost functions
+    int k = NUM_NODES - 1;
+
     template<typename T>
     inline void lagrange_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                    const Ref<const parameter_t <T>> p,
                                    const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
-        Matrix<T, 13, 1> x_error = x.segment(0, 13) - xs.template cast<T>();
+        Matrix<T, 13, 1> x_error = x.segment(0, 13) - targetTrajectory.col(k).template cast<T>();
         Matrix<T, 11, 1> x_error2;
         x_error2.segment(0, 6) = x_error.segment(0, 6);
         x_error2(6) = x_error(9) * x_error(6) - x_error(7) * x_error(8);
@@ -279,13 +282,17 @@ public:
 
         lagrange = x_error2.dot(Q.template cast<T>().cwiseProduct(x_error2)) +
                    u_error.dot(R.template cast<T>().cwiseProduct(u_error));
+
+        k--;
     }
 
     template<typename T>
     inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        Matrix<T, 13, 1> x_error = x.segment(0, 13) - xs.template cast<T>();
+        k = NUM_NODES - 1;
+
+        Matrix<T, 13, 1> x_error = x.segment(0, 13) - targetTrajectory.col(k).template cast<T>();
         Matrix<T, 11, 1> x_error2;
         x_error2.segment(0, 6) = x_error.segment(0, 6);
         x_error2(6) = x_error(9) * x_error(6) - x_error(7) * x_error(8);

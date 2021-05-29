@@ -75,7 +75,8 @@ drone_gnc::DroneControl DroneMPC::getControlCurrentTime() {
 
 
 void DroneMPC::setTarget(Drone::state &target_state, Drone::control &target_control) {
-    ocp().xs << target_state.cwiseProduct(ocp().x_drone_scaling_vec);
+    //TODO
+//    ocp().xs << target_state.cwiseProduct(ocp().x_drone_scaling_vec);
     ocp().us << target_control.cwiseProduct(ocp().u_drone_scaling_vec);
 }
 

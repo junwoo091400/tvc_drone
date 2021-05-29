@@ -98,7 +98,7 @@ public:
 
             Drone::state state = polympc::LagrangeSpline::eval(t - idx * sgm_length, guidanceTrajectory.block<Drone::NX,
                     GUIDANCE_POLY_ORDER + 1>(0, idx * GUIDANCE_POLY_ORDER), m_basis);
-            mpc_target_traj.col(i) = state;
+            mpc_target_traj.col(i) = state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
         }
     }
 

@@ -39,7 +39,7 @@ public:
     }
 
     DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
-                                                                              drone(drone_ptr){
+                                                                               drone(drone_ptr) {
         initTopics(nh);
 
         std::vector<double> initial_target_apogee;
@@ -77,8 +77,8 @@ public:
         drone_mpc.drone->setParams(current_state.thrust_scaling,
                                    current_state.torque_scaling,
                                    current_state.servo1_offset, current_state.servo2_offset,
-                                   current_state.disturbance_force.x, current_state.disturbance_force.y,  current_state.disturbance_force.z,
-                                   current_state.disturbance_torque.x,  current_state.disturbance_torque.y,  current_state.disturbance_torque.z);
+                                   0, 0, 0,
+                                   0, 0, 0);
 
         drone_mpc.solve(x0);
 
@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
         }
         // State machine ------------------------------------------
         if ((current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) &&
-                droneGuidanceNode.received_state) {
+            droneGuidanceNode.received_state) {
 
             droneGuidanceNode.fetchNewTarget();
 
