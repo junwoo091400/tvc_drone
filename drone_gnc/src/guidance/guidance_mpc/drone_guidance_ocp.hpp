@@ -31,7 +31,7 @@ using namespace std;
 using Polynomial = polympc::Chebyshev<POLY_ORDER, polympc::GAUSS_LOBATTO, double>;
 using Approximation = polympc::Spline<Polynomial, NUM_SEG>;
 
-POLYMPC_FORWARD_DECLARATION(/*Name*/ guidance_ocp, /*NX*/ 13, /*NU*/ 4, /*NP*/ 0, /*ND*/ 0, /*NG*/3, /*TYPE*/ double)
+POLYMPC_FORWARD_DECLARATION(/*Name*/ guidance_ocp, /*NX*/ 13, /*NU*/ 4, /*NP*/ 0, /*ND*/ 0, /*NG*/2, /*TYPE*/ double)
 
 class guidance_ocp : public ContinuousOCP<guidance_ocp, Approximation, SPARSE> {
 public:
@@ -97,25 +97,26 @@ public:
 //                    dx_cost, dx_cost, dz_cost,
 //                    0, 0, 0, 0,
 //                    datt_cost, datt_cost, droll_cost;
-            Q << 1, 1, 5,
+            Q << 4, 4, 6,
                     0.1, 0.1, 0.5,
                     2, 2,
                     1, 1, 5;
             R << 5, 5, 0.01, 0.01;
-//
-//            QN << 1.0895, 0, 0, 0.54349, 0, 0, 0, 2.9144, 0, 0.16422, 0
-//                    , 0, 1.0841, 0, 0, 0.53764, 0, -2.8486, 0, -0.15177, 0, 0
-//                    , 0, 0, 3.5931, 0, 0, 1.041, 0, 0, 0, 0, 0
-//                    , 0.54349, 0, 0, 0.44359, 0, 0, 0, 2.8468, 0, 0.1473, 0
-//                    , 0, 0.53764, 0, 0, 0.43767, 0, -2.7847, 0, -0.13575, 0, 0
-//                    , 0, 0, 1.041, 0, 0, 0.74812, 0, 0, 0, 0, 0
-//                    , 0, -2.8486, 0, 0, -2.7847, 0, 24.722, 0, 1.0287, 0, 0
-//                    , 2.9144, 0, 0, 2.8468, 0, 0, 0, 25.297, 0, 1.1234, 0
-//                    , 0, -0.15177, 0, 0, -0.13575, 0, 1.0287, 0, 0.091271, 0, 0
-//                    , 0.16422, 0, 0, 0.1473, 0, 0, 0, 1.1234, 0, 0.10206, 0
-//                    , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1501;
-            QN.setZero();
-            QN.diagonal() << Q;
+
+            QN << 3.6957, 0, 0, 1.6573, 0, 0, 0, 8.2092, 0, 0.44984, 0
+                    , 0, 3.677, 0, 0, 1.64, 0, -8.0246, 0, -0.41549, 0, 0
+                    , 0, 0, 4.0847, 0, 0, 1.1404, 0, 0, 0, 0, 0
+                    , 1.6573, 0, 0, 1.1128, 0, 0, 0, 6.6851, 0, 0.32655, 0
+                    , 0, 1.64, 0, 0, 1.0986, 0, -6.5456, 0 - 0.30086, 0, 0
+                    , 0, 0, 1.1404, 0, 0, 0.77637, 0, 0, 0, 0, 0
+                    , 0, -8.0246, 0, 0, -6.5456, 0, 52.747, 0, 2.0246, 0, 0
+                    , 8.2092, 0, 0, 6.6851, 0, 0, 0, 53.919, 0, 2.212, 0
+                    , 0, -0.41549, 0, 0, -0.30086, 0, 2.0246, 0, 0.15029, 0, 0
+                    , 0.44984, 0, 0, 0.32655, 0, 0, 0, 2.212, 0, 0.1691, 0
+                    , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1501;
+
+//            QN.setZero();
+//            QN.diagonal() << Q;
 
             ROS_INFO_STREAM("QN" << QN);
 
@@ -193,9 +194,8 @@ public:
                 inf, inf, inf, inf,
                 max_datt, max_datt, inf;
 
-        //TODO fix attitude constraint [cos(maxAttitudeAngle) 1]
-        lbg << cos(maxAttitudeAngle), drone->minPropellerSpeed, drone->minPropellerSpeed;
-        ubg << inf, drone->maxPropellerSpeed, drone->maxPropellerSpeed;
+        lbg << drone->minPropellerSpeed, drone->minPropellerSpeed;
+        ubg << drone->maxPropellerSpeed, drone->maxPropellerSpeed;
         ROS_INFO_STREAM(lbg);
         ROS_INFO_STREAM("min cos" << cos(maxAttitudeAngle));
 //
@@ -243,10 +243,8 @@ public:
     {
         Matrix<T, 2, 1> u_drone = u.segment(2, 2).cwiseProduct(u_unscaling_vec.segment(2, 2).template cast<T>());;
 
-
-        g(0) = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
-        g(1) = u_drone(0) + u_drone(1);
-        g(2) = u_drone(0) - u_drone(1);
+        g(0) = u_drone(0) + u_drone(1);
+        g(1) = u_drone(0) - u_drone(1);
     }
 
     template<typename T>

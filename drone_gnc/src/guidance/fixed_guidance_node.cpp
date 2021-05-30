@@ -22,6 +22,8 @@
 #include <chrono>
 #include <numeric>
 
+#include <math.h>
+
 #include <Eigen/Eigen>
 
 #define USE_BACKUP_CONTROLLER false
@@ -32,7 +34,14 @@ class DroneFixedGuidanceNode {
 public:
     double speed;
 
-    DroneFixedGuidanceNode(ros::NodeHandle &nh): speed(1){
+    constexpr static double seg_lengths[] = {1, 0.64, 0.64, 1, 0.3, 1, 0.785, 0.5, 1.3, 1.57};
+    double total_length;
+
+    DroneFixedGuidanceNode(ros::NodeHandle &nh) : speed(1) {
+        total_length = 0;
+        for (double seg_length:seg_lengths) {
+            total_length += seg_length;
+        }
         initTopics(nh);
     }
 
@@ -40,27 +49,122 @@ public:
     void initTopics(ros::NodeHandle &nh) {
         // Publishers
         horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/target_trajectory", 10);
-        horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("debug/horizon", 10);
+        horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("fixed_horizon", 10);
     }
 
-    double total_length = 2;
 
-    void sample_path(double s, Vector3d& point){
-        point << s, 0, 0;
+    Vector3d sample_path(double s) {
+        Vector3d seg_point;
+        Vector3d seg_start;
+        seg_start << 0, 0, 0;
+
+        ////////// M
+        s /= seg_lengths[0];
+        if (s <= 1) {
+            seg_point << 0, 0, s;
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 0, 1);
+
+        s /= seg_lengths[1];
+        if (s <= 1) {
+            seg_point << 0, s * 0.4, -s * 0.5;
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 0.4, -0.5);
+
+        s /= seg_lengths[2];
+        if (s <= 1) {
+            seg_point << 0, s * 0.4, s * 0.5;
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 0.4, 0.5);
+
+        s /= seg_lengths[3];
+        if (s <= 1) {
+            seg_point << 0, 0, -s;
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 0, -1);
+
+        ////////// P
+        s /= seg_lengths[4];
+        if (s <= 1) {
+            seg_point << 0, 0.3 * s, 0;
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 0.3, 0);
+
+        s /= seg_lengths[5];
+        if (s <= 1) {
+            seg_point << 0, 0, s;
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 0, 1);
+
+
+        s /= seg_lengths[6];
+        if (s <= 1) {
+            double r = 0.25;
+            double theta = s * M_PI;
+            seg_point << 0, r * 2 * sin(theta), -0.25 + r * cos(theta);
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 0, -0.5);
+
+        s /= seg_lengths[7];
+        if (s <= 1) {
+            seg_point << 0, 0, -0.5 * s;
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 0, -0.5);
+
+        ////////// C
+        s /= seg_lengths[8];
+        if (s <= 1) {
+            seg_point << 0, s, 0;
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 1.3, 0);
+
+        s /= seg_lengths[9];
+        if (s <= 1) {
+            double r = 0.5;
+            double theta = s * M_PI;
+            seg_point << 0, -r * 1.3 * sin(theta), 0.5 - r * cos(theta);
+            return seg_start + seg_point;
+        }
+        s--;
+        seg_start += Vector3d(0, 0, 1);
+
+        return seg_start;
     }
 
-    void sample_traj(double t, drone_gnc::DroneState &state_msg){
+    void sample_traj(double t, drone_gnc::DroneState &state_msg) {
+//        ROS_ERROR_STREAM(t * speed);
+        Vector3d point = sample_path(t * speed);
+//        ROS_ERROR_STREAM(point);
 
-        Vector3d point;
-        sample_path(t*speed, point);
+        double eps = 1e-10;
+        //finite difference to get speed
+        Vector3d speed_vec = speed * (point - sample_path(t * speed - eps)) / eps;
 
         state_msg.pose.position.x = point.x();
         state_msg.pose.position.y = point.y();
         state_msg.pose.position.z = point.z();
 
-        state_msg.twist.linear.x = 0;
-        state_msg.twist.linear.y = 0;
-        state_msg.twist.linear.z = 0;
+        state_msg.twist.linear.x = speed_vec.x();
+        state_msg.twist.linear.y = speed_vec.y();
+        state_msg.twist.linear.z = speed_vec.y();
 
         state_msg.pose.orientation.x = 0;
         state_msg.pose.orientation.y = 0;
@@ -77,12 +181,11 @@ public:
         drone_gnc::Trajectory trajectory_msg;
         drone_gnc::DroneTrajectory horizon_msg;
 
-        int NUM_POINTS = 10;
-        double traj_length = 1;
-        double traj_duration = traj_length/speed;
-
-        for (int i = 0; i < NUM_POINTS+1; i++) {
-            double t = i*traj_duration/NUM_POINTS;
+        int NUM_POINTS = 800;
+        double traj_duration = total_length / speed;
+        ros::Time time_compute_start = ros::Time::now();
+        for (int i = 0; i < NUM_POINTS + 1; i++) {
+            double t = i * traj_duration / NUM_POINTS;
 
             drone_gnc::DroneState state_msg;
             sample_traj(t, state_msg);
@@ -96,7 +199,7 @@ public:
             drone_gnc::DroneWaypointStamped state_msg_stamped;
             state_msg_stamped.state = state_msg;
             state_msg_stamped.control = control_msg;
-            state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(t);
+            state_msg_stamped.header.stamp = time_compute_start + ros::Duration(t);
             state_msg_stamped.header.frame_id = ' ';
 
             horizon_msg.trajectory.push_back(state_msg_stamped);
@@ -147,12 +250,14 @@ int main(int argc, char **argv) {
                     current_fsm = srv_fsm.response.fsm;
                 }
             });
-
+    bool published = false;
     // Thread to compute control. Duration defines interval time in seconds
     ros::Timer control_thread = nh.createTimer(ros::Duration(0.2), [&](const ros::TimerEvent &) {
-            droneGuidanceNode.publishTrajectory();
 
-        if (current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) {
+        if (current_fsm.state_machine.compare("Idle") == 0 ||
+            current_fsm.state_machine.compare("Launch") == 0 && !published) {
+            droneGuidanceNode.publishTrajectory();
+            published = true;
 
         } else if (current_fsm.state_machine.compare("Coast") == 0) {
             // Slow down control to 10s period for reducing useless computation

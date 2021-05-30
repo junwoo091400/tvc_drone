@@ -66,7 +66,7 @@ public:
     }
 
     void computeTrajectory() {
-        time_compute_start = ros::Time::now().toSec();
+        time_compute_start = ros::Time::now();
 
         Drone::state x0;
         x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
@@ -95,7 +95,6 @@ public:
         drone_gnc::Trajectory trajectory_msg;
         drone_gnc::DroneTrajectory horizon_msg;
 
-        ros::Time trajectory_t0 = ros::Time::now();
 
         for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
             Drone::state state_val = drone_mpc.solution_x_at(i);
@@ -136,7 +135,7 @@ public:
             drone_gnc::DroneWaypointStamped state_msg_stamped;
             state_msg_stamped.state = state_msg;
             state_msg_stamped.control = control_msg;
-            state_msg_stamped.header.stamp = trajectory_t0 + ros::Duration(drone_mpc.node_time(i));
+            state_msg_stamped.header.stamp = time_compute_start + ros::Duration(drone_mpc.node_time(i));
             state_msg_stamped.header.frame_id = ' ';
 
 
@@ -190,7 +189,7 @@ private:
     ros::Publisher horizon_pub;
     ros::Publisher computation_time_pub;
     // Variables to track performance over whole simulation
-    double time_compute_start;
+    ros::Time time_compute_start;
 };
 
 
@@ -213,7 +212,7 @@ int main(int argc, char **argv) {
     current_fsm.state_machine = "Idle";
 
 //    // Thread to compute control. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(0.2), [&](const ros::TimerEvent &) {
+    ros::Timer control_thread = nh.createTimer(ros::Duration(0.3), [&](const ros::TimerEvent &) {
         double loop_start_time = ros::Time::now().toSec();
 
         if (client_fsm.call(srv_fsm)) {
