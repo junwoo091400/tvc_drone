@@ -28,6 +28,28 @@
 
 class DroneControlNode {
 public:
+    bool fixed_guidance;
+
+    DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
+                                                                              drone(drone_ptr),
+                                                                              backupController(drone_ptr) {
+        initTopics(nh);
+
+        std::vector<double> initial_target_apogee;
+        nh.getParam("target_apogee", initial_target_apogee);
+        target_apogee.x = initial_target_apogee.at(0);
+        target_apogee.y = initial_target_apogee.at(1);
+        target_apogee.z = initial_target_apogee.at(2);
+
+        //init segment length
+        double guidance_horizon_length;
+        nh.getParam("guidance/mpc/horizon_length", guidance_horizon_length);
+        sgm_length = guidance_horizon_length / GUIDANCE_NUM_SEG;
+
+        nh.param("/fixed_guidance", fixed_guidance, false);
+    }
+
+
     // Callback function to store last received state
     void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
         current_state = *rocket_state;
@@ -41,18 +63,22 @@ public:
 
     static const int GUIDANCE_POLY_ORDER = 7;
     static const int GUIDANCE_NUM_SEG = 2;
+
     static const int GUIDANCE_NUM_NODE = GUIDANCE_POLY_ORDER*GUIDANCE_NUM_SEG+1;
+    //TODO swap automatically between the two
+//    static const int GUIDANCE_NUM_NODE = 800;
 
     Eigen::Matrix<double, Drone::NX, GUIDANCE_NUM_NODE> guidanceTrajectory;
 
     Eigen::Matrix<double, GUIDANCE_POLY_ORDER + 1, GUIDANCE_POLY_ORDER + 1> m_basis;
     bool received_trajectory = false;
     double guidanceTraj_t0;
+    double guidanceTraj_tf;
 
-    double sgm_length = 0;
+    double sgm_length;
 
     void targetTrajectoryCallback(const drone_gnc::DroneTrajectory::ConstPtr &target) {
-        if (!received_trajectory) {
+        if (!received_trajectory && !fixed_guidance) {
             // init lagrange basis
             double t0 = target->trajectory.at(0).header.stamp.toSec();
             Eigen::Matrix<double, GUIDANCE_POLY_ORDER + 1, 1> time_grid;
@@ -60,8 +86,8 @@ public:
                 time_grid(i) = target->trajectory.at(i).header.stamp.toSec() - t0;
             }
             polympc::LagrangeSpline::compute_lagrange_basis(time_grid, m_basis);
-            received_trajectory = true;
         }
+        received_trajectory = true;
 
         guidanceTraj_t0 = target->trajectory.at(0).header.stamp.toSec();
 
@@ -74,8 +100,9 @@ public:
                     waypoint.state.twist.angular.x, waypoint.state.twist.angular.y, waypoint.state.twist.angular.z;
             i++;
         }
-    }
+        guidanceTraj_tf =target->trajectory.at(i-1).header.stamp.toSec();
 
+    }
 
     Drone::state sampleTargetTrajectory(double t) {
         Eigen::Index idx = (Eigen::Index) std::floor(t / sgm_length);
@@ -103,21 +130,26 @@ public:
     }
 
 
-    DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
-                                                                              drone(drone_ptr),
-                                                                              backupController(drone_ptr) {
-        initTopics(nh);
+    void sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_traj) {
+        double time_now = ros::Time::now().toSec();
 
-        std::vector<double> initial_target_apogee;
-        nh.getParam("target_apogee", initial_target_apogee);
-        target_apogee.x = initial_target_apogee.at(0);
-        target_apogee.y = initial_target_apogee.at(1);
-        target_apogee.z = initial_target_apogee.at(2);
+        for (int i = 0; i < DroneMPC::num_nodes; i++) {
+            double t = time_now + drone_mpc.time_grid(i) - guidanceTraj_t0;
+            //TODO remove constants
+            double idx = t * GUIDANCE_NUM_NODE / (guidanceTraj_tf-guidanceTraj_t0);
 
-        //init segment length
-        double guidance_horizon_length;
-        nh.getParam("guidance/mpc/horizon_length", guidance_horizon_length);
-        sgm_length = guidance_horizon_length/GUIDANCE_NUM_SEG;
+            //linear interpolation
+            int l_idx = floor(idx);
+            l_idx = min(l_idx, GUIDANCE_NUM_NODE-1);
+            Drone::state l_state = guidanceTrajectory.col(l_idx);
+
+            int u_idx = ceil(idx);
+            u_idx = min(u_idx, GUIDANCE_NUM_NODE-1);
+            Drone::state u_state = guidanceTrajectory.col(u_idx);
+
+            Drone::state state = l_state + (u_state - l_state) * (idx - l_idx);
+            mpc_target_traj.col(i) = state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
+        }
     }
 
 
@@ -161,7 +193,12 @@ public:
                                    current_state.disturbance_torque.z);
 
         Matrix<double, Drone::NX, DroneMPC::num_nodes> mpc_target_traj;
-        sampleTargetTrajectory(mpc_target_traj);
+        if (fixed_guidance) {
+            sampleTargetTrajectoryLinear(mpc_target_traj);
+        } else {
+            sampleTargetTrajectory(mpc_target_traj);
+        }
+
         //TODO separate
         drone_mpc.ocp().targetTrajectory = mpc_target_traj;
 

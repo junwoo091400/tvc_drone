@@ -19,19 +19,18 @@
         <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
     </group>
 
+<!--    <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">-->
+<!--    </node>-->
+<!--    <rosparam param="fixed_guidance">true</rosparam>-->
+
+        <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" cwd="node" output="screen">
+            <rosparam param="target_apogee">[0,0,0.5]</rosparam>
+        </node>
+
+
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node">
         <rosparam param="target_apogee">[0,0,0.5]</rosparam>
     </node>
-
-
-    <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" cwd="node" output="screen">
-        <rosparam param="target_apogee">[0,0,0.5]</rosparam>
-    </node>
-
-<!--    <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">-->
-<!--    </node>-->
-
-<!--    <node name="low_level_control" pkg="drone_gnc" type="low_level_control_node.py" output="screen"/>-->
 
     <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" cwd="node">
         <rosparam param="initial_state">"Idle"</rosparam>
