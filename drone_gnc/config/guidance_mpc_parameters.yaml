@@ -15,10 +15,10 @@ input_costs:
 
 # constraints (+ used for scaling)
 min_z: -1
-min_dz: -0.6
+min_dz: -3
 
-max_dx: 1.2
-max_dz: 2
+max_dx: 3
+max_dz: 10
 max_datt: 0.6
 max_attitude_angle: 90
 
@@ -28,11 +28,11 @@ scaling_z: 4
 
 
 # speed/performance
-horizon_length: 15.0
+horizon_length: 5.0
 
 max_sqp_iter: 10
-max_qp_iter: 300
-max_line_search_iter: 8
+max_qp_iter: 3000
+max_line_search_iter: 10
 mpc_period: 0.03
 feedforward_period: 0.03
 

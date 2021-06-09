@@ -27,6 +27,14 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     control_bounds(lbu, ubu);
     constraints_bounds(lbg, ubg);
 
+    //minimal time setup
+//    parameter_t lbp; parameter_t ubp;
+//    lbp << 1;
+//    ubp << 1;
+//    parameters_bounds(lbp, ubp);
+//    parameter_t p0; p0 << 1;
+//    p_guess(p0);
+
     // Initial state
     ocp_state x0;
     x0 << 0, 0, 0,
@@ -139,6 +147,12 @@ void DroneGuidanceMPC::solve(Drone::state &x0) {
     initial_conditions(x0);
 
 //    warmStart();
+
+    double eps = 0.01;
+    ocp_state lbx, ubx;
+    lbx = ocp().xs.array() - eps;
+    ubx = ocp().xs.array() + eps;
+    final_state_bounds(lbx, ubx);
 
     double time_now = ros::Time::now().toSec();
 

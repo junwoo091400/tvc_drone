@@ -264,6 +264,7 @@ public:
 
         lagrange = x_error2.dot(Q.template cast<T>().cwiseProduct(x_error2)) +
                    u_error.dot(R.template cast<T>().cwiseProduct(u_error));
+//        lagrange = (T) 0;
     }
 
     template<typename T>
@@ -278,6 +279,8 @@ public:
         x_error2.segment(8, 3) = x_error.segment(10, 3);
 
         mayer = x_error2.dot(QN.template cast<T>() * x_error2);
+//        mayer = (T) 0;
+//        mayer = p(0);
     }
 };
 

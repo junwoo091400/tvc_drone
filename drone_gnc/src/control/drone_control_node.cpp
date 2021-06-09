@@ -205,9 +205,21 @@ public:
         drone_mpc.solve(x0);
 
         //TODO
-        if (false) {
-            ROS_ERROR("MPC ISSUE, SWITCHED TO PD LAW \n");
-//                mpc.x_guess(x0.replicate(13, 1));
+        if (isnan(drone_mpc.solution_x_at(0)(0))) {
+            ROS_ERROR("MPC ISSUE\n");
+            DroneMPC::ocp_state x0;
+            x0 << 0, 0, 0,
+                    0, 0, 0,
+                    0, 0, 0, 1,
+                    0, 0, 0;
+            drone_mpc.x_guess(x0.cwiseProduct(drone_mpc.ocp().x_scaling_vec).replicate(drone_mpc.ocp().NUM_NODES, 1));
+            DroneMPC::ocp_control u0;
+            u0 << 0, 0, drone->getHoverSpeedAverage(), 0;
+            drone_mpc.u_guess(u0.cwiseProduct(drone_mpc.ocp().u_scaling_vec).replicate(drone_mpc.ocp().NUM_NODES, 1));
+
+            DroneMPC::dual_var_t dual;
+            dual.setZero();
+            drone_mpc.lam_guess(dual);
         }
 
     }
@@ -333,9 +345,12 @@ public:
     }
 
     void publishDebugInfo() {
-        sqp_iter_pub.publish(drone_mpc.info().iter);
-        qp_iter_pub.publish(drone_mpc.info().qp_solver_iter);
-        computation_time_pub.publish(drone_mpc.last_computation_time);
+        std_msgs::Int32 msg1; msg1.data = drone_mpc.info().iter;
+        sqp_iter_pub.publish(msg1);
+        std_msgs::Int32 msg2; msg2.data = drone_mpc.info().qp_solver_iter;
+        qp_iter_pub.publish(msg2);
+        std_msgs::Float64 msg3; msg3.data = drone_mpc.last_computation_time;
+        computation_time_pub.publish(msg3);
     }
 
     bool received_state = false;
