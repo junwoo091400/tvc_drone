@@ -44,7 +44,7 @@ public:
     Matrix<scalar_t, Drone::NX, 1> xs;
     Matrix<scalar_t, Drone::NU, 1> us;
 
-    shared_ptr<Drone> drone;
+    shared_ptr <Drone> drone;
 
     scalar_t maxAttitudeAngle;
 
@@ -67,7 +67,7 @@ public:
     Matrix<scalar_t, Drone::NX, 1> x_drone_scaling_vec;
     Matrix<scalar_t, Drone::NU, 1> u_drone_scaling_vec;
 
-    void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
+    void init(ros::NodeHandle nh, shared_ptr <Drone> drone_ptr) {
         drone = drone_ptr;
 //        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
         scalar_t maxAttitudeAngle_degree, weight_scaling;
@@ -97,22 +97,22 @@ public:
 //                    dx_cost, dx_cost, dz_cost,
 //                    0, 0, 0, 0,
 //                    datt_cost, datt_cost, droll_cost;
-            Q << 4, 4, 6,
+            Q << 20, 20, 20,
                     0.1, 0.1, 0.5,
                     2, 2,
                     1, 1, 5;
             R << 5, 5, 0.01, 0.01;
 
-            QN << 3.6957, 0, 0, 1.6573, 0, 0, 0, 8.2092, 0, 0.44984, 0
-                    , 0, 3.677, 0, 0, 1.64, 0, -8.0246, 0, -0.41549, 0, 0
-                    , 0, 0, 4.0847, 0, 0, 1.1404, 0, 0, 0, 0, 0
-                    , 1.6573, 0, 0, 1.1128, 0, 0, 0, 6.6851, 0, 0.32655, 0
-                    , 0, 1.64, 0, 0, 1.0986, 0, -6.5456, 0 - 0.30086, 0, 0
-                    , 0, 0, 1.1404, 0, 0, 0.77637, 0, 0, 0, 0, 0
-                    , 0, -8.0246, 0, 0, -6.5456, 0, 52.747, 0, 2.0246, 0, 0
-                    , 8.2092, 0, 0, 6.6851, 0, 0, 0, 53.919, 0, 2.212, 0
-                    , 0, -0.41549, 0, 0, -0.30086, 0, 2.0246, 0, 0.15029, 0, 0
-                    , 0.44984, 0, 0, 0.32655, 0, 0, 0, 2.212, 0, 0.1691, 0
+            QN << 13.43, 0, 0, 4.4589, 0, 0, 0, 17.92, 0, 1.1662, 0
+                    , 0, 13.301, 0, 0, 4.3732, 0, -17.243, 0, -1.069, 0, 0
+                    , 0, 0, 9.6583, 0, 0, 2.0821, 0, 0, 0, 0, 0
+                    , 4.4589, 0, 0, 2.0807, 0, 0, 0, 9.7008, 0, 0.58864, 0
+                    , 0, 4.3732, 0, 0, 2.0296, 0, -9.3297, 0, -0.53675, 0, 0
+                    , 0, 0, 2.0821, 0, 0, 1.0055, 0, 0, 0, 0, 0
+                    , 0, -17.243, 0, 0, -9.3297, 0, 52.911, 0, 2.7165, 0, 0
+                    , 17.92, 0, 0, 9.7008, 0, 0, 0, 55.288, 0, 3.0143, 0
+                    , 0, -1.069, 0, 0, -0.53675, 0, 2.7165, 0, 0.19352, 0, 0
+                    , 1.1662, 0, 0, 0.58864, 0, 0, 0, 3.0143, 0, 0.22253, 0
                     , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1501;
 
 //            QN.setZero();

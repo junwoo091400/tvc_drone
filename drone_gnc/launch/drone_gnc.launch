@@ -23,14 +23,15 @@
 <!--    </node>-->
 <!--    <rosparam param="fixed_guidance">true</rosparam>-->
 
-        <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" cwd="node" output="screen">
-            <rosparam param="target_apogee">[0,0,10]</rosparam>
-        </node>
+<!--        <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" cwd="node" output="screen">-->
+<!--            <rosparam param="target_apogee">[2,0,0]</rosparam>-->
+<!--        </node>-->
 
 
-<!--    <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node">-->
-<!--        <rosparam param="target_apogee">[0,0,0.5]</rosparam>-->
-<!--    </node>-->
+    <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node" output="screen">
+        <rosparam param="target_apogee">[0,0,0.5]</rosparam>
+        <rosparam param="no_guidance">true</rosparam>
+    </node>
 
     <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" cwd="node">
         <rosparam param="initial_state">"Idle"</rosparam>

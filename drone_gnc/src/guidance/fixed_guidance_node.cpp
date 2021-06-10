@@ -34,11 +34,11 @@ class DroneFixedGuidanceNode {
 public:
     double speed;
 
-    constexpr static double seg_lengths[] = {1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3, 2.97/*ellipse*/ };
+    constexpr static double seg_lengths[] = {0.5, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3, 2.97/*ellipse*/ };
     double total_length;
     double total_duration;
 
-    DroneFixedGuidanceNode(ros::NodeHandle &nh) : speed(0.3) {
+    DroneFixedGuidanceNode(ros::NodeHandle &nh) : speed(0.35) {
         total_length = 0;
         for (double seg_length:seg_lengths) {
             total_length += seg_length;
@@ -59,93 +59,132 @@ public:
         Vector3d seg_point;
         Vector3d seg_start;
         seg_start << 0, 0, 0;
+        int i = 0;
+
+        ////////// start
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
+            seg_point << 0, 0, 0.5*s;
+            return seg_start + seg_point;
+        }
+        s -= seg_lengths[i];
+        i++;
+        seg_start += Vector3d(0, 0, 0.5);
+
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
+            seg_point << 0, -s,0;
+            return seg_start + seg_point;
+        }
+        s -= seg_lengths[i];
+        i++;
+        seg_start += Vector3d(0, -1, 0);
+
+
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
+            seg_point << 0,0,0;
+            return seg_start + seg_point;
+        }
+        s -= seg_lengths[i];
+        i++;
 
         ////////// M
-        if (s <= seg_lengths[0]) {
-            s /= seg_lengths[0];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             seg_point << 0, 0, s;
             return seg_start + seg_point;
         }
-        s -= seg_lengths[0];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 0, 1);
 
-        if (s <= seg_lengths[1]) {
-            s /= seg_lengths[1];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             seg_point << 0, s * 0.4, -s * 0.5;
             return seg_start + seg_point;
         }
-        s -= seg_lengths[1];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 0.4, -0.5);
 
-        if (s <= seg_lengths[2]) {
-            s /= seg_lengths[2];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             seg_point << 0, s * 0.4, s * 0.5;
             return seg_start + seg_point;
         }
-        s -= seg_lengths[2];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 0.4, 0.5);
 
-        if (s <= seg_lengths[3]) {
-            s /= seg_lengths[3];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             seg_point << 0, 0, -s;
             return seg_start + seg_point;
         }
-        s -= seg_lengths[3];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 0, -1);
 
         ////////// P
-        if (s <= seg_lengths[4]) {
-            s /= seg_lengths[4];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             seg_point << 0, 0.3 * s, 0;
             return seg_start + seg_point;
         }
-        s -= seg_lengths[4];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 0.3, 0);
 
-        if (s <= seg_lengths[5]) {
-            s /= seg_lengths[5];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             seg_point << 0, 0, s;
             return seg_start + seg_point;
         }
-        s -= seg_lengths[5];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 0, 1);
 
 
-        if (s <= seg_lengths[6]) {
-            s /= seg_lengths[6];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             double r = 0.25;
             double theta = s * M_PI;
             seg_point << 0, r * 2 * sin(theta), -0.25 + r * cos(theta);
             return seg_start + seg_point;
         }
-        s -= seg_lengths[6];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 0, -0.5);
 
-        if (s <= seg_lengths[7]) {
-            s /= seg_lengths[7];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             seg_point << 0, 0, -0.5 * s;
             return seg_start + seg_point;
         }
-        s -= seg_lengths[7];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 0, -0.5);
 
         ////////// C
-        if (s <= seg_lengths[8]) {
-            s /= seg_lengths[8];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             seg_point << 0, s, 0;
             return seg_start + seg_point;
         }
-        s -= seg_lengths[8];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 1.3, 0);
 
-        if (s <= seg_lengths[9]) {
-            s /= seg_lengths[9];
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
             double r = 0.5;
             double theta = s * M_PI;
             seg_point << 0, -r * 1.3 * sin(theta), 0.5 - r * cos(theta);
             return seg_start + seg_point;
         }
-        s -= seg_lengths[9];
+        s -= seg_lengths[i];
+        i++;
         seg_start += Vector3d(0, 0, 1);
 
         return seg_start;

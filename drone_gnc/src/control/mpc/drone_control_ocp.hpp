@@ -46,7 +46,7 @@ public:
 
     Matrix<scalar_t, Drone::NX, NUM_NODES> targetTrajectory;
 
-    shared_ptr<Drone> drone;
+    shared_ptr <Drone> drone;
 
     scalar_t maxAttitudeAngle;
 
@@ -69,7 +69,7 @@ public:
     Matrix<scalar_t, Drone::NX, 1> x_drone_scaling_vec;
     Matrix<scalar_t, Drone::NU, 1> u_drone_scaling_vec;
 
-    void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
+    void init(ros::NodeHandle nh, shared_ptr <Drone> drone_ptr) {
         drone = drone_ptr;
 //        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
         scalar_t maxAttitudeAngle_degree, weight_scaling;
@@ -102,19 +102,18 @@ public:
             Q << 1, 1, 5,
                     0.1, 0.1, 0.5,
                     2, 2,
-                    1, 1, 5;
+                    2, 2, 5;
             R << 5, 5, 0.01, 0.01;
 
-            QN << 1.0895, 0, 0, 0.54349, 0, 0, 0, 2.9144, 0, 0.16422, 0
-                    , 0, 1.0841, 0, 0, 0.53764, 0, -2.8486, 0, -0.15177, 0, 0
+            QN << 1.1781, 0, 0, 0.64392, 0, 0, 0, 3.7245, 0, 0.1856, 0
+                    , 0, 1.1738, 0, 0, 0.63887, 0, -3.6606, 0, -0.17184, 0, 0
                     , 0, 0, 3.5931, 0, 0, 1.041, 0, 0, 0, 0, 0
-                    , 0.54349, 0, 0, 0.44359, 0, 0, 0, 2.8468, 0, 0.1473, 0
-                    , 0, 0.53764, 0, 0, 0.43767, 0, -2.7847, 0, -0.13575, 0, 0
+                    , 0.64392, 0, 0, 0.56874, 0, 0, 0, 4.0166, 0, 0.17824, 0
+                    , 0, 0.63887, 0, 0, 0.56332, 0, -3.9531, 0, -0.16471, 0, 0
                     , 0, 0, 1.041, 0, 0, 0.74812, 0, 0, 0, 0, 0
-                    , 0, -2.8486, 0, 0, -2.7847, 0, 24.722, 0, 1.0287, 0, 0
-                    , 2.9144, 0, 0, 2.8468, 0, 0, 0, 25.297, 0, 1.1234, 0
-                    , 0, -0.15177, 0, 0, -0.13575, 0, 1.0287, 0, 0.091271, 0, 0
-                    , 0.16422, 0, 0, 0.1473, 0, 0, 0, 1.1234, 0, 0.10206, 0
+                    , 0, -3.6606, 0, 0, -3.9531, 0, 39.422, 0, 1.3501, 0, 0
+                    , 3.7245, 0, 0, 4.0166, 0, 0, 0, 40.061, 0, 1.4681, 0
+                    , 0.1856, 0, 0, 0.17824, 0, 0, 0, 1.4681, 0, 0.12831, 0
                     , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1501;
 
             ROS_INFO_STREAM("QN" << QN);

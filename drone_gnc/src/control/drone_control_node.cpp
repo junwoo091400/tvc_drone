@@ -29,6 +29,7 @@
 class DroneControlNode {
 public:
     bool fixed_guidance;
+    bool no_guidance;
 
     DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
                                                                               drone(drone_ptr),
@@ -47,6 +48,7 @@ public:
         sgm_length = guidance_horizon_length / GUIDANCE_NUM_SEG;
 
         nh.param("/fixed_guidance", fixed_guidance, false);
+        nh.param("no_guidance", no_guidance, false);
     }
 
 
@@ -64,9 +66,9 @@ public:
     static const int GUIDANCE_POLY_ORDER = 7;
     static const int GUIDANCE_NUM_SEG = 2;
 
-    static const int GUIDANCE_NUM_NODE = GUIDANCE_POLY_ORDER*GUIDANCE_NUM_SEG+1;
+//    static const int GUIDANCE_NUM_NODE = GUIDANCE_POLY_ORDER*GUIDANCE_NUM_SEG+1;
     //TODO swap automatically between the two
-//    static const int GUIDANCE_NUM_NODE = 800;
+    static const int GUIDANCE_NUM_NODE = 800;
 
     Eigen::Matrix<double, Drone::NX, GUIDANCE_NUM_NODE> guidanceTrajectory;
 
@@ -192,15 +194,7 @@ public:
                                    current_state.disturbance_torque.x, current_state.disturbance_torque.y,
                                    current_state.disturbance_torque.z);
 
-        Matrix<double, Drone::NX, DroneMPC::num_nodes> mpc_target_traj;
-        if (fixed_guidance) {
-            sampleTargetTrajectoryLinear(mpc_target_traj);
-        } else {
-            sampleTargetTrajectory(mpc_target_traj);
-        }
 
-        //TODO separate
-        drone_mpc.ocp().targetTrajectory = mpc_target_traj;
 
         drone_mpc.solve(x0);
 
@@ -316,6 +310,21 @@ public:
 //        }
 
         drone_mpc.setTarget(target_state, target_control);
+
+        Matrix<double, Drone::NX, DroneMPC::num_nodes> mpc_target_traj;
+        if(no_guidance){
+            for (int i = 0; i < DroneMPC::num_nodes; i++) {
+                mpc_target_traj.col(i) = target_state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
+            }
+        }
+        else if (fixed_guidance) {
+            sampleTargetTrajectoryLinear(mpc_target_traj);
+        } else {
+            sampleTargetTrajectory(mpc_target_traj);
+        }
+
+        //TODO separate
+        drone_mpc.ocp().targetTrajectory = mpc_target_traj;
     }
 
     void saveDebugInfo() {
@@ -442,7 +451,7 @@ int main(int argc, char **argv) {
         double loop_start_time = ros::Time::now().toSec();
         // State machine ------------------------------------------
         if ((current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) &&
-            droneControlNode.received_trajectory) {
+                (droneControlNode.received_trajectory || droneControlNode.no_guidance)) {
 
             droneControlNode.fetchNewTarget();
             if (!USE_BACKUP_CONTROLLER) {
