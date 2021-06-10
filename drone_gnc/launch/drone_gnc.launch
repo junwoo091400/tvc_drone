@@ -19,9 +19,9 @@
         <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
     </group>
 
-<!--    <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">-->
-<!--    </node>-->
-<!--    <rosparam param="fixed_guidance">true</rosparam>-->
+   <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">
+   </node>
+   <rosparam param="fixed_guidance">true</rosparam>
 
 <!--        <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" cwd="node" output="screen">-->
 <!--            <rosparam param="target_apogee">[2,0,0]</rosparam>-->
@@ -29,8 +29,8 @@
 
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node" output="screen">
-        <rosparam param="target_apogee">[0,0,0.5]</rosparam>
-        <rosparam param="no_guidance">true</rosparam>
+        <rosparam param="target_apogee">[0,0,1]</rosparam>
+        <rosparam param="no_guidance">false</rosparam>
     </node>
 
     <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" cwd="node">
@@ -38,7 +38,7 @@
     </node>
 
     <node name="navigation" pkg="drone_gnc" type="drone_navigation_optitrack" machine="gnc_machine" cwd="node" output="screen">
-        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0, 1.04, 1.005, -0.01, 0.02, 0,0,0, 0,0,0]</rosparam>
+        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0, 1.04, 1.005, 0.0, 0.04, 0,0,0, 0,0,0]</rosparam>
         <rosparam param="drone_dome">true</rosparam>
     </node>
 </launch>
