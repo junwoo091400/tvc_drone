@@ -161,7 +161,7 @@ public:
 
     void initTopics(ros::NodeHandle &nh) {
         // Subscribers
-        rocket_state_sub = nh.subscribe("/simu_drone_state", 100, &DroneControlNode::stateCallback, this);
+        rocket_state_sub = nh.subscribe("/drone_state", 100, &DroneControlNode::stateCallback, this);
         target_sub = nh.subscribe("/target_apogee", 100, &DroneControlNode::targetCallback, this);
         target_traj_sub = nh.subscribe("/guidance/horizon", 100, &DroneControlNode::targetTrajectoryCallback, this);
 

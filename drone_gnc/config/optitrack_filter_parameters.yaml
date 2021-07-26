@@ -12,4 +12,4 @@ predict_vars:
   torque_scaling: 0.2
   servo_offset: 0.2
   disturbance_torque: 0.1
-  disturbance_force: 0
+  disturbance_force: 150

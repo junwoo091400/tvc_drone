@@ -28,7 +28,7 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
                 thrust_scaling_var,
                 torque_scaling_var,
                 servo_offset_var, servo_offset_var,
-                torque_scaling_var, torque_scaling_var, torque_scaling_var,
+                disturbance_force_var, disturbance_force_var, disturbance_force_var,
                 disturbance_torque_var, disturbance_torque_var, disturbance_torque_var;
 
         P.setZero();
