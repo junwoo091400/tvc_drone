@@ -4,3 +4,5 @@
 drone_utils/log/log.bag
 
 *.active
+
+venv/

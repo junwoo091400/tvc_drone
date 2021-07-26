@@ -17,6 +17,7 @@
 #include "../../../submodule/polympc/src/solvers/osqp_interface.hpp"
 #include "../../../submodule/polympc/src/control/mpc_wrapper.hpp"
 #include "drone_model.hpp"
+#include "mpc_utils.hpp"
 
 using namespace Eigen;
 
@@ -46,7 +47,7 @@ public:
 
     Matrix<scalar_t, Drone::NX, NUM_NODES> targetTrajectory;
 
-    shared_ptr <Drone> drone;
+    shared_ptr<Drone> drone;
 
     scalar_t maxAttitudeAngle;
 
@@ -69,9 +70,9 @@ public:
     Matrix<scalar_t, Drone::NX, 1> x_drone_scaling_vec;
     Matrix<scalar_t, Drone::NU, 1> u_drone_scaling_vec;
 
-    void init(ros::NodeHandle nh, shared_ptr <Drone> drone_ptr) {
+    void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
-//        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
+        scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
         scalar_t maxAttitudeAngle_degree, weight_scaling;
         if (nh.getParam("mpc/min_z", min_z) &&
             nh.getParam("mpc/min_dz", min_dz) &&
@@ -82,39 +83,27 @@ public:
             nh.getParam("mpc/scaling_z", scaling_z) &&
             nh.getParam("mpc/weight_scaling", weight_scaling) &&
 
-            //                nh.getParam("/mpc/state_costs/x", x_cost) &&
-            //            nh.getParam("/mpc/state_costs/dz", dx_cost) &&
-            //            nh.getParam("/mpc/state_costs/z", z_cost) &&
-            //            nh.getParam("/mpc/state_costs/dz", dz_cost) &&
-            //            nh.getParam("/mpc/state_costs/att", att_cost) &&
-            //            nh.getParam("/mpc/state_costs/datt", datt_cost) &&
-            //            nh.getParam("/mpc/state_costs/droll", droll_cost) &&
-            //            nh.getParam("/mpc/input_costs/servo", servo_cost) &&
-            //            nh.getParam("/mpc/input_costs/thrust", thrust_cost) &&
-            //            nh.getParam("/mpc/input_costs/torque", torque_cost) &&
+            nh.getParam("mpc/state_costs/x", x_cost) &&
+            nh.getParam("mpc/state_costs/dz", dx_cost) &&
+            nh.getParam("mpc/state_costs/z", z_cost) &&
+            nh.getParam("mpc/state_costs/dz", dz_cost) &&
+            nh.getParam("mpc/state_costs/att", att_cost) &&
+            nh.getParam("mpc/state_costs/datt", datt_cost) &&
+            nh.getParam("mpc/state_costs/droll", droll_cost) &&
+            nh.getParam("mpc/input_costs/servo", servo_cost) &&
+            nh.getParam("mpc/input_costs/thrust", thrust_cost) &&
+            nh.getParam("mpc/input_costs/torque", torque_cost) &&
 
             nh.getParam("mpc/max_attitude_angle", maxAttitudeAngle_degree)) {
 
-//            Q << x_cost, x_cost, z_cost,
-//                    dx_cost, dx_cost, dz_cost,
-//                    0, 0, 0, 0,
-//                    datt_cost, datt_cost, droll_cost;
-            Q << 1, 1, 5,
-                    0.1, 0.1, 0.5,
-                    2, 2,
-                    2, 2, 5;
-            R << 5, 5, 0.01, 0.01;
+            Q << x_cost, x_cost, z_cost,
+                    dx_cost, dx_cost, dz_cost,
+                    att_cost, att_cost,
+                    datt_cost, datt_cost, droll_cost;
 
-            QN << 1.1781, 0, 0, 0.64392, 0, 0, 0, 3.7245, 0, 0.1856, 0
-                    , 0, 1.1738, 0, 0, 0.63887, 0, -3.6606, 0, -0.17184, 0, 0
-                    , 0, 0, 3.5931, 0, 0, 1.041, 0, 0, 0, 0, 0
-                    , 0.64392, 0, 0, 0.56874, 0, 0, 0, 4.0166, 0, 0.17824, 0
-                    , 0, 0.63887, 0, 0, 0.56332, 0, -3.9531, 0, -0.16471, 0, 0
-                    , 0, 0, 1.041, 0, 0, 0.74812, 0, 0, 0, 0, 0
-                    , 0, -3.6606, 0, 0, -3.9531, 0, 39.422, 0, 1.3501, 0, 0
-                    , 3.7245, 0, 0, 4.0166, 0, 0, 0, 40.061, 0, 1.4681, 0
-                    , 0.1856, 0, 0, 0.17824, 0, 0, 0, 1.4681, 0, 0.12831, 0
-                    , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1501;
+            R << servo_cost, servo_cost, thrust_cost, torque_cost;
+
+            compute_LQR_terminal_cost(drone, Q, R, QN);
 
             ROS_INFO_STREAM("QN" << QN);
 
@@ -172,8 +161,8 @@ public:
 
     }
 
-    void getConstraints(state_t <scalar_t> &lbx, state_t <scalar_t> &ubx,
-                        control_t <scalar_t> &lbu, control_t <scalar_t> &ubu,
+    void getConstraints(state_t<scalar_t> &lbx, state_t<scalar_t> &ubx,
+                        control_t<scalar_t> &lbu, control_t<scalar_t> &ubu,
                         constraint_t <scalar_t> &lbg, constraint_t <scalar_t> &ubg) {
         const double inf = std::numeric_limits<double>::infinity();
         const double eps = 1e-1;
@@ -214,13 +203,13 @@ public:
     }
 
     template<typename T>
-    inline void dynamics_impl(const Ref<const state_t <T>> x,
-                              const Ref<const control_t <T>> u,
+    inline void dynamics_impl(const Ref<const state_t<T>> x,
+                              const Ref<const control_t<T>> u,
                               const Ref<const parameter_t <T>> p,
                               const Ref<const static_parameter_t> &d,
-                              const T &t, Ref<state_t < T>>
+                              const T &t, Ref<state_t<T>>
 
-    xdot)  const noexcept{
+                              xdot) const noexcept {
         Matrix<T, NX, 1> x_unscaled = x.cwiseProduct(x_unscaling_vec.template cast<T>());
         Matrix<T, NU, 1> u_unscaled = u.cwiseProduct(u_unscaling_vec.template cast<T>());
 
@@ -244,7 +233,7 @@ public:
 
     template<typename T>
     EIGEN_STRONG_INLINE void
-    inequality_constraints_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
+    inequality_constraints_impl(const Ref<const state_t<T>> x, const Ref<const control_t<T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, Ref<constraint_t < T>>
 
@@ -262,7 +251,7 @@ public:
     int k = NUM_NODES - 1;
 
     template<typename T>
-    inline void lagrange_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
+    inline void lagrange_term_impl(const Ref<const state_t<T>> x, const Ref<const control_t<T>> u,
                                    const Ref<const parameter_t <T>> p,
                                    const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
@@ -286,7 +275,7 @@ public:
     }
 
     template<typename T>
-    inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
+    inline void mayer_term_impl(const Ref<const state_t<T>> x, const Ref<const control_t<T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
         k = NUM_NODES - 1;

@@ -16,161 +16,161 @@
 
 #include <autodiff/AutoDiffScalar.h>
 #include <drone_model.hpp>
-
-/** Lyapunov equation */
-Eigen::MatrixXd
-lyapunov(const Eigen::Ref<const Eigen::MatrixXd> A, const Eigen::Ref<const Eigen::MatrixXd> Q) noexcept {
-    const Eigen::Index m = Q.cols();
-    /** compute Schur decomposition of A */
-    Eigen::RealSchur <Eigen::MatrixXd> schur(A);
-    Eigen::MatrixXd T = schur.matrixT();
-    Eigen::MatrixXd U = schur.matrixU();
-
-    Eigen::MatrixXd Q1;
-    Q1.noalias() = (U.transpose() * Q) * U;
-    Eigen::MatrixXd X = Eigen::MatrixXd::Zero(m, m);
-    Eigen::MatrixXd E = Eigen::MatrixXd::Identity(m, m);
-
-    X.col(m - 1).noalias() = (T + T(m - 1, m - 1) * E).inverse();
-    Eigen::VectorXd v;
-
-    for (Eigen::Index i = m - 2; i >= 0; --i) {
-        v.noalias() = Q1.col(i) - X.block(0, i + 1, m, m - (i + 1)) * T.block(i, i + 1, 1, m - (i + 1)).transpose();
-        X.col(i) = (T + T(i, i) * E).partialPivLu().solve(v);
-    }
-
-    X.noalias() = (U * X) * U.transpose();
-    return X;
-}
-
-double line_search_care(const double &a, const double &b, const double &c) noexcept {
-    Eigen::Matrix<double, 5, 1> poly;
-    Eigen::Matrix<double, 4, 1> poly_derivative;
-    poly_derivative << -2 * a, 2 * (a - 2 * b), 6 * b, 4 * c;
-    poly << a, -2 * a, a - 2 * b, 2 * b, c;
-    poly_derivative = (1.0 / (4 * c)) * poly_derivative;
-    poly = (1.0 / c) * poly;
-
-    /** find extremums */
-    Eigen::PolynomialSolver<double, 3> root_finder;
-    root_finder.compute(poly_derivative);
-
-    /** compute values on the bounds */
-    double lb_value = Eigen::poly_eval(poly, 1e-5);
-    double ub_value = Eigen::poly_eval(poly, 2);
-
-    double argmin = lb_value < ub_value ? 1e-5 : 2;
-
-    /** check critical points : redo with visitor! */
-    double minimum = Eigen::poly_eval(poly, argmin);
-    for (int i = 0; i < root_finder.roots().size(); ++i) {
-        double root = root_finder.roots()(i).real();
-        if ((root >= 1e-5) && (root <= 2)) {
-            double candidate = Eigen::poly_eval(poly, root);
-            if (candidate < minimum) {
-                argmin = root;
-                minimum = Eigen::poly_eval(poly, argmin);
-            }
-        }
-    }
-    return argmin;
-}
-
-/** CARE Newton iteration */
-Eigen::MatrixXd newton_ls_care(const Eigen::Ref<const Eigen::MatrixXd> A, const Eigen::Ref<const Eigen::MatrixXd> B,
-                               const Eigen::Ref<const Eigen::MatrixXd> C,
-                               const Eigen::Ref<const Eigen::MatrixXd> X0) noexcept {
-    /** initial guess */
-    //Eigen::EigenSolver<Eigen::MatrixXd> eig(A - B * X0);
-    //std::cout << "INIT X0: \n" << eig.eigenvalues() << "\n";
-    const double tol = 1e-5;
-    const int kmax = 20;
-    Eigen::MatrixXd X = X0;
-    double err = std::numeric_limits<double>::max();
-    int k = 0;
-    Eigen::MatrixXd RX, H, V;
-
-    /** temporary */
-    double tk = 1;
-
-    while ((err > tol) && (k < kmax)) {
-        RX = C;
-        RX.noalias() += X * A + A.transpose() * X - (X * B) * X;
-        /** newton update */
-        H = lyapunov((A - B * X).transpose(), -RX);
-        /** exact line search */
-        V.noalias() = H * B * H;
-        double a = (RX * RX).trace();
-        double b = (RX * V).trace();
-        double c = (V * V).trace();
-        tk = line_search_care(a, b, c);
-        /** inner loop to accept step */
-        X.noalias() += tk * H;
-        //err = tk * (H.lpNorm<1>() / X.lpNorm<1>());
-        err = RX.norm();
-        //std::cout << "err " << err << " step " << tk << "\n";
-        k++;
-    }
-
-    /** may be defect correction algorithm? */
-
-    //std::cout << "CARE solve took " << k << " iterations. \n";
-    if (k == kmax)
-        std::cerr << "CARE cannot be solved to specified precision :" << err
-                  << " max number of iteration exceeded! \n ";
-
-    return X;
-}
-
-/** Moore-Penrose pseudo-inverse */
-Eigen::MatrixXd pinv(const Eigen::Ref<const Eigen::MatrixXd> mat) noexcept {
-    /** compute SVD */
-    Eigen::JacobiSVD <Eigen::MatrixXd> svd(mat, Eigen::ComputeFullU | Eigen::ComputeFullV);
-    const double pinvtol = 1e-6;
-    Eigen::VectorXd singular_values = svd.singularValues();
-    /** make a copy */
-    Eigen::VectorXd singular_values_inv = singular_values;
-    for (int i = 0; i < mat.cols(); ++i) {
-        if (singular_values(i) > pinvtol)
-            singular_values_inv(i) = 1.0 / singular_values(i);
-        else singular_values_inv(i) = 0;
-    }
-    return (svd.matrixV() * singular_values_inv.asDiagonal() * svd.matrixU().transpose());
-}
-
-Eigen::MatrixXd
-init_newton_care(const Eigen::Ref<const Eigen::MatrixXd> A, const Eigen::Ref<const Eigen::MatrixXd> B) noexcept {
-    const Eigen::Index n = A.cols();
-    const double tolerance = 1e-12;
-    /** compute Schur decomposition of A */
-    Eigen::RealSchur <Eigen::MatrixXd> schur(A);
-    Eigen::MatrixXd TA = schur.matrixT();
-    Eigen::MatrixXd U = schur.matrixU();
-
-    Eigen::MatrixXd TD = U.transpose() * B;
-    Eigen::EigenSolver <Eigen::MatrixXd> es;
-    es.compute(TA, false);
-
-    Eigen::VectorXd eig_r = es.eigenvalues().real();
-    double b = -eig_r.minCoeff();
-    b = std::fmax(b, 0.0) + 0.5;
-    Eigen::MatrixXd E = Eigen::MatrixXd::Identity(n, n);
-    Eigen::MatrixXd Z = lyapunov(TA + b * E, 2 * TD * TD.transpose());
-    Eigen::MatrixXd X = (TD.transpose() * pinv(Z)) * U.transpose();
-
-    if ((X - X.transpose()).norm() > tolerance) {
-        Eigen::MatrixXd M = (X.transpose() * B) * X + 0.5 * Eigen::MatrixXd::Identity(n, n);
-        X = lyapunov((A - B * X).transpose(), -M);
-    }
-    return X;
-}
-
-
-Eigen::MatrixXd care(const Eigen::Ref<const Eigen::MatrixXd> A, const Eigen::Ref<const Eigen::MatrixXd> B,
-                     const Eigen::Ref<const Eigen::MatrixXd> C) noexcept {
-    Eigen::MatrixXd X0 = init_newton_care(A, B);
-    return newton_ls_care(A, B, C, X0);
-}
+//
+///** Lyapunov equation */
+//Eigen::MatrixXd
+//lyapunov(const Eigen::Ref<const Eigen::MatrixXd> A, const Eigen::Ref<const Eigen::MatrixXd> Q) noexcept {
+//    const Eigen::Index m = Q.cols();
+//    /** compute Schur decomposition of A */
+//    Eigen::RealSchur <Eigen::MatrixXd> schur(A);
+//    Eigen::MatrixXd T = schur.matrixT();
+//    Eigen::MatrixXd U = schur.matrixU();
+//
+//    Eigen::MatrixXd Q1;
+//    Q1.noalias() = (U.transpose() * Q) * U;
+//    Eigen::MatrixXd X = Eigen::MatrixXd::Zero(m, m);
+//    Eigen::MatrixXd E = Eigen::MatrixXd::Identity(m, m);
+//
+//    X.col(m - 1).noalias() = (T + T(m - 1, m - 1) * E).inverse();
+//    Eigen::VectorXd v;
+//
+//    for (Eigen::Index i = m - 2; i >= 0; --i) {
+//        v.noalias() = Q1.col(i) - X.block(0, i + 1, m, m - (i + 1)) * T.block(i, i + 1, 1, m - (i + 1)).transpose();
+//        X.col(i) = (T + T(i, i) * E).partialPivLu().solve(v);
+//    }
+//
+//    X.noalias() = (U * X) * U.transpose();
+//    return X;
+//}
+//
+//double line_search_care(const double &a, const double &b, const double &c) noexcept {
+//    Eigen::Matrix<double, 5, 1> poly;
+//    Eigen::Matrix<double, 4, 1> poly_derivative;
+//    poly_derivative << -2 * a, 2 * (a - 2 * b), 6 * b, 4 * c;
+//    poly << a, -2 * a, a - 2 * b, 2 * b, c;
+//    poly_derivative = (1.0 / (4 * c)) * poly_derivative;
+//    poly = (1.0 / c) * poly;
+//
+//    /** find extremums */
+//    Eigen::PolynomialSolver<double, 3> root_finder;
+//    root_finder.compute(poly_derivative);
+//
+//    /** compute values on the bounds */
+//    double lb_value = Eigen::poly_eval(poly, 1e-5);
+//    double ub_value = Eigen::poly_eval(poly, 2);
+//
+//    double argmin = lb_value < ub_value ? 1e-5 : 2;
+//
+//    /** check critical points : redo with visitor! */
+//    double minimum = Eigen::poly_eval(poly, argmin);
+//    for (int i = 0; i < root_finder.roots().size(); ++i) {
+//        double root = root_finder.roots()(i).real();
+//        if ((root >= 1e-5) && (root <= 2)) {
+//            double candidate = Eigen::poly_eval(poly, root);
+//            if (candidate < minimum) {
+//                argmin = root;
+//                minimum = Eigen::poly_eval(poly, argmin);
+//            }
+//        }
+//    }
+//    return argmin;
+//}
+//
+///** CARE Newton iteration */
+//Eigen::MatrixXd newton_ls_care(const Eigen::Ref<const Eigen::MatrixXd> A, const Eigen::Ref<const Eigen::MatrixXd> B,
+//                               const Eigen::Ref<const Eigen::MatrixXd> C,
+//                               const Eigen::Ref<const Eigen::MatrixXd> X0) noexcept {
+//    /** initial guess */
+//    //Eigen::EigenSolver<Eigen::MatrixXd> eig(A - B * X0);
+//    //std::cout << "INIT X0: \n" << eig.eigenvalues() << "\n";
+//    const double tol = 1e-5;
+//    const int kmax = 20;
+//    Eigen::MatrixXd X = X0;
+//    double err = std::numeric_limits<double>::max();
+//    int k = 0;
+//    Eigen::MatrixXd RX, H, V;
+//
+//    /** temporary */
+//    double tk = 1;
+//
+//    while ((err > tol) && (k < kmax)) {
+//        RX = C;
+//        RX.noalias() += X * A + A.transpose() * X - (X * B) * X;
+//        /** newton update */
+//        H = lyapunov((A - B * X).transpose(), -RX);
+//        /** exact line search */
+//        V.noalias() = H * B * H;
+//        double a = (RX * RX).trace();
+//        double b = (RX * V).trace();
+//        double c = (V * V).trace();
+//        tk = line_search_care(a, b, c);
+//        /** inner loop to accept step */
+//        X.noalias() += tk * H;
+//        //err = tk * (H.lpNorm<1>() / X.lpNorm<1>());
+//        err = RX.norm();
+//        //std::cout << "err " << err << " step " << tk << "\n";
+//        k++;
+//    }
+//
+//    /** may be defect correction algorithm? */
+//
+//    //std::cout << "CARE solve took " << k << " iterations. \n";
+//    if (k == kmax)
+//        std::cerr << "CARE cannot be solved to specified precision :" << err
+//                  << " max number of iteration exceeded! \n ";
+//
+//    return X;
+//}
+//
+///** Moore-Penrose pseudo-inverse */
+//Eigen::MatrixXd pinv(const Eigen::Ref<const Eigen::MatrixXd> mat) noexcept {
+//    /** compute SVD */
+//    Eigen::JacobiSVD <Eigen::MatrixXd> svd(mat, Eigen::ComputeFullU | Eigen::ComputeFullV);
+//    const double pinvtol = 1e-6;
+//    Eigen::VectorXd singular_values = svd.singularValues();
+//    /** make a copy */
+//    Eigen::VectorXd singular_values_inv = singular_values;
+//    for (int i = 0; i < mat.cols(); ++i) {
+//        if (singular_values(i) > pinvtol)
+//            singular_values_inv(i) = 1.0 / singular_values(i);
+//        else singular_values_inv(i) = 0;
+//    }
+//    return (svd.matrixV() * singular_values_inv.asDiagonal() * svd.matrixU().transpose());
+//}
+//
+//Eigen::MatrixXd
+//init_newton_care(const Eigen::Ref<const Eigen::MatrixXd> A, const Eigen::Ref<const Eigen::MatrixXd> B) noexcept {
+//    const Eigen::Index n = A.cols();
+//    const double tolerance = 1e-12;
+//    /** compute Schur decomposition of A */
+//    Eigen::RealSchur <Eigen::MatrixXd> schur(A);
+//    Eigen::MatrixXd TA = schur.matrixT();
+//    Eigen::MatrixXd U = schur.matrixU();
+//
+//    Eigen::MatrixXd TD = U.transpose() * B;
+//    Eigen::EigenSolver <Eigen::MatrixXd> es;
+//    es.compute(TA, false);
+//
+//    Eigen::VectorXd eig_r = es.eigenvalues().real();
+//    double b = -eig_r.minCoeff();
+//    b = std::fmax(b, 0.0) + 0.5;
+//    Eigen::MatrixXd E = Eigen::MatrixXd::Identity(n, n);
+//    Eigen::MatrixXd Z = lyapunov(TA + b * E, 2 * TD * TD.transpose());
+//    Eigen::MatrixXd X = (TD.transpose() * pinv(Z)) * U.transpose();
+//
+//    if ((X - X.transpose()).norm() > tolerance) {
+//        Eigen::MatrixXd M = (X.transpose() * B) * X + 0.5 * Eigen::MatrixXd::Identity(n, n);
+//        X = lyapunov((A - B * X).transpose(), -M);
+//    }
+//    return X;
+//}
+//
+//
+//Eigen::MatrixXd care(const Eigen::Ref<const Eigen::MatrixXd> A, const Eigen::Ref<const Eigen::MatrixXd> B,
+//                     const Eigen::Ref<const Eigen::MatrixXd> C) noexcept {
+//    Eigen::MatrixXd X0 = init_newton_care(A, B);
+//    return newton_ls_care(A, B, C, X0);
+//}
 
 static const int NX = 13;
 static const int NU = 4;
@@ -263,7 +263,34 @@ void compute_linearized_model(Drone &drone,
     }
 }
 
-void compute_LQR_terminal_cost(Drone &drone, Matrix<double, NX - 1, NX - 1> &QN) {
+//code found in https://github.com/TakaHoribe/Riccati_Solver
+bool solveRiccatiIterationC(const Eigen::MatrixXd &A, const Eigen::MatrixXd &B,
+                            const Eigen::MatrixXd &Q, const Eigen::MatrixXd &R,
+                            Eigen::MatrixXd &P, const double dt,
+                            const double &tolerance,
+                            const uint iter_max) {
+    P = Q; // initialize
+
+    Eigen::MatrixXd P_next;
+
+    Eigen::MatrixXd AT = A.transpose();
+    Eigen::MatrixXd BT = B.transpose();
+    Eigen::MatrixXd Rinv = R.inverse();
+
+    double diff;
+    for (uint i = 0; i < iter_max; ++i) {
+        P_next = P + (P * A + AT * P - P * B * Rinv * BT * P + Q) * dt;
+        diff = fabs((P_next - P).maxCoeff());
+        P = P_next;
+        if (diff < tolerance) {
+            std::cout << "iteration mumber = " << i << std::endl;
+            return true;
+        }
+    }
+    return false; // over iteration limit
+}
+
+void compute_LQR_terminal_cost(Drone &drone, Matrix<double, NX-2, 1> Q_, Matrix<double, NU, 1> R_,  Matrix<double, NX - 2, NX - 2> &QN) {
     Matrix<double, NX, NX> A_;
     Matrix<double, NX, NU> B_;
     compute_linearized_model(drone, A_, B_);
@@ -279,26 +306,37 @@ void compute_LQR_terminal_cost(Drone &drone, Matrix<double, NX - 1, NX - 1> &QN)
 
     Matrix < double, NX - 1, NX - 1 > Q;
     Q.setZero();
-    Q.diagonal() <<
-                 2, 2, 4,
-            2, 2, 6,
-            2, 2, 1e-10,
-            2, 2, 5;
+    Q.diagonal().segment(0, 8) << Q_.segment(0, 8), 1e-10, Q_.segment(8, 3);
+
     Matrix<double, NU, NU> R;
     R.setZero();
-    R.diagonal() << 5, 5, 0.01, 0.01;
+    R.diagonal() << R_;
 
     ROS_INFO_STREAM("A = DF/DX\n" << A);
     ROS_INFO_STREAM("B = DF/DU\n" << B);
     ROS_INFO_STREAM("Q\n" << Q);
     ROS_INFO_STREAM("R\n" << R);
+//    Matrix<double, NX - 1, NX - 1> P;
+    Eigen::MatrixXd P = Eigen::MatrixXd::Zero(NX - 1, NX - 1);
 
-    QN = care(A, B * R.inverse() * B.transpose(), Q);
-    ROS_INFO_STREAM("QN\n" << QN);
+//    QN = care(A, B * R.inverse() * B.transpose(), Q);
+
+    bool found = solveRiccatiIterationC(A, B, Q, R, P, 0.0001, 1.E-5, 100000);
+    if(!found){
+        ROS_ERROR_STREAM("Failed to compute terminal cost");
+    }
+
+    ROS_INFO_STREAM("P\n" << P);
+
+
+    QN.block(0, 0, 8, 8) = P.block(0, 0, 8, 8);
+    QN.block(0, 8, 8, 3) = P.block(0, 9, 8, 3);
+    QN.block(8, 0, 3, 8) = P.block(9, 0, 3, 8);
+    QN.block(8, 8, 3, 3) = P.block(9, 9, 3, 3);
+
 //    Matrix < double, NX - 1, NX - 1 > C;
 //    C.setOnes();
 //    polymath::LinearSystem sys(A,B,C);
 //    Eigen::MatrixXd K = polymath::oc::lqr(sys, Q, R, M);
 
 }
-
