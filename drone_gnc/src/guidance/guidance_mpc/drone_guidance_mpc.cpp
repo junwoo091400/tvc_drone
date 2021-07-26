@@ -148,17 +148,19 @@ void DroneGuidanceMPC::solve(Drone::state &x0) {
 
 //    warmStart();
 
-//    double eps = 0.01;
-//    ocp_state lbx, ubx;
-//    lbx = ocp().xs.array() - eps;
-//    ubx = ocp().xs.array() + eps;
-//    final_state_bounds(lbx, ubx);
+    double eps = 0.01;
+    ocp_state lbx, ubx;
+    lbx = ocp().xs.array() - eps;
+    ubx = ocp().xs.array() + eps;
+    final_state_bounds(lbx, ubx);
 
     double time_now = ros::Time::now().toSec();
 
     MPC::solve();
 
     last_computation_time = (ros::Time::now().toSec()-time_now)*1000;
+
+    ROS_INFO_STREAM("guidance time " << last_computation_time);
     time_now = ros::Time::now().toSec();
 
     solution_time = ros::Time::now().toSec();

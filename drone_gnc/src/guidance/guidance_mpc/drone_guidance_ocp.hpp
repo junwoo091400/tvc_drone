@@ -24,7 +24,7 @@ using namespace Eigen;
 
 using namespace std;
 
-#define POLY_ORDER 7
+#define POLY_ORDER 5
 #define NUM_SEG    2
 
 /** benchmark the new collocation class */
@@ -97,24 +97,27 @@ public:
 //                    dx_cost, dx_cost, dz_cost,
 //                    0, 0, 0, 0,
 //                    datt_cost, datt_cost, droll_cost;
-            Q << 20, 20, 20,
-                    0.1, 0.1, 0.5,
-                    2, 2,
+            Q << 40, 40, 10,
+                    0.01, 0.01, 0.01,
+                    0.1, 0.1,
                     1, 1, 5;
             R << 5, 5, 0.01, 0.01;
 
             QN << 13.43, 0, 0, 4.4589, 0, 0, 0, 17.92, 0, 1.1662, 0
-                    , 0, 13.301, 0, 0, 4.3732, 0, -17.243, 0, -1.069, 0, 0
+                    , 0, 13.301, 0, 0, 4.3732, 0 - 17.243, 0, -1.069, 0, 0
                     , 0, 0, 9.6583, 0, 0, 2.0821, 0, 0, 0, 0, 0
                     , 4.4589, 0, 0, 2.0807, 0, 0, 0, 9.7008, 0, 0.58864, 0
-                    , 0, 4.3732, 0, 0, 2.0296, 0, -9.3297, 0, -0.53675, 0, 0
+                    , 0, 4.3732, 0, 0, 2.0296, 0 - 9.3297, 0 - 0.53675, 0, 0
                     , 0, 0, 2.0821, 0, 0, 1.0055, 0, 0, 0, 0, 0
-                    , 0, -17.243, 0, 0, -9.3297, 0, 52.911, 0, 2.7165, 0, 0
+                    , 0 - 17.243, 0, 0 - 9.3297, 0, 52.911, 0, 2.7165, 0, 0
                     , 17.92, 0, 0, 9.7008, 0, 0, 0, 55.288, 0, 3.0143, 0
                     , 0, -1.069, 0, 0, -0.53675, 0, 2.7165, 0, 0.19352, 0, 0
                     , 1.1662, 0, 0, 0.58864, 0, 0, 0, 3.0143, 0, 0.22253, 0
                     , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.1501;
 
+            QN.setZero();
+//            QN.diagonal() << Q;
+//
 //            QN.setZero();
 //            QN.diagonal() << Q;
 
@@ -189,7 +192,7 @@ public:
                 -inf, -inf, -inf, -inf,
                 -max_datt, -max_datt, -inf;
 
-        ubx << inf, inf, inf,
+        ubx << inf, inf, 31,
                 max_dx, max_dx, max_dz,
                 inf, inf, inf, inf,
                 max_datt, max_datt, inf;
@@ -278,8 +281,8 @@ public:
         x_error2(7) = x_error(9) * x_error(7) + x_error(6) * x_error(8);
         x_error2.segment(8, 3) = x_error.segment(10, 3);
 
-        mayer = x_error2.dot(QN.template cast<T>() * x_error2);
-//        mayer = (T) 0;
+//        mayer = x_error2.dot(QN.template cast<T>() * x_error2);
+        mayer = (T) 0;
 //        mayer = p(0);
     }
 };

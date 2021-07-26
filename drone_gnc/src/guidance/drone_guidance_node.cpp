@@ -52,7 +52,7 @@ public:
 
     void initTopics(ros::NodeHandle &nh) {
         // Subscribers
-        rocket_state_sub = nh.subscribe("/drone_state", 100, &DroneGuidanceNode::stateCallback, this);
+        rocket_state_sub = nh.subscribe("/simu_drone_state", 100, &DroneGuidanceNode::stateCallback, this);
         target_sub = nh.subscribe("/target_apogee", 100, &DroneGuidanceNode::targetCallback, this);
 
         // Publishers
@@ -228,15 +228,14 @@ int main(int argc, char **argv) {
     current_fsm.state_machine = "Idle";
 
 //    // Thread to compute control. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(0.5), [&](const ros::TimerEvent &) {
+    ros::Timer control_thread = nh.createTimer(ros::Duration(0.4), [&](const ros::TimerEvent &) {
         double loop_start_time = ros::Time::now().toSec();
 
         if (client_fsm.call(srv_fsm)) {
             current_fsm = srv_fsm.response.fsm;
         }
         // State machine ------------------------------------------
-        if ((current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) &&
-            droneGuidanceNode.received_state) {
+        if (current_fsm.state_machine.compare("Launch") == 0 && droneGuidanceNode.received_state) {
 
             droneGuidanceNode.fetchNewTarget();
 

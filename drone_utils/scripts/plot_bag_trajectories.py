@@ -14,13 +14,19 @@ import csv
 
 from math import acos
 
+import seaborn as sns
+sns.set()
+# sns.set_style("whitegrid")
+# blue, = sns.color_palette("muted", 1)
+
+
 NX = 12
 NU = 4
-NNODE = 0
 
 rospack = rospkg.RosPack()
 bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
 
+NNODE = 0
 for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
     NNODE = len(msg.trajectory)
     break
@@ -30,7 +36,7 @@ def convert_state_to_array(state):
     if np.isnan(q).any():
         q = [0, 0, 0, 1]
     r = R.from_quat(q)
-    attitude_euler = r.as_euler('zyx', degrees=True)
+    attitude_euler = r.as_euler('xyz', degrees=True)
     state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
                             state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
                             attitude_euler[0], attitude_euler[1], attitude_euler[2],
@@ -57,11 +63,10 @@ for topic, msg, t in bag.read_messages(topics=['/optitrack_state']):
     print(state_array)
     break
 time_init = 0
-for topic, msg, t in bag.read_messages(topics=['/simu_drone_state']):
+for topic, msg, t in bag.read_messages(topics=['/drone_state']):
     time_init = t.to_sec()
     break
-
-t_end = time_init + 4
+t_end = time_init + 30
 
 kalman_state_history = np.empty((0, NX + 1))
 for topic, msg, t in bag.read_messages(topics=['/drone_state']):
@@ -120,7 +125,8 @@ for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
         state_horizon_history = np.dstack((state_horizon_history, state_horizon))
         control_horizon_history = np.dstack((control_horizon_history, control_horizon))
 
-fig, axe = plt.subplots(5, 4, figsize=(15, 10))
+# fig, axe = plt.subplots(5, 3, figsize=(15, 10))
+fig, axe = plt.subplots(4, 3, figsize=(15, 10))
 fig.subplots_adjust(wspace=0.4, hspace=0.5)
 
 var_indexes = {
@@ -159,35 +165,39 @@ state_plot_indexes = {
     (3, 0): ("t", "dyaw (x)"),
     (3, 1): ("t", "dpitch (y)"),
     (3, 2): ("t", "droll (z)"),
+
+
+    # (0, 0): ("y", "z"),
 }
 
 control_plot_indexes = {
-    (4, 0): ("t", "servo1"),
-    (4, 1): ("t", "servo2"),
-    (4, 2): ("t", "bottom"),
-    (4, 3): ("t", "top"),
+    # (4, 0): ("t", "servo1"),
+    # (4, 0): ("t", "servo2"),
+    # (4, 1): ("t", "bottom"),
+    # (4, 2): ("t", "top"),
 }
 
 plot_ranges = {
     "t": [0, t_end - time_init],
-    "x": [-2, 2],
-    "y": [-2, 2],
-    "z": [0, 4],
-    "dx": [-2, 2],
-    "dy": [-0.5, 0.5],
-    "dz": [-0.5, 0.5],
+    "x": [-3, 3],
+    "y": [-3, 3],
+    "z": [-1, 40],
+    "dx": [-1.5, 1.5],
+    "dy": [-1.5, 1.5],
+    "dz": [-1.5, 5],
     "yaw (x)": [-15, 15],
     "pitch (y)": [-15, 15],
-    "roll (z)": [-15, 15],
+    "roll (z)": [-90, 90],
     "dyaw (x)": [-2, 2],
     "dpitch (y)": [-2, 2],
-    "droll (z)": [-1, 1],
+    "droll (z)": [-2, 2],
     "servo1": [-0.15, 0.15],
     "servo2": [-0.15, 0.15],
     "bottom": [0, 100],
     "top": [0, 100],
 }
 
+# axe[(0, 0)].set_aspect('equal', adjustable='box')
 
 # set plot ranges
 for plot_idx, (x_name, y_name) in state_plot_indexes.iteritems():
@@ -207,7 +217,7 @@ for plot_idx, (x_name, y_name) in control_plot_indexes.iteritems():
     axe[plot_idx].set_ylabel(y_name)
 
 
-def plot_history(history, plot_indexes, axe, name):
+def plot_history(history, plot_indexes, axe, name, *plt_args):
     if history.shape[0] == 0:
         return
     line_list = []
@@ -215,53 +225,72 @@ def plot_history(history, plot_indexes, axe, name):
     for plot_idx, (x_name, y_name) in plot_indexes.iteritems():
         x_data = history[:, var_indexes[x_name]]
         y_data = history[:, var_indexes[y_name]]
-        line, = axe[plot_idx].plot(x_data, y_data, label=name)
+        line, = axe[plot_idx].plot(x_data, y_data, label=name, *plt_args)
         line_list.append((line, plot_idx))
 
     return line_list
 
 
-for state_history, name in zip([integrator_state_history, optitrack_state_history], ["integrator", "optitrack"]):
+for state_history, name in zip([kalman_state_history], ["state"]):
     plot_history(state_history, state_plot_indexes, axe, name)
 
 
 plot_history(control_history, control_plot_indexes, axe, name)
 
-control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon")
-state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon")
 
-# control_mpc_line_list = []
-# state_mpc_line_list = []
-
-plt.subplots_adjust(left=0.15, bottom=0.25)
-ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor='white')
-slider = Slider(ax_slider, 'Time', 0, t_end - time_init, valinit=0, valstep=0.01)
-
-
-def update(val):
-    time_val = slider.val
+def plot_horizon_segment(t):
+    time_val = t
     time_array = state_horizon_history[0, 0, :]
     idx = min(np.searchsorted(time_array, time_val, side="left"), time_array.size - 1)
     state_history = state_horizon_history[:, :, idx]
     control_history = control_horizon_history[:, :, idx]
 
-    for i in range(len(state_mpc_line_list)):
-        l, plot_idx = state_mpc_line_list[i]
-        x_name, y_name = state_plot_indexes[plot_idx]
-        l.set_ydata(state_history[:, var_indexes[y_name]])
-        l.set_xdata(state_history[:, var_indexes[x_name]])
+    for plot_idx, (x_name, y_name) in state_plot_indexes.iteritems():
+        x_data = state_history[:, var_indexes[x_name]]
+        y_data = state_history[:, var_indexes[y_name]]
+        line, = axe[plot_idx].plot(x_data, y_data, 'g-', label='_nolegend_')
 
-    for i in range(len(control_mpc_line_list)):
-        l, plot_idx = control_mpc_line_list[i]
-        x_name, y_name = control_plot_indexes[plot_idx]
-        l.set_ydata(control_history[:, var_indexes[y_name]])
-        l.set_xdata(control_history[:, var_indexes[x_name]])
+PLOT_HORIZON_SEGMENTS = True
 
-    fig.canvas.draw_idle()
+if PLOT_HORIZON_SEGMENTS:
+    for t in np.arange(1.4, t_end-time_init, 1):
+        plot_horizon_segment(t)
+else:
+    control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon", 'g-')
+    state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon", 'g-')
 
-# print(control_horizon_history[:, :, 100])
+    # control_mpc_line_list = []
+    # state_mpc_line_list = []
 
-slider.on_changed(update)
+    plt.subplots_adjust(left=0.15, bottom=0.25)
+    ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor='white')
+    slider = Slider(ax_slider, 'Time', 0, t_end - time_init, valinit=0, valstep=0.01)
+
+
+    def update(val):
+        time_val = slider.val
+        time_array = state_horizon_history[0, 0, :]
+        idx = min(np.searchsorted(time_array, time_val, side="left"), time_array.size - 1)
+        state_history = state_horizon_history[:, :, idx]
+        control_history = control_horizon_history[:, :, idx]
+
+        for i in range(len(state_mpc_line_list)):
+            l, plot_idx = state_mpc_line_list[i]
+            x_name, y_name = state_plot_indexes[plot_idx]
+            l.set_ydata(state_history[:, var_indexes[y_name]])
+            l.set_xdata(state_history[:, var_indexes[x_name]])
+
+        for i in range(len(control_mpc_line_list)):
+            l, plot_idx = control_mpc_line_list[i]
+            x_name, y_name = control_plot_indexes[plot_idx]
+            l.set_ydata(control_history[:, var_indexes[y_name]])
+            l.set_xdata(control_history[:, var_indexes[x_name]])
+
+        fig.canvas.draw_idle()
+
+    # print(control_horizon_history[:, :, 100])
+
+    slider.on_changed(update)
 
 axe[0][0].legend(loc='upper left')
 plt.show()

@@ -33,7 +33,7 @@
               "keys": {
                 "rviz_config_file": {
                   "type": "repr",
-                  "repr": "u'/home/raphli/drone_ws/src/drone_simulator_interface/GUI/rocket_config.rviz'"
+                  "repr": "u'/home/raphlins/drone_ws/src/drone_simulator_interface/GUI/rocket_config.rviz'"
                 },
                 "hide_menu": {
                   "type": "repr",

@@ -66,9 +66,9 @@ public:
     static const int GUIDANCE_POLY_ORDER = 7;
     static const int GUIDANCE_NUM_SEG = 2;
 
-//    static const int GUIDANCE_NUM_NODE = GUIDANCE_POLY_ORDER*GUIDANCE_NUM_SEG+1;
+    static const int GUIDANCE_NUM_NODE = GUIDANCE_POLY_ORDER*GUIDANCE_NUM_SEG+1;
     //TODO swap automatically between the two
-    static const int GUIDANCE_NUM_NODE = 800;
+//    static const int GUIDANCE_NUM_NODE = 800;
 
     Eigen::Matrix<double, Drone::NX, GUIDANCE_NUM_NODE> guidanceTrajectory;
 
@@ -93,6 +93,7 @@ public:
 
         guidanceTraj_t0 = target->trajectory.at(0).header.stamp.toSec();
 
+
         int i = 0;
         for (auto waypoint: target->trajectory) {
             guidanceTrajectory.col(i)
@@ -102,6 +103,7 @@ public:
                     waypoint.state.twist.angular.x, waypoint.state.twist.angular.y, waypoint.state.twist.angular.z;
             i++;
         }
+        ROS_ERROR_STREAM("t: " << guidanceTraj_t0 << "state: " << guidanceTrajectory.col(0).transpose());
         guidanceTraj_tf =target->trajectory.at(i-1).header.stamp.toSec();
 
     }
@@ -119,6 +121,8 @@ public:
 
     void sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_traj) {
         double time_delta = ros::Time::now().toSec() - guidanceTraj_t0;
+
+        ROS_ERROR_STREAM("dt: " << time_delta);
 
         for (int i = 0; i < DroneMPC::num_nodes; i++) {
             double t = time_delta + drone_mpc.time_grid(i);
@@ -157,7 +161,7 @@ public:
 
     void initTopics(ros::NodeHandle &nh) {
         // Subscribers
-        rocket_state_sub = nh.subscribe("/drone_state", 100, &DroneControlNode::stateCallback, this);
+        rocket_state_sub = nh.subscribe("/simu_drone_state", 100, &DroneControlNode::stateCallback, this);
         target_sub = nh.subscribe("/target_apogee", 100, &DroneControlNode::targetCallback, this);
         target_traj_sub = nh.subscribe("/guidance/horizon", 100, &DroneControlNode::targetTrajectoryCallback, this);
 
@@ -236,6 +240,7 @@ public:
         drone_gnc::DroneTrajectory horizon_msg;
         for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
             Drone::state state_val = drone_mpc.solution_x_at(i);
+//            Drone::state state_val = drone_mpc.ocp().targetTrajectory.col(i);
 
             drone_gnc::Waypoint point;
             point.time = drone_mpc.node_time(i);
@@ -450,8 +455,7 @@ int main(int argc, char **argv) {
     ros::Timer control_thread = nh.createTimer(ros::Duration(mpc_period), [&](const ros::TimerEvent &) {
         double loop_start_time = ros::Time::now().toSec();
         // State machine ------------------------------------------
-        if ((current_fsm.state_machine.compare("Idle") == 0 || current_fsm.state_machine.compare("Launch") == 0) &&
-                (droneControlNode.received_trajectory || droneControlNode.no_guidance)) {
+        if (droneControlNode.received_trajectory || droneControlNode.no_guidance) {
 
             droneControlNode.fetchNewTarget();
             if (!USE_BACKUP_CONTROLLER) {

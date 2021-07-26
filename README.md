@@ -10,6 +10,7 @@ ROS workspace containing the packages and tools for the drone TVC prototype
 - **drone_simulator_interface**: Interface to use the real time simulator with the drone. Transforms drone topics to rocket topics and vice versa.
 - **rqt_ez_publisher**: External tool used in the GUI.
 
+Each package contains its own readme file with more information.
 
 ## Getting Started
 

@@ -34,13 +34,13 @@ class DroneFixedGuidanceNode {
 public:
     double speed;
 
-    double scaling = 1.25;
+    double scaling = 1;
 
-    constexpr static double seg_lengths[] = {1.3, 1, 0.2, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3, 2.97/*ellipse*/ };
+    constexpr static double seg_lengths[] = {0.5, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3, 2.97/*ellipse*/ };
     double total_length;
     double total_duration;
 
-    DroneFixedGuidanceNode(ros::NodeHandle &nh) : speed(0.29) {
+    DroneFixedGuidanceNode(ros::NodeHandle &nh) : speed(0.35) {
         total_length = 0;
         for (double seg_length:seg_lengths) {
             total_length += seg_length;
@@ -68,12 +68,12 @@ public:
         ////////// start
         if (s <= seg_lengths[i]) {
             s /= seg_lengths[i];
-            seg_point << 0, 0, 1.3*s;
+            seg_point << 0, 0, 0.5*s;
             return seg_start + seg_point;
         }
         s -= seg_lengths[i];
         i++;
-        seg_start += Vector3d(0, 0, 1.3);
+        seg_start += Vector3d(0, 0, 0.5);
 
         if (s <= seg_lengths[i]) {
             s /= seg_lengths[i];
@@ -195,10 +195,10 @@ public:
     }
 
     void sample_traj(double t, drone_gnc::DroneState &state_msg) {
-        Vector3d point2 = sample_path(t * speed)*scaling;
-        Vector3d point;
+        Vector3d point = sample_path(t * speed)*scaling;
+//        Vector3d point;
 
-        point << point2(1), point2(0), point2(2);
+//        point << point2(1), point2(0), point2(2);
 
         double eps = 1e-10;
         //finite difference to get speed

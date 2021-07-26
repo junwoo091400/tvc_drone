@@ -48,14 +48,12 @@ if __name__ == '__main__':
 
     rospy.Subscriber("/control/debug/computation_time", Float64, saveComputationTime)
 
-    time.sleep(0.5)
     time.sleep(1)
-    target_apogee_pub.publish(Vector3(1, 0, 0))
     command_pub.publish("Launch")
 
     start_time = rospy.get_time()
 
-    BENCHMARK_DURATION = 3
+    BENCHMARK_DURATION = 4
 
     i = 0
     # Node rate in Hz
