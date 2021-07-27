@@ -48,3 +48,9 @@ maxServo1Angle: 15
 maxServo2Angle: 15
 
 max_servo_rate: 150
+
+estimated:
+  thrust_scaling: 1
+  torque_scaling: 1
+  servo1_offset: 0
+  servo2_offset: 0

@@ -12,7 +12,7 @@
         <rosparam file="$(find drone_simulator_interface)/config/perturbations_parameters.yaml"/>
     </group>
 
-    <node name="simulator_interface" pkg="drone_simulator_interface" type="simulator_interface" cwd = "node" />
+    <node name="simulator_interface" pkg="drone_simulator_interface" type="simulator_interface" cwd = "node"  output ="screen"/>
 
     <!-- node that converts DroneState messages to State messages -->
 <!--    <node name="drone_to_rocket_state" pkg="topic_tools" type="transform" args="/kalman_drone_state /kalman_rocket_state tvc_simulator/State-->

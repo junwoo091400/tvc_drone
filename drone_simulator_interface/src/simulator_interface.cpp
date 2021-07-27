@@ -24,10 +24,7 @@ Matrix<double, 2, 1> x_servo2;
 double CM_OFFSET_X = 0;
 
 bool first_command = true;
-double thrust_scaling =1;
-double torque_scaling =1;
-double servo1_offset = 0;
-double servo2_offset = 0;
+double thrust_scaling, torque_scaling, servo1_offset,servo2_offset;
 Drone* drone;
 
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
@@ -114,6 +111,12 @@ int main(int argc, char **argv) {
     Drone drone_obj(nh);
     drone = &drone_obj;
 
+    nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
+    nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
+    nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset, 0);
+    nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset, 0);
+
+    //TODO check if exists
     nh.getParam("/rocket/CM_to_thrust_distance", CM_to_thrust_distance);
     nh.getParam("/rocket/CM_offset_x", CM_OFFSET_X);
 

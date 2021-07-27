@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(navigation)
 
-find_package(Eigen3 REQUIRED)
 
 add_executable(drone_navigation drone_navigation_node.cpp drone_EKF.cpp drone_EKF.h)
 target_link_libraries(drone_navigation Eigen3::Eigen ${catkin_LIBRARIES})

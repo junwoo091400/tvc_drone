@@ -11,8 +11,6 @@
 
 #include "drone_EKF.h"
 
-bool DRONE_DOME;
-
 class DroneNavigationNode {
 public:
     // Callback function to store last received fsm
@@ -41,8 +39,6 @@ public:
     }
 
     void initTopics(ros::NodeHandle &nh) {
-        nh.param("drone_dome", DRONE_DOME, false);
-
         // Create filtered rocket state publisher
         kalman_pub = nh.advertise<drone_gnc::DroneState>("/drone_state", 10);
 

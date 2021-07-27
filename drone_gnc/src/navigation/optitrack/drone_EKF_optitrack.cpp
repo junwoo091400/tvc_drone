@@ -17,8 +17,26 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
 
         std::vector<double> initial_state;
         nh.getParam("initial_state", initial_state);
-        state X0(initial_state.data());
-        X = X0;
+        Drone::state X0(initial_state.data());
+
+        bool init_estimated_params;
+        nh.param("init_estimated_params", init_estimated_params, false);
+
+        if(init_estimated_params){
+            double thrust_scaling, torque_scaling, servo1_offset,servo2_offset;
+            nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
+            nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
+            nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset, 0);
+            nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset, 0);
+
+            X << X0, thrust_scaling, torque_scaling, servo1_offset, servo2_offset, 0, 0, 0, 0, 0, 0;
+        }
+        else{
+            X << X0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
+        }
+
+        ROS_INFO_STREAM("initial kalman state" << X.transpose());
+
 
         Q.setZero();
         Q.diagonal() << x_var, x_var, z_var,
