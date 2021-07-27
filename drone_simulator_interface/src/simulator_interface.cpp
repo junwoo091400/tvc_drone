@@ -84,9 +84,9 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     Eigen::Vector3d omega_inertial(rocket_state->twist.angular.x, rocket_state->twist.angular.y, rocket_state->twist.angular.z);
     Eigen::Vector3d omega_body = attitude.inverse()._transformVector(omega_inertial);
 
-    converted_state.twist.angular.x = omega_body(0);
-    converted_state.twist.angular.y = omega_body(1);
-    converted_state.twist.angular.z = omega_body(2);
+    converted_state.twist.angular.x = omega_inertial(0);
+    converted_state.twist.angular.y = omega_inertial(1);
+    converted_state.twist.angular.z = omega_inertial(2);
 
     converted_state.pose = rocket_state->pose;
     converted_state.thrust_scaling = 1;

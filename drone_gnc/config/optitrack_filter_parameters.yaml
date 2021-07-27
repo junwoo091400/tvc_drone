@@ -11,5 +11,5 @@ predict_vars:
   thrust_scaling: 0.3
   torque_scaling: 0.2
   servo_offset: 0.05
-  disturbance_torque: 0.1
+  disturbance_torque: 50
   disturbance_force: 150

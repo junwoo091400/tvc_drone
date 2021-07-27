@@ -102,7 +102,7 @@ public:
         Eigen::Matrix<T, 13, 1> x_body = x.segment(0, 13);
         Eigen::Ref<Eigen::Matrix<T, 13, 1>> xdot_body = xdot.segment(0, 13);
 
-        Rocket::generic_rocket_dynamics(x_body, thrust_vector, (propeller_torque + dist_torque).eval(), dist_force, xdot_body);
+        Rocket::generic_rocket_dynamics(x_body, thrust_vector, propeller_torque, dist_force, dist_torque, xdot_body);
     }
 
     //thrust 3rd order model

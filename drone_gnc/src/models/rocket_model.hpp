@@ -43,8 +43,9 @@ Rocket(ros::NodeHandle n) {
     template<typename T, typename state>
     inline void generic_rocket_dynamics(const Eigen::Matrix<T, 13, 1> x,
                                         const Eigen::Matrix<T, 3, 1> thrust_vector,
-                                        const Eigen::Matrix<T, 3, 1> torque,
+                                        const Eigen::Matrix<T, 3, 1> body_torque,
                                         const Eigen::Matrix<T, 3, 1> disturbance_force,
+                                        const Eigen::Matrix<T, 3, 1> disturbance_torque,
                                         state &xdot) const noexcept {
         // -------------- Simulation parameters -------------- -------------
         // Earth gravity in [m/s^2]
@@ -55,19 +56,20 @@ Rocket(ros::NodeHandle n) {
         // Orientation of the rocket with quaternion
         Eigen::Quaternion<T> attitude(x(9), x(6), x(7), x(8));
 
+        Eigen::Matrix<T, 3, 3> rot_matrix = attitude.toRotationMatrix();
 
         // Total force in inertial frame [N]
         Eigen::Vector<T, 3> total_force;
-        total_force = attitude._transformVector(thrust_vector) + gravity_vector.template cast<T>() + disturbance_force;
+        total_force = rot_matrix*thrust_vector + gravity_vector.template cast<T>() + disturbance_force;
 
         // Angular velocity omega in quaternion format to compute quaternion derivative
         Eigen::Quaternion<T> omega_quat((T) 0.0, x(10), x(11), x(12));
 
         // X, Y force and Z torque in body frame
         Eigen::Vector<T, 3> rocket_torque;
-        rocket_torque << thrust_vector(1) * total_CM + torque(0),
-                -thrust_vector(0) * total_CM + torque(1),
-                torque(2);
+        rocket_torque << thrust_vector(1) * total_CM,
+                -thrust_vector(0) * total_CM,
+                (T) 0;
 
         // -------------- Differential equations ---------------------
 
@@ -78,18 +80,16 @@ Rocket(ros::NodeHandle n) {
         xdot.segment(3, 3) = total_force * mass_inv;
 
         // Quaternion variation is 0.5*q◦w (if w in body frame)
-        xdot.segment(6, 4) = (T) 0.5 * (attitude * omega_quat).coeffs();
+        xdot.segment(6, 4) = (T) 0.5 * (omega_quat*attitude).coeffs();
 
-        Eigen::Vector<T, 3> omega = x.segment(10, 3);
+
+
+        Eigen::Matrix<T, 3, 1> total_torque;
+        total_torque = rocket_torque + body_torque + rot_matrix.transpose()*disturbance_torque;
 
         // Angular speed variation is Torque/Inertia
-        xdot.segment(10, 3) = (rocket_torque -
-                               omega.cross(inertia.template cast<T>().cwiseProduct(omega)))
-                .cwiseProduct(inertia_inv.template cast<T>());
-//        xdot(10) = rocket_torque(0) * (T)inertia_inv(0) - (T)euler_coefs(0) * omega(1) * omega(2);
-//        xdot(11) = rocket_torque(1) * (T)inertia_inv(1) - (T)euler_coefs(1) * omega(2) * omega(0);
-//        xdot(12) = rocket_torque(2) * (T)inertia_inv(2) - (T)euler_coefs(2) * omega(0) * omega(1);
-    }
+        xdot.segment(10, 3) = rot_matrix*(total_torque.cwiseProduct(inertia_inv.template cast<T>()));
+}
 
 };
 
