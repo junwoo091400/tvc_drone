@@ -14,19 +14,18 @@
 #include "std_msgs/Float64.h"
 
 #include "drone_gnc/GetFSM.h"
-#include "drone_gnc/GetWaypoint.h"
 
 #include <time.h>
 
 #include <iostream>
-#include <chrono>
-#include <numeric>
 #include "guidance_mpc/drone_guidance_mpc.h"
 
 #define USE_BACKUP_CONTROLLER false
 
 class DroneGuidanceNode {
 public:
+    double period;
+
     // Callback function to store last received state
     void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
         current_state = *rocket_state;
@@ -47,6 +46,13 @@ public:
         target_apogee.x = initial_target_apogee.at(0);
         target_apogee.y = initial_target_apogee.at(1);
         target_apogee.z = initial_target_apogee.at(2);
+
+        // Initialize fsm
+        client_fsm = nh.serviceClient<drone_gnc::GetFSM>("/getFSM_gnc");
+        current_fsm.time_now = 0;
+        current_fsm.state_machine = "Idle";
+
+        nh.getParam("mpc/mpc_period", period);
     }
 
 
@@ -63,6 +69,17 @@ public:
         qp_iter_pub = nh.advertise<std_msgs::Int32>("debug/qp_iter", 10);
         horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("horizon", 10);
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
+    }
+
+    void run(){
+        double loop_start_time = ros::Time::now().toSec();
+        if (received_state) {
+            fetchNewTarget();
+            computeTrajectory();
+            publishTrajectory();
+            publishDebugInfo();
+        }
+        ROS_INFO_STREAM("loop period " << 1000 * (ros::Time::now().toSec() - loop_start_time) << " ms");
     }
 
     void computeTrajectory() {
@@ -185,7 +202,6 @@ private:
 
     drone_gnc::DroneState current_state;
     geometry_msgs::Vector3 target_apogee;
-    drone_gnc::GetWaypoint srv_waypoint;
 
     ros::Subscriber rocket_state_sub;
     ros::Subscriber target_sub;
@@ -200,6 +216,10 @@ private:
     ros::Publisher computation_time_pub;
     // Variables to track performance over whole simulation
     ros::Time time_compute_start;
+
+    ros::ServiceClient client_fsm;
+    drone_gnc::GetFSM srv_fsm;
+    drone_gnc::FSM current_fsm;
 };
 
 
@@ -209,42 +229,11 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh("guidance");
 
     std::shared_ptr<Drone> drone = make_shared<Drone>(nh);
-
     DroneGuidanceNode droneGuidanceNode(nh, drone);
 
-    ros::ServiceClient client_fsm = nh.serviceClient<drone_gnc::GetFSM>("/getFSM_gnc");
-
-    drone_gnc::GetFSM srv_fsm;
-//
-    drone_gnc::FSM current_fsm;
-    // Initialize fsm
-    current_fsm.time_now = 0;
-    current_fsm.state_machine = "Idle";
-
 //    // Thread to compute control. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(0.1), [&](const ros::TimerEvent &) {
-        double loop_start_time = ros::Time::now().toSec();
-
-        if (client_fsm.call(srv_fsm)) {
-            current_fsm = srv_fsm.response.fsm;
-        }
-        // State machine ------------------------------------------ //TODO remove || true
-        if ((current_fsm.state_machine.compare("Launch") == 0 && droneGuidanceNode.received_state) || true) {
-
-            droneGuidanceNode.fetchNewTarget();
-
-            droneGuidanceNode.computeTrajectory();
-
-            droneGuidanceNode.publishTrajectory();
-            droneGuidanceNode.publishDebugInfo();
-
-        } else if (current_fsm.state_machine.compare("Coast") == 0) {
-            // Slow down control to 10s period for reducing useless computation
-            control_thread.setPeriod(ros::Duration(10.0));
-
-
-        }
-        ROS_INFO_STREAM("loop period " << 1000 * (ros::Time::now().toSec() - loop_start_time) << " ms");
+    ros::Timer control_thread = nh.createTimer(ros::Duration(droneGuidanceNode.period), [&](const ros::TimerEvent &) {
+        droneGuidanceNode.run();
     });
 
     // Start spinner on a different thread to allow spline evaluation while a new solution is computed
