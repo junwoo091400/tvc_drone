@@ -21,12 +21,12 @@ public:
 
     drone_gnc::DroneControl getControlCurrentTime();
 
-    void setTarget(Drone::state &target_state, Drone::control &target_control);
+    void setTarget(ocp_state &target_state, ocp_control &target_control);
 
-    Drone::state solution_x_at(const double t);
+    Drone::state  solution_x_at(const double t);
     Drone::control solution_u_at(const double t);
-    Drone::state solution_x_at(const int t);
-    Drone::control solution_u_at(const int t);
+    Drone::state  solution_x_at(const int t);
+    Drone::control  solution_u_at(const int t);
     double node_time(int i);
 
     std::shared_ptr<Drone> drone;

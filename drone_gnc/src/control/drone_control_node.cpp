@@ -93,7 +93,6 @@ public:
 
         guidanceTraj_t0 = target->trajectory.at(0).header.stamp.toSec();
 
-
         int i = 0;
         for (auto waypoint: target->trajectory) {
             guidanceTrajectory.col(i)
@@ -103,9 +102,7 @@ public:
                     waypoint.state.twist.angular.x, waypoint.state.twist.angular.y, waypoint.state.twist.angular.z;
             i++;
         }
-        ROS_ERROR_STREAM("t: " << guidanceTraj_t0 << "state: " << guidanceTrajectory.col(0).transpose());
         guidanceTraj_tf =target->trajectory.at(i-1).header.stamp.toSec();
-
     }
 
     Drone::state sampleTargetTrajectory(double t) {
@@ -121,8 +118,6 @@ public:
 
     void sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_traj) {
         double time_delta = ros::Time::now().toSec() - guidanceTraj_t0;
-
-        ROS_ERROR_STREAM("dt: " << time_delta);
 
         for (int i = 0; i < DroneMPC::num_nodes; i++) {
             double t = time_delta + drone_mpc.time_grid(i);

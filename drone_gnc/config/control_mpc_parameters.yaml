@@ -2,8 +2,8 @@
 state_costs:
   x: 1
   dx: 0.1
-  z: 5
-  dz: 0.5
+  z: 50
+  dz: 5
   att: 4
   datt: 4
   droll: 5

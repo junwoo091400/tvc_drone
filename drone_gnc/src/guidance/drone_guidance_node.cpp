@@ -87,12 +87,10 @@ public:
             ROS_ERROR("MPC ISSUE\n");
             DroneGuidanceMPC::ocp_state x0;
             x0 << 0, 0, 0,
-                    0, 0, 0,
-                    0, 0, 0, 1,
                     0, 0, 0;
             drone_mpc.x_guess(x0.cwiseProduct(drone_mpc.ocp().x_scaling_vec).replicate(drone_mpc.ocp().NUM_NODES, 1));
             DroneGuidanceMPC::ocp_control u0;
-            u0 << 0, 0, drone->getHoverSpeedAverage(), 0;
+            u0 << 0, 0, drone->getHoverSpeedAverage();
             drone_mpc.u_guess(u0.cwiseProduct(drone_mpc.ocp().u_scaling_vec).replicate(drone_mpc.ocp().NUM_NODES, 1));
 
             DroneGuidanceMPC::dual_var_t dual;
@@ -107,7 +105,6 @@ public:
         // Send optimal trajectory computed by control. Send only position for now
         drone_gnc::Trajectory trajectory_msg;
         drone_gnc::DroneTrajectory horizon_msg;
-
 
         for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
             Drone::state state_val = drone_mpc.solution_x_at(i);
@@ -151,7 +148,6 @@ public:
             state_msg_stamped.header.stamp = time_compute_start + ros::Duration(drone_mpc.node_time(i));
             state_msg_stamped.header.frame_id = ' ';
 
-
             horizon_msg.trajectory.push_back(state_msg_stamped);
         }
         horizon_viz_pub.publish(trajectory_msg);
@@ -160,15 +156,13 @@ public:
 
 
     void fetchNewTarget() {
-        Drone::state target_state;
-        Drone::control target_control;
+        DroneGuidanceMPC::ocp_state target_state;
+        DroneGuidanceMPC::ocp_control target_control;
 
         target_state << target_apogee.x, target_apogee.y, target_apogee.z,
-                0, 0, 0,
-                0, 0, 0, 1,
                 0, 0, 0;
 
-        target_control << 0, 0, drone->getHoverSpeedAverage(), 0;
+        target_control << 0, 0, drone->getHoverSpeedAverage();
 
         drone_mpc.setTarget(target_state, target_control);
     }
@@ -228,14 +222,14 @@ int main(int argc, char **argv) {
     current_fsm.state_machine = "Idle";
 
 //    // Thread to compute control. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(0.4), [&](const ros::TimerEvent &) {
+    ros::Timer control_thread = nh.createTimer(ros::Duration(0.1), [&](const ros::TimerEvent &) {
         double loop_start_time = ros::Time::now().toSec();
 
         if (client_fsm.call(srv_fsm)) {
             current_fsm = srv_fsm.response.fsm;
         }
-        // State machine ------------------------------------------
-        if (current_fsm.state_machine.compare("Launch") == 0 && droneGuidanceNode.received_state) {
+        // State machine ------------------------------------------ //TODO remove || true
+        if ((current_fsm.state_machine.compare("Launch") == 0 && droneGuidanceNode.received_state) || true) {
 
             droneGuidanceNode.fetchNewTarget();
 
