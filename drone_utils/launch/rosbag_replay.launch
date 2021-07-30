@@ -1,4 +1,12 @@
 <launch>
+    <group ns="rocket">
+        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+    </group>
+
+    <group ns="control/mpc">
+        <rosparam file="$(find drone_gnc)/config/control_mpc_parameters.yaml"/>
+    </group>
+
     <group ns="visualization">
         <rosparam file="$(find drone_simulator_interface)/config/visualization_parameters.yaml"/>
     </group>
@@ -12,6 +20,10 @@
 <!--              'real_time_simulator.msg.State(twist=m.twist, pose=m.pose, propeller_mass=0)'-->
 <!--              &#45;&#45;import real_time_simulator"/>-->
 
+    <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node">
+        <rosparam param="target_apogee">[0,0,1]</rosparam>
+        <rosparam param="no_guidance">true</rosparam>
+    </node>
 
     <node name="GUI_interface" pkg="real_time_simulator" type="GUI_interface" />
     <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find drone_utils)/GUI/rosbag_replay_GUI.perspective"/>
