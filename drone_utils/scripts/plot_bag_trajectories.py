@@ -200,7 +200,7 @@ plot_ranges = {
 # axe[(0, 0)].set_aspect('equal', adjustable='box')
 
 # set plot ranges
-for plot_idx, (x_name, y_name) in state_plot_indexes.iteritems():
+for plot_idx, (x_name, y_name) in state_plot_indexes.items():
     axe[plot_idx].axis(xmin=plot_ranges[x_name][0],
                        xmax=plot_ranges[x_name][1],
                        ymin=plot_ranges[y_name][0],
@@ -208,7 +208,7 @@ for plot_idx, (x_name, y_name) in state_plot_indexes.iteritems():
     axe[plot_idx].set_xlabel(x_name)
     axe[plot_idx].set_ylabel(y_name)
 
-for plot_idx, (x_name, y_name) in control_plot_indexes.iteritems():
+for plot_idx, (x_name, y_name) in control_plot_indexes.items():
     axe[plot_idx].axis(xmin=plot_ranges[x_name][0],
                        xmax=plot_ranges[x_name][1],
                        ymin=plot_ranges[y_name][0],
@@ -222,7 +222,7 @@ def plot_history(history, plot_indexes, axe, name, *plt_args):
         return
     line_list = []
 
-    for plot_idx, (x_name, y_name) in plot_indexes.iteritems():
+    for plot_idx, (x_name, y_name) in plot_indexes.items():
         x_data = history[:, var_indexes[x_name]]
         y_data = history[:, var_indexes[y_name]]
         line, = axe[plot_idx].plot(x_data, y_data, label=name, *plt_args)
@@ -245,7 +245,7 @@ def plot_horizon_segment(t):
     state_history = state_horizon_history[:, :, idx]
     control_history = control_horizon_history[:, :, idx]
 
-    for plot_idx, (x_name, y_name) in state_plot_indexes.iteritems():
+    for plot_idx, (x_name, y_name) in state_plot_indexes.items():
         x_data = state_history[:, var_indexes[x_name]]
         y_data = state_history[:, var_indexes[y_name]]
         line, = axe[plot_idx].plot(x_data, y_data, 'g-', label='_nolegend_')
