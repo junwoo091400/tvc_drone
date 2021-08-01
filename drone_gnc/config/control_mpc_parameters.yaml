@@ -4,8 +4,8 @@ state_costs:
   dx: 0.1
   z: 50
   dz: 5
-  att: 4
-  datt: 4
+  att: 0.5
+  datt: 5
   droll: 5
 
 input_costs:

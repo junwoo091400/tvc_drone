@@ -6,3 +6,8 @@ find_package(Eigen3 REQUIRED)
 add_executable(drone_navigation_optitrack drone_navigation_node_optitrack.cpp drone_EKF_optitrack.cpp drone_EKF_optitrack.h)
 target_link_libraries(drone_navigation_optitrack Eigen3::Eigen ${catkin_LIBRARIES})
 add_dependencies(drone_navigation_optitrack drone_gnc_generate_messages_cpp)
+
+find_package(catkin REQUIRED rosbag)
+add_executable(kalman_tuner kalman_tuner.cpp drone_EKF_optitrack.cpp drone_EKF_optitrack.h)
+target_link_libraries(kalman_tuner Eigen3::Eigen ${catkin_LIBRARIES})
+add_dependencies(kalman_tuner drone_gnc_generate_messages_cpp)

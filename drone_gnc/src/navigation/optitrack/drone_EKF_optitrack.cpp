@@ -17,7 +17,7 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
 
         std::vector<double> initial_state;
         nh.getParam("initial_state", initial_state);
-        Drone::state X0(initial_state.data());
+        Drone::state drone_X0(initial_state.data());
 
         bool init_estimated_params;
         nh.param("init_estimated_params", init_estimated_params, false);
@@ -29,13 +29,12 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
             nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset, 0);
             nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset, 0);
 
-            X << X0, thrust_scaling, torque_scaling, servo1_offset, servo2_offset, 0, 0, 0, 0, 0, 0;
+            X0 << drone_X0, thrust_scaling, torque_scaling, servo1_offset, servo2_offset, 0, 0, 0, 0, 0, 0;
         }
         else{
-            X << X0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
+            X0 << drone_X0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
         }
 
-        ROS_INFO_STREAM("initial kalman state" << X.transpose());
 
 
         Q.setZero();
@@ -49,7 +48,6 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
                 disturbance_force_var, disturbance_force_var, disturbance_force_var,
                 disturbance_torque_var, disturbance_torque_var, disturbance_torque_var;
 
-        P.setZero();
 
 //        R.setZero();
 //        R.diagonal() << accel_x_var, accel_x_var, accel_z_var,
@@ -63,16 +61,8 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
 //        H.block(0, 13, 3, 3).setIdentity(); //accelerometer
 //        H.block(3, 10, 3, 3).setIdentity(); //gyro
         // H(6, 2) = 1; //baro
-
-        H.setZero();
-
-        current_control.servo1 = 0;
-        current_control.servo2 = 0;
-        current_control.top = 0;
-        current_control.bottom = 0;
-        received_control = false;
-
-        last_predict_time = ros::Time::now().toSec();
+        reset();
+        ROS_INFO_STREAM("initial kalman state" << X.transpose());
 
         /** initialize derivatives */
         ADx(X);
@@ -86,6 +76,27 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
         ROS_ERROR("Failed to get kalman filter parameter");
     }
 
+}
+
+void DroneEKF::reset(){
+    X = X0;
+    P = Q;
+    H.setZero();
+
+    current_control.servo1 = 0;
+    current_control.servo2 = 0;
+    current_control.top = 0;
+    current_control.bottom = 0;
+    received_control = false;
+}
+
+
+void DroneEKF::setQdiagonal(const state& Qdiag) {
+    Q.diagonal() << Qdiag;
+}
+
+void DroneEKF::setRdiagonal(const sensor_data & Rdiag) {
+    R.diagonal() << Rdiag;
 }
 
 void DroneEKF::updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
@@ -163,10 +174,7 @@ void DroneEKF::RK4(const state &X, const state_matrix &P, double dT, state &Xnex
 }
 
 
-void DroneEKF::predictStep() {
-    double dT = ros::Time::now().toSec() - last_predict_time;
-    last_predict_time = ros::Time::now().toSec();
-
+void DroneEKF::predictStep(double dT) {
     //predict: integrate X and P
     RK4(X, P, dT, X, P);
 }

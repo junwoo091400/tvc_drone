@@ -48,6 +48,8 @@ public:
         //TODO
         initial_optitrack_orientation.setIdentity();
         initial_optitrack_position << 0, 0, 0;
+
+        last_predict_time = ros::Time::now().toSec();
     }
 
     void initTopics(ros::NodeHandle &nh) {
@@ -97,7 +99,9 @@ public:
             new_data.segment(0, 3) = position;
             new_data.segment(3, 4) = orientation.coeffs();
 
-            kalman.predictStep();
+            double dT = ros::Time::now().toSec() - last_predict_time;
+            last_predict_time = ros::Time::now().toSec();
+            kalman.predictStep(dT);
             kalman.updateStep(new_data);
         }
     }
@@ -135,6 +139,8 @@ public:
         kalman_state.disturbance_torque.y = kalman.X(21);
         kalman_state.disturbance_torque.z = kalman.X(22);
 
+        kalman_state.header.stamp = ros::Time::now();
+
         kalman_pub.publish(kalman_state);
     }
 
@@ -148,6 +154,7 @@ private:
     bool initialized_optitrack = false;
     Eigen::Quaterniond initial_optitrack_orientation;
     Eigen::Vector3d initial_optitrack_position;
+    double last_predict_time;
 
     ros::Publisher kalman_pub;
     ros::Subscriber fsm_sub;
@@ -162,8 +169,10 @@ int main(int argc, char **argv) {
 
     DroneNavigationNode droneNavigationNode(nh);
 
+    double period;
+    nh.getParam("/filter/period", period);
     // Thread to compute kalman. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent &) {
+    ros::Timer control_thread = nh.createTimer(ros::Duration(period), [&](const ros::TimerEvent &) {
         droneNavigationNode.kalmanStep();
         droneNavigationNode.publishDroneState();
     });

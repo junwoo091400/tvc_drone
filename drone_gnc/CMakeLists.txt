@@ -89,6 +89,7 @@ add_service_files(
         GetFSM.srv
         GetWaypoint.srv
         InterpolateControlSpline.srv
+        KalmanSimu.srv
 )
 ## Generate actions in the 'action' folder
 # add_action_files(

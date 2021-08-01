@@ -1,0 +1,18 @@
+<launch>
+    <group ns="rocket">
+        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+    </group>
+
+    <group ns="filter">
+        <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
+    </group>
+
+    <node name="kalman_tuner" pkg="drone_gnc" type="kalman_tuner" cwd="node" output="screen" launch-prefix="">
+        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
+        <rosparam param="init_estimated_params">false</rosparam>
+    </node>
+
+    <node name="plot" pkg="drone_utils" type="kalman_tuner.py" output="screen"/>
+</launch>
+
+

@@ -34,7 +34,6 @@ public:
 
     typedef Matrix<double, NX, NX> state_matrix;
 
-    double last_predict_time;
     state X;
 
     ad_state ADx;
@@ -46,12 +45,17 @@ public:
     void measurementModel(const state_t<T> &x, sensor_data_t<T> &z);
 
     DroneEKF(ros::NodeHandle &nh);
+    void reset();
+
+    void setQdiagonal(const state &Qdiag);
+
+    void setRdiagonal(const sensor_data &Rdiag);
 
     void fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pnext);
 
     void RK4(const state &X, const state_matrix &P, double dT, state &Xnext, state_matrix &Pnext);
 
-    void predictStep();
+    void predictStep(double dT);
 
     void updateStep(sensor_data_t<double> z);
 
@@ -69,6 +73,8 @@ private:
     Drone drone;
     drone_gnc::DroneControl current_control;
     bool received_control;
+
+    state X0;
 };
 
 
