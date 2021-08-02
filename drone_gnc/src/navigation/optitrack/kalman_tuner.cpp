@@ -27,6 +27,7 @@ Eigen::Vector3d initial_optitrack_position;
 
 double last_predict_time;
 double period;
+std::string log_file_path;
 
 geometry_msgs::Pose optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &raw_pose) {
     geometry_msgs::Pose optitrack_pose;
@@ -42,6 +43,7 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
     received_optitrack = true;
     initialized_optitrack = false;
 
+    kalman->estimate_params = req.estimate_params;
 
     DroneEKF::state Q(Map<DroneEKF::state>(req.Q.data()));
     kalman->setQdiagonal(Q);
@@ -51,7 +53,7 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
 
     drone_gnc::DroneTrajectory state_history;
     rosbag::Bag bag;
-    bag.open(ros::package::getPath("drone_utils") + "/replay_analysis/test_29_07_21/log1_f.bag", rosbag::bagmode::Read);
+    bag.open(ros::package::getPath("drone_utils") + "/" + log_file_path, rosbag::bagmode::Read);
 
     std::vector <std::string> topics;
     topics.push_back(std::string("/optitrack_client/Kite/optitrack_pose"));
@@ -119,8 +121,6 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
                 kalman_state.twist.angular.z = kalman->X(12);
 
                 kalman_state.thrust_scaling = kalman->X(13);
-
-                kalman_state.thrust_scaling = kalman->X(13);
                 kalman_state.torque_scaling = kalman->X(14);
                 kalman_state.servo1_offset = kalman->X(15);
                 kalman_state.servo2_offset = kalman->X(16);
@@ -153,7 +153,9 @@ int main(int argc, char **argv) {
     initial_optitrack_orientation.setIdentity();
     initial_optitrack_position << 0, 0, 0;
 
-    nh.getParam("/filter/period", period);
+    nh.getParam("/log_file", log_file_path);
+
+    nh.getParam("period", period);
 
     ros::ServiceServer service = nh.advertiseService("/kalman_simu", kalman_simu);
     ros::spin();

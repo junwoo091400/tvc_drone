@@ -36,6 +36,7 @@ public:
 
     state X;
     ad_state ADx;
+    bool estimate_params;
 
     DroneEKF(ros::NodeHandle &nh);
     void reset();

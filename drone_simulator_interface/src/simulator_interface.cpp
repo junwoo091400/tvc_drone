@@ -6,11 +6,12 @@
 #include "real_time_simulator/Control.h"
 #include <Eigen/Eigen>
 #include <std_msgs/String.h>
+#include <geometry_msgs/PoseStamped.h>
 #include "drone_model.hpp"
 
 using namespace Eigen;
 
-ros::Publisher rocket_control_pub, drone_state_pub, kalman_rocket_state_pub, command_pub;
+ros::Publisher rocket_control_pub, drone_state_pub, kalman_rocket_state_pub, command_pub, fake_optitrack_pub;
 
 float CM_to_thrust_distance = 0.205;
 
@@ -76,22 +77,30 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
 void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_state) {
     drone_gnc::DroneState converted_state;
 
-    converted_state.twist.linear = rocket_state->twist.linear;
+//    //simulator uses angular vel in inertial frame while mpc uses body frame
+//    Eigen::Quaterniond attitude(rocket_state->pose.orientation.w, rocket_state->pose.orientation.x,
+//                               rocket_state->pose.orientation.y, rocket_state->pose.orientation.z);
+//    Eigen::Vector3d omega_inertial(rocket_state->twist.angular.x, rocket_state->twist.angular.y, rocket_state->twist.angular.z);
+//    Eigen::Vector3d omega_body = attitude.inverse()._transformVector(omega_inertial);
 
-    //simulator uses angular vel in inertial frame while mpc uses body frame
-    Eigen::Quaterniond attitude(rocket_state->pose.orientation.w, rocket_state->pose.orientation.x,
-                               rocket_state->pose.orientation.y, rocket_state->pose.orientation.z);
-    Eigen::Vector3d omega_inertial(rocket_state->twist.angular.x, rocket_state->twist.angular.y, rocket_state->twist.angular.z);
-    Eigen::Vector3d omega_body = attitude.inverse()._transformVector(omega_inertial);
+//    converted_state.twist.angular.x = omega_inertial(0);
+//    converted_state.twist.angular.y = omega_inertial(1);
+//    converted_state.twist.angular.z = omega_inertial(2);
 
-    converted_state.twist.angular.x = omega_inertial(0);
-    converted_state.twist.angular.y = omega_inertial(1);
-    converted_state.twist.angular.z = omega_inertial(2);
-
+    converted_state.twist = rocket_state->twist;
     converted_state.pose = rocket_state->pose;
     converted_state.thrust_scaling = 1;
 
     drone_state_pub.publish(converted_state);
+
+    geometry_msgs::PoseStamped optitrack_pose;
+
+    optitrack_pose.pose.position.x = -rocket_state->pose.position.x;
+    optitrack_pose.pose.position.y = -rocket_state->pose.position.y;
+    optitrack_pose.pose.position.z = rocket_state->pose.position.z;
+    optitrack_pose.pose.orientation = rocket_state->pose.orientation;
+    optitrack_pose.header.stamp = ros::Time::now();
+    fake_optitrack_pub.publish(optitrack_pose);
 }
 
 int main(int argc, char **argv) {
@@ -125,6 +134,9 @@ int main(int argc, char **argv) {
 
     // Create control publisher
     rocket_control_pub = nh.advertise<real_time_simulator::Control>("/control_measured", 10);
+
+    fake_optitrack_pub = nh.advertise<geometry_msgs::PoseStamped>("/optitrack_client/Kite/optitrack_pose", 10);
+
 
     // Subscribe to rocket state
     ros::Subscriber rocket_state_sub = nh.subscribe("/rocket_state", 10, publishConvertedState);

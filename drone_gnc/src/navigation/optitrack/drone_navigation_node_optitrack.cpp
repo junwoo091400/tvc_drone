@@ -59,16 +59,8 @@ public:
 
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
-        bool isSimu;
-        nh.param("/is_simu", isSimu, true);
-
-        sensor_sub;
-        if (isSimu) {
-            sensor_sub = nh.subscribe("/simu_drone_state", 100, &DroneNavigationNode::rocket_stateCallback, this);
-        } else {
-            sensor_sub = nh.subscribe("/optitrack_client/Kite/optitrack_pose", 100,
-                                      &DroneNavigationNode::optitrackCallback, this);
-        }
+        sensor_sub = nh.subscribe("/optitrack_client/Kite/optitrack_pose", 100, &DroneNavigationNode::optitrackCallback,
+                                  this);
     }
 
     void kalmanStep() {
@@ -102,7 +94,7 @@ public:
             kalman.predictStep(dT);
             kalman.updateStep(new_data);
 
-            last_computation_time = (ros::Time::now().toSec()-time_now)*1000;
+            last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
         }
     }
 
@@ -167,7 +159,8 @@ public:
 
         kalman_pub.publish(kalman_state);
 
-        std_msgs::Float64 msg3; msg3.data = last_computation_time;
+        std_msgs::Float64 msg3;
+        msg3.data = last_computation_time;
         computation_time_pub.publish(msg3);
     }
 };

@@ -17,7 +17,7 @@ def convert_state_to_array(state):
                             state.twist.angular.x, state.twist.angular.y, state.twist.angular.z,
                             state.thrust_scaling,
                             state.torque_scaling,
-                            state.servo1_offset, state.torque_scaling,
+                            state.servo1_offset, state.servo2_offset,
                             state.disturbance_force.x, state.disturbance_force.y, state.disturbance_force.z,
                             state.disturbance_torque.x, state.disturbance_torque.y, state.disturbance_torque.z,
                             ])
