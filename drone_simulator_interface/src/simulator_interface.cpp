@@ -90,6 +90,7 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     converted_state.twist = rocket_state->twist;
     converted_state.pose = rocket_state->pose;
     converted_state.thrust_scaling = 1;
+    converted_state.header.stamp = ros::Time::now();
 
     drone_state_pub.publish(converted_state);
 

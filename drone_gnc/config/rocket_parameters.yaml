@@ -2,15 +2,15 @@
 stages: 4
 # negligible diameters -> neglect drag for the drone
 diameters:
-  - 0.3
-  - 0.3
-  - 0.3
-  - 0.3
+  - 0.26
+  - 0.26
+  - 0.26
+  - 0.26
 stage_z:
   - 0
   - 0.2
   - 0.3
-  - 0.4
+  - 0.5
 fin_n: 3
 fin_top_offset: 0.25
 fin_span: 1.0e-40
@@ -47,10 +47,10 @@ maxPropellerDelta: 30
 maxServo1Angle: 15
 maxServo2Angle: 15
 
-max_servo_rate: 150
+max_servo_rate: 100
 
 estimated:
-  thrust_scaling: 1.3
+  thrust_scaling: 1
   torque_scaling: 1
-  servo1_offset: 0.1
+  servo1_offset: 0
   servo2_offset: 0

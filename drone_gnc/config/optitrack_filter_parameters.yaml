@@ -5,8 +5,6 @@ predict_vars:
   dx: 600
   dz: 300
   att: 0.01
-# should be 100 for real flights
-# datt: 100
   datt: 100
   thrust_scaling: 0.1
   torque_scaling: 0.1
