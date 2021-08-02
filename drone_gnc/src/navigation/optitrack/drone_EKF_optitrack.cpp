@@ -2,39 +2,41 @@
 
 DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
     double x_var, dx_var, z_var, dz_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, servo_offset_var, disturbance_force_var, disturbance_torque_var;
-    if (nh.getParam("/filter/predict_vars/x", x_var) &&
-        nh.getParam("/filter/predict_vars/dz", dx_var) &&
-        nh.getParam("/filter/predict_vars/z", z_var) &&
-        nh.getParam("/filter/predict_vars/dz", dz_var) &&
-        nh.getParam("/filter/predict_vars/att", att_var) &&
-        nh.getParam("/filter/predict_vars/datt", datt_var) &&
-        nh.getParam("/filter/predict_vars/thrust_scaling", thrust_scaling_var) &&
-        nh.getParam("/filter/predict_vars/torque_scaling", torque_scaling_var) &&
-        nh.getParam("/filter/predict_vars/servo_offset", servo_offset_var) &&
-        nh.getParam("/filter/predict_vars/disturbance_force", disturbance_force_var) &&
-        nh.getParam("/filter/predict_vars/disturbance_torque", disturbance_torque_var)) {
+    if (nh.getParam("predict_vars/x", x_var) &&
+        nh.getParam("predict_vars/dz", dx_var) &&
+        nh.getParam("predict_vars/z", z_var) &&
+        nh.getParam("predict_vars/dz", dz_var) &&
+        nh.getParam("predict_vars/att", att_var) &&
+        nh.getParam("predict_vars/datt", datt_var) &&
+        nh.getParam("predict_vars/thrust_scaling", thrust_scaling_var) &&
+        nh.getParam("predict_vars/torque_scaling", torque_scaling_var) &&
+        nh.getParam("predict_vars/servo_offset", servo_offset_var) &&
+        nh.getParam("predict_vars/disturbance_force", disturbance_force_var) &&
+        nh.getParam("predict_vars/disturbance_torque", disturbance_torque_var)) {
 
+        //TODO fix crash
+//        std::vector<double> initial_state;
+//        nh.getParam("initial_state", initial_state);
+//        Drone::state drone_X0(initial_state.data());
+//
+//        bool init_estimated_params;
+//        nh.param("init_estimated_params", init_estimated_params, false);
+//
+//        if(init_estimated_params){
+//            double thrust_scaling, torque_scaling, servo1_offset,servo2_offset;
+//            nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
+//            nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
+//            nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset, 0);
+//            nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset, 0);
+//
+//            X0 << drone_X0, thrust_scaling, torque_scaling, servo1_offset, servo2_offset, 0, 0, 0, 0, 0, 0;
+//        }
+//        else{
+//            X0 << drone_X0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
+//        }
 
-        std::vector<double> initial_state;
-        nh.getParam("initial_state", initial_state);
-        Drone::state drone_X0(initial_state.data());
-
-        bool init_estimated_params;
-        nh.param("init_estimated_params", init_estimated_params, false);
-
-        if(init_estimated_params){
-            double thrust_scaling, torque_scaling, servo1_offset,servo2_offset;
-            nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
-            nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
-            nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset, 0);
-            nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset, 0);
-
-            X0 << drone_X0, thrust_scaling, torque_scaling, servo1_offset, servo2_offset, 0, 0, 0, 0, 0, 0;
-        }
-        else{
-            X0 << drone_X0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
-        }
-
+        X0 << 0,0,0, 0,0,0, 0,0,0,1, 0,0,0,
+        1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
 
 
         Q.setZero();

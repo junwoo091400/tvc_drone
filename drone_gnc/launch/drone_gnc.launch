@@ -15,7 +15,7 @@
     <!--        <rosparam file="$(find drone_gnc)/config/filter_parameters.yaml"/>-->
     <!--    </group>-->
 
-    <group ns="filter">
+    <group ns="navigation">
         <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
     </group>
 

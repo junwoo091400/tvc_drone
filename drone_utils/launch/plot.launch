@@ -1,0 +1,21 @@
+<launch>
+    <group ns="rocket">
+        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+    </group>
+
+    <group ns="navigation">
+        <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
+    </group>
+
+    <group ns="control/mpc">
+        <rosparam file="$(find drone_gnc)/config/control_mpc_parameters.yaml"/>
+    </group>
+
+    <group ns="guidance/mpc">
+        <rosparam file="$(find drone_gnc)/config/guidance_mpc_parameters.yaml"/>
+    </group>
+
+    <node name="plot" pkg="drone_utils" type="plot_bag_trajectories.py" output="screen"/>
+</launch>
+
+

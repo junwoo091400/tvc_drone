@@ -35,14 +35,7 @@ public:
     typedef Matrix<double, NX, NX> state_matrix;
 
     state X;
-
     ad_state ADx;
-
-    template<typename T>
-    void stateDynamics(const state_t<T> &x, state_t<T> &xdot);
-
-    template<typename T>
-    void measurementModel(const state_t<T> &x, sensor_data_t<T> &z);
 
     DroneEKF(ros::NodeHandle &nh);
     void reset();
@@ -50,6 +43,12 @@ public:
     void setQdiagonal(const state &Qdiag);
 
     void setRdiagonal(const sensor_data &Rdiag);
+
+    template<typename T>
+    void stateDynamics(const state_t<T> &x, state_t<T> &xdot);
+
+    template<typename T>
+    void measurementModel(const state_t<T> &x, sensor_data_t<T> &z);
 
     void fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pnext);
 
