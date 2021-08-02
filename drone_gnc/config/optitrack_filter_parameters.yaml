@@ -2,16 +2,16 @@
 predict_vars:
   x: 0.5
   z: 0.5
-  dx: 300
+  dx: 600
   dz: 300
   att: 0.01
 # should be 100 for real flights
 # datt: 100
-  datt: 30
-  thrust_scaling: 0.02
-  torque_scaling: 0.02
+  datt: 100
+  thrust_scaling: 0.1
+  torque_scaling: 0.1
   servo_offset: 0.1
-  disturbance_torque: 20
+  disturbance_torque: 100
   disturbance_force_z: 0.01
   disturbance_force: 80
 

@@ -32,6 +32,8 @@ private:
     ros::Subscriber control_sub;
     ros::Subscriber sensor_sub;
 public:
+    double period;
+
     DroneNavigationNode(ros::NodeHandle &nh) : kalman(nh) {
         // init publishers and subscribers
         initTopics(nh);
@@ -39,6 +41,8 @@ public:
         // Initialize fsm
         current_fsm.time_now = 0;
         current_fsm.state_machine = "Idle";
+
+        nh.getParam("period", period);
 
         //TODO
         initial_optitrack_orientation.setIdentity();
@@ -91,8 +95,11 @@ public:
             double dT = time_now - last_predict_time;
             last_predict_time = time_now;
 
-            kalman.predictStep(dT);
             kalman.updateStep(new_data);
+
+            publishDroneState();
+
+            kalman.predictStep(period);
 
             last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
         }
@@ -172,12 +179,9 @@ int main(int argc, char **argv) {
 
     DroneNavigationNode droneNavigationNode(nh);
 
-    double period;
-    nh.getParam("period", period);
     // Thread to compute kalman. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(period), [&](const ros::TimerEvent &) {
+    ros::Timer control_thread = nh.createTimer(ros::Duration(droneNavigationNode.period), [&](const ros::TimerEvent &) {
         droneNavigationNode.kalmanStep();
-        droneNavigationNode.publishDroneState();
     });
 
     // Automatic callback of service and publisher from here
