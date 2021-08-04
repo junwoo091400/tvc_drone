@@ -10,15 +10,11 @@ import seaborn as sns
 
 sns.set()
 
-from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history
+from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history, read_state_history, read_control_history, read_horizon_history
 
 rospack = rospkg.RosPack()
 bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
 
-NNODE = 0
-for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
-    NNODE = len(msg.trajectory)
-    break
 
 time_init = 0
 t_end = 0
@@ -28,55 +24,11 @@ for topic, msg, t in bag.read_messages(topics=['/drone_state']):
     t_end = t.to_sec()
 # t_end = time_init + 30
 
-kalman_state_history = np.empty((0, NX + NP + 1))
-for topic, msg, t in bag.read_messages(topics=['/drone_state']):
-    if t.to_sec() > time_init and t.to_sec() < t_end:
-        state_array = np.append(t.to_sec() - time_init, convert_state_to_array(msg))
-        kalman_state_history = np.vstack((kalman_state_history, state_array))
-
-optitrack_state_history = np.empty((0, NX + NP + 1))
-for topic, msg, t in bag.read_messages(topics=['/optitrack_state']):
-    if t.to_sec() > time_init and t.to_sec() < t_end:
-        state_array = np.append(t.to_sec() - time_init, convert_state_to_array(msg))
-        optitrack_state_history = np.vstack((optitrack_state_history, state_array))
-
-integrator_state_history = np.empty((0, NX + NP + 1))
-for topic, msg, t in bag.read_messages(topics=['/simu_drone_state']):
-    # print(msg)
-    if t.to_sec() > time_init and t.to_sec() < t_end:
-        state_array = np.append(t.to_sec() - time_init, convert_state_to_array(msg))
-        integrator_state_history = np.vstack((integrator_state_history, state_array))
-
-control_history = np.empty((0, NU + 1))
-for topic, msg, t in bag.read_messages(topics=['/drone_control']):
-    if t.to_sec() > time_init and t.to_sec() < t_end:
-        control_array = np.append(t.to_sec() - time_init, convert_control_to_array(msg))
-        control_history = np.vstack((control_history, control_array))
-
-state_horizon_history = np.empty((NNODE, NX + NP + 1, 0))
-control_horizon_history = np.empty((NNODE, NU + 1, 0))
-for topic, msg, t in bag.read_messages(topics=['/control/debug/horizon']):
-    if t.to_sec() > time_init and t.to_sec() < t_end:
-        state_horizon = np.empty((0, NX + NP + 1))
-        control_horizon = np.empty((0, NU + 1))
-        for waypoint_stamped in msg.trajectory:
-            x = waypoint_stamped.state.pose.orientation.x
-            y = waypoint_stamped.state.pose.orientation.y
-            z = waypoint_stamped.state.pose.orientation.z
-            w = waypoint_stamped.state.pose.orientation.w
-
-            state_array = np.concatenate((
-                np.array([waypoint_stamped.header.stamp.to_sec() - time_init]),
-                convert_state_to_array(waypoint_stamped.state)
-            ))
-            control_array = np.concatenate((
-                np.array([waypoint_stamped.header.stamp.to_sec() - time_init]),
-                convert_control_to_array(waypoint_stamped.control)
-            ))
-            state_horizon = np.vstack((state_horizon, state_array))
-            control_horizon = np.vstack((control_horizon, control_array))
-        state_horizon_history = np.dstack((state_horizon_history, state_horizon))
-        control_horizon_history = np.dstack((control_horizon_history, control_horizon))
+kalman_state_history = read_state_history(bag, '/drone_state', time_init, t_end)
+integrator_state_history = read_state_history(bag, '/simu_drone_state', time_init, t_end)
+state_horizon_history, control_horizon_history = read_horizon_history(bag, '/control/debug/horizon', time_init, t_end)
+control_history = read_control_history(bag, '/drone_control', time_init, t_end)
+guidance_state_horizon_history, guidance_control_horizon_history = read_horizon_history(bag, '/guidance/horizon', time_init, t_end)
 
 state_plot_indexes = {
     (0, 0): ("t", "x"),
@@ -94,6 +46,10 @@ state_plot_indexes = {
     (3, 0): ("t", "dyaw (x)"),
     (3, 1): ("t", "dpitch (y)"),
     (3, 2): ("t", "droll (z)"),
+
+    (4, 0): ("t", "bottom"),
+    (4, 1): ("t", "top"),
+    (4, 2): ("t", "servo1"),
 
     # (0, 0): ("y", "z"),
 }
@@ -137,7 +93,7 @@ plot_ranges = {
     "mz": [-1, 1],
 }
 
-fig, axe = plt.subplots(4, 3, figsize=(15, 10))
+fig, axe = plt.subplots(5, 3, figsize=(15, 10))
 fig.subplots_adjust(wspace=0.4, hspace=0.5)
 
 # set plot ranges
@@ -177,7 +133,13 @@ else:
         control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon",
                                              'g-')
     if state_horizon_history.size != 0:
-        state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon", 'g-')
+        state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon", 'b-')
+
+    if guidance_control_horizon_history.size != 0:
+        guidance_control_mpc_line_list = plot_history(guidance_control_horizon_history[:, :, 0], control_plot_indexes, axe, "guidance traj",
+                                             'g-')
+    if guidance_state_horizon_history.size != 0:
+        guidance_state_mpc_line_list = plot_history(guidance_state_horizon_history[:, :, 0], state_plot_indexes, axe, "guidance traj", 'y-')
 
     plt.subplots_adjust(left=0.15, bottom=0.25)
     ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor='white')
@@ -203,12 +165,30 @@ else:
             l.set_ydata(control_history[:, var_indexes[y_name]])
             l.set_xdata(control_history[:, var_indexes[x_name]])
 
+        time_array = guidance_state_horizon_history[0, 0, :]
+        idx = min(np.searchsorted(time_array, time_val, side="left"), time_array.size - 1)
+        state_history = guidance_state_horizon_history[:, :, idx]
+        control_history = guidance_control_horizon_history[:, :, idx]
+
+        for i in range(len(guidance_state_mpc_line_list)):
+            l, plot_idx = guidance_state_mpc_line_list[i]
+            x_name, y_name = state_plot_indexes[plot_idx]
+            l.set_ydata(state_history[:, var_indexes[y_name]])
+            l.set_xdata(state_history[:, var_indexes[x_name]])
+
+        for i in range(len(guidance_control_mpc_line_list)):
+            l, plot_idx = guidance_control_mpc_line_list[i]
+            x_name, y_name = control_plot_indexes[plot_idx]
+            l.set_ydata(control_history[:, var_indexes[y_name]])
+            l.set_xdata(control_history[:, var_indexes[x_name]])
+
         fig.canvas.draw_idle()
 
 
     # print(control_horizon_history[:, :, 100])
 
     slider.on_changed(update)
+
 
 axe[0][0].legend(loc='upper left')
 

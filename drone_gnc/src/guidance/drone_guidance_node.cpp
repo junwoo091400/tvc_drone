@@ -42,7 +42,6 @@ void DroneGuidanceNode::run(){
         publishTrajectory();
         publishDebugInfo();
     }
-    ROS_INFO_STREAM("loop period " << 1000 * (ros::Time::now().toSec() - loop_start_time) << " ms");
 }
 
 void DroneGuidanceNode::stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
@@ -101,7 +100,6 @@ void DroneGuidanceNode::publishTrajectory() {
         point.position.x = state_val(0);
         point.position.y = state_val(1);
         point.position.z = state_val(2);
-//                ROS_INFO_STREAM(100 * mpc.solution_x_at(i)(2) << " " << 100 * mpc.solution_x_at(mpc.time_grid(i))(2));
         trajectory_msg.trajectory.push_back(point);
 
         drone_gnc::DroneState state_msg;

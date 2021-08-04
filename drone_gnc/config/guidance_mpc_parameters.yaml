@@ -13,8 +13,8 @@ input_costs:
 min_z: -1
 min_dz: -0.6
 
-max_dx: 1.2
-max_dz: 2
+max_dx: 10
+max_dz: 20
 
 # scaling
 scaling_x: 2

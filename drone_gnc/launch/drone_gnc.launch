@@ -11,10 +11,6 @@
         <rosparam file="$(find drone_gnc)/config/guidance_mpc_parameters.yaml"/>
     </group>
 
-    <!--    <group ns="filter">-->
-    <!--        <rosparam file="$(find drone_gnc)/config/filter_parameters.yaml"/>-->
-    <!--    </group>-->
-
     <group ns="navigation">
         <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
     </group>
@@ -24,13 +20,13 @@
     <rosparam param="fixed_guidance">false</rosparam>
 
 <!--    <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" cwd="node" output="screen">-->
-<!--        <rosparam param="target_apogee">[1, 0, 30]</rosparam>-->
+<!--        <rosparam param="target_apogee">[0, 0, 1]</rosparam>-->
+<!--        <rosparam param="minimal_time">false</rosparam>-->
 <!--    </node>-->
-
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node">
         <rosparam param="target_apogee">[0,0,1]</rosparam>
-        <rosparam param="no_guidance">true</rosparam>
+        <rosparam param="track_guidance">false</rosparam>
     </node>
 
     <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" cwd="node">

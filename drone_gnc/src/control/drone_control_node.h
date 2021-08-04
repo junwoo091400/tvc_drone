@@ -62,7 +62,7 @@ private:
     geometry_msgs::Vector3 target_apogee;
     drone_gnc::GetWaypoint srv_waypoint;
     bool fixed_guidance;
-    bool no_guidance;
+    bool track_guidance;
 
     int ff_index = 0;
     // Thread to feedforward spline control interpolations

@@ -18,31 +18,78 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     qp_settings().max_iter = max_qp_iter;
 
     nh.getParam("mpc/horizon_length", horizon_length);
-    set_time_limits(0, horizon_length);
+    if(ocp().minimal_time){
+        set_time_limits(0, 1);
+    }
+    else{
+        set_time_limits(0, horizon_length);
+    }
 
     // Setup constraints
-    ocp_state lbx, ubx; ocp_control lbu, ubu; ocp_constraint ubg, lbg;
-    ocp().getConstraints(lbx, ubx, lbu, ubu, lbg, ubg);
+    ocp_state lbx, ubx; ocp_control lbu, ubu;
+    ocp().get_control_bounds(lbu, ubu);
+    ocp().get_state_bounds(lbx, ubx);
+
     state_bounds(lbx, ubx);
     control_bounds(lbu, ubu);
-//    constraints_bounds(lbg, ubg);
 
     //minimal time setup
-//    parameter_t lbp; parameter_t ubp;
-//    lbp << 1;
-//    ubp << 1;
-//    parameters_bounds(lbp, ubp);
-//    parameter_t p0; p0 << 1;
-//    p_guess(p0);
+    parameter_t lbp; parameter_t ubp;
+    if(ocp().minimal_time){
+        lbp << 0.0;
+        ubp << horizon_length;
+    }
+    else{
+        lbp << 0.9;
+        ubp << 1.1;
+    }
+    parameters_bounds(lbp, ubp);
 
-    // Initial state
+
+    std::vector<double> initial_target_apogee;
+    nh.getParam("target_apogee", initial_target_apogee);
+    double z_target = initial_target_apogee.at(2);
+
+    // Initial guess
+    parameter_t p0;
     ocp_state x0;
     x0 << 0, 0, 0,
             0, 0, 0;
-    x_guess(x0.cwiseProduct(ocp().x_scaling_vec).replicate(ocp().NUM_NODES, 1));
+    Eigen::MatrixXd traj_state_guess = x0.replicate(1, ocp().NUM_NODES);
+
+    if(ocp().minimal_time){
+        double max_acc = drone->getThrust(drone->maxPropellerSpeed)/drone->dry_mass - 9.81;
+        double horizon_length_guess = sqrt(2*z_target/max_acc); //z = 1/2 a t^2 -> t = sqrt(2z/a)
+        ROS_ERROR_STREAM("horizon_length_guess" << horizon_length_guess);
+        p0 << horizon_length_guess;
+
+        //z = 1/2 a t^2
+        traj_state_guess.row(2) = 0.5*max_acc*time_grid.cwiseProduct(time_grid)*horizon_length_guess*horizon_length_guess;
+        //dz = a t
+        traj_state_guess.row(5) = max_acc*time_grid*horizon_length_guess;
+        ROS_ERROR_STREAM("z guess" << traj_state_guess.row(2));
+        ROS_ERROR_STREAM("dz guess" << traj_state_guess.row(5));
+    }
+    else{
+        p0 << 1.0;
+    }
+    p_guess(p0);
+
     ocp_control u0;
-    u0 << 0, 0, drone->getHoverSpeedAverage();
-    u_guess(u0.cwiseProduct(ocp().u_scaling_vec).replicate(ocp().NUM_NODES, 1));
+    u0 << 0, 0, drone->maxPropellerSpeed;
+    //TODO scaling
+    u_guess(u0.replicate(ocp().NUM_NODES, 1));
+
+    //TODO scaling
+    traj_state_guess.resize(varx_size, 1);
+    x_guess(traj_state_guess);
+
+    //TODO
+//    ocp_state lbx_f;
+//    lbx_f << -1, -1, 18, -1, -1, -1;
+//    ocp_state ubx_f;
+//    ubx_f << 1, 1, 22, 1, 1, 1;
+//    final_state_bounds(lbx_f, ubx_f);
 
     ocp_control target_control;
     target_control << 0, 0, drone->getHoverSpeedAverage();
@@ -134,11 +181,18 @@ void DroneGuidanceMPC::solve(Drone::state &x0_full) {
 
 //    warmStart();
 
-//    double eps = 0.01;
-//    ocp_state lbx, ubx;
-//    lbx = ocp().xs.array() - eps;
-//    ubx = ocp().xs.array() + eps;
-//    final_state_bounds(lbx, ubx);
+//    double eps = 1;
+//    ocp_state lbx_f, ubx_f;
+//    ocp().get_state_bounds(lbx_f, ubx_f);
+//
+//    if(ocp().minimal_time){
+//        lbx_f.segment(0, 3) = ocp().xs.segment(0, 3).array()-eps;
+//        ubx_f.segment(0, 3) = ocp().xs.segment(0, 3).array()+eps;
+//    }
+//    final_state_bounds(lbx_f, ubx_f);
+//    ROS_ERROR_STREAM("lower bound" << lbx_f);
+//    ROS_ERROR_STREAM("upper boundinal" << ubx_f);
+
 
     double time_now = ros::Time::now().toSec();
 
@@ -146,7 +200,6 @@ void DroneGuidanceMPC::solve(Drone::state &x0_full) {
 
     last_computation_time = (ros::Time::now().toSec()-time_now)*1000;
 
-    ROS_INFO_STREAM("guidance time " << last_computation_time);
     time_now = ros::Time::now().toSec();
 
     solution_time = ros::Time::now().toSec();

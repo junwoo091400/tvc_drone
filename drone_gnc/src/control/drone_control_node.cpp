@@ -17,7 +17,7 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     sgm_length = guidance_horizon_length / GUIDANCE_NUM_SEG;
 
     nh.param("/fixed_guidance", fixed_guidance, false);
-    nh.param("no_guidance", no_guidance, false);
+    nh.param("track_guidance", track_guidance, false);
 
     nh.getParam("mpc/mpc_period", period);
     nh.getParam("mpc/feedforward_period", feedforward_period);
@@ -73,7 +73,7 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
 void DroneControlNode::run(){
     double loop_start_time = ros::Time::now().toSec();
     // State machine ------------------------------------------
-    if (received_trajectory || no_guidance) {
+    if (received_trajectory || !track_guidance) {
 
         fetchNewTarget();
         if (!USE_BACKUP_CONTROLLER) {
@@ -92,7 +92,6 @@ void DroneControlNode::run(){
         }
 
     }
-    ROS_INFO_STREAM("loop period " << 1000 * (ros::Time::now().toSec() - loop_start_time) << " ms");
 }
 
 
@@ -250,7 +249,6 @@ void DroneControlNode::publishTrajectory() {
         point.position.x = state_val(0);
         point.position.y = state_val(1);
         point.position.z = state_val(2);
-//                ROS_INFO_STREAM(100 * mpc.solution_x_at(i)(2) << " " << 100 * mpc.solution_x_at(mpc.time_grid(i))(2));
         trajectory_msg.trajectory.push_back(point);
 
         drone_gnc::DroneState state_msg;
@@ -307,7 +305,7 @@ void DroneControlNode::fetchNewTarget() {
     drone_mpc.setTarget(target_state, target_control);
 
     Matrix<double, Drone::NX, DroneMPC::num_nodes> mpc_target_traj;
-    if(no_guidance){
+    if(!track_guidance){
         for (int i = 0; i < DroneMPC::num_nodes; i++) {
             mpc_target_traj.col(i) = target_state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
         }
@@ -329,8 +327,6 @@ void DroneControlNode::saveDebugInfo() {
     average_y_error.push_back(y_error * y_error);
     double z_error = current_state.pose.position.z - target_apogee.z;
     average_z_error.push_back(z_error * z_error);
-
-    ROS_INFO("Ctr T= %.2f ms", drone_mpc.last_computation_time);
 
     average_status.push_back(drone_mpc.info().status.value);
     average_time.push_back(time_compute_start);

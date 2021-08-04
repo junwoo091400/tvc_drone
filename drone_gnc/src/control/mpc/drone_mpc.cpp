@@ -173,7 +173,6 @@ void DroneMPC::solve(Drone::state &x0) {
 
     time_now = ros::Time::now().toSec();
     while (ros::Time::now().toSec() < computation_start_time+fixed_computation_time);
-    ROS_INFO_STREAM("stalled duration " << (ros::Time::now().toSec() - time_now)*1000);
 
     solution_time = ros::Time::now().toSec();
 }

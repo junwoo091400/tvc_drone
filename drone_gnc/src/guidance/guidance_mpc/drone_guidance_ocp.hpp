@@ -31,7 +31,7 @@ using namespace std;
 using Polynomial = polympc::Chebyshev<POLY_ORDER, polympc::GAUSS_LOBATTO, double>;
 using Approximation = polympc::Spline<Polynomial, NUM_SEG>;
 
-POLYMPC_FORWARD_DECLARATION(/*Name*/ guidance_ocp, /*NX*/ 6, /*NU*/ 3, /*NP*/ 0, /*ND*/ 0, /*NG*/0, /*TYPE*/ double)
+POLYMPC_FORWARD_DECLARATION(/*Name*/ guidance_ocp, /*NX*/ 6, /*NU*/ 3, /*NP*/ 1, /*ND*/ 0, /*NG*/0, /*TYPE*/ double)
 
 class guidance_ocp : public ContinuousOCP<guidance_ocp, Approximation, SPARSE> {
 public:
@@ -58,6 +58,8 @@ public:
     Matrix<scalar_t, NX, 1> x_scaling_vec;
     Matrix<scalar_t, NU, 1> u_scaling_vec;
 
+    bool minimal_time = false;
+
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
         scalar_t x_cost, dx_cost, z_cost, dz_cost, servo_cost, thrust_cost;
@@ -76,6 +78,8 @@ public:
             nh.getParam("mpc/state_costs/dz", dz_cost) &&
             nh.getParam("mpc/input_costs/servo", servo_cost) &&
             nh.getParam("mpc/input_costs/thrust", thrust_cost)) {
+
+            nh.param("minimal_time", minimal_time, false);
 
             Q << x_cost, x_cost, z_cost,
                     dx_cost, dx_cost, dz_cost;
@@ -110,33 +114,28 @@ public:
 
     }
 
-    void getConstraints(state_t <scalar_t> &lbx, state_t <scalar_t> &ubx,
-                        control_t <scalar_t> &lbu, control_t <scalar_t> &ubu,
-                        constraint_t <scalar_t> &lbg, constraint_t <scalar_t> &ubg) {
+    void get_state_bounds(state_t <scalar_t> &lbx, state_t <scalar_t> &ubx){
         const double inf = std::numeric_limits<double>::infinity();
         const double eps = 1e-1;
 
-        lbu << -drone->maxServo1Angle, -drone->maxServo2Angle,
-                drone->minPropellerSpeed; // lower bound on control
-        ubu << drone->maxServo1Angle, drone->maxServo2Angle,
-                drone->maxPropellerSpeed; // upper bound on control
-
-        lbx << -inf, -inf, min_z + eps,
+        lbx << -inf, -inf, 0-eps,
                 -max_dx, -max_dx, min_dz;
 
         ubx << inf, inf, inf,
                 max_dx, max_dx, max_dz;
-//
-        lbu = lbu.cwiseProduct(u_scaling_vec);
-        ubu = ubu.cwiseProduct(u_scaling_vec);
-        ROS_INFO_STREAM("lbu" << lbu.transpose());
-        ROS_INFO_STREAM("ubu" << ubu.transpose());
 
         lbx = lbx.cwiseProduct(x_scaling_vec);
         ubx = ubx.cwiseProduct(x_scaling_vec);
-        ROS_INFO_STREAM("lbx" << lbx.transpose());
-        ROS_INFO_STREAM("ubx" << ubx.transpose());
+    }
 
+
+    void get_control_bounds(control_t <scalar_t> &lbu, control_t <scalar_t> &ubu){
+        lbu << -drone->maxServo1Angle, -drone->maxServo2Angle,
+                drone->minPropellerSpeed; // lower bound on control
+        ubu << drone->maxServo1Angle, drone->maxServo2Angle,
+                drone->maxPropellerSpeed; // upper bound on control
+        lbu = lbu.cwiseProduct(u_scaling_vec);
+        ubu = ubu.cwiseProduct(u_scaling_vec);
     }
 
     template<typename T>
@@ -176,6 +175,9 @@ public:
         //unscale
         xdot = xdot.cwiseProduct(x_scaling_vec.template cast<T>());
 
+        if(minimal_time){
+            xdot *= p(0);
+        }
     }
 
     template<typename T>
@@ -197,17 +199,27 @@ public:
                                    const Ref<const parameter_t <T>> p,
                                    const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
-        Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
-        Matrix<T, NU, 1> u_error = u - us.template cast<T>();
-        lagrange = x_error.dot(Q.template cast<T>().cwiseProduct(x_error)) +
-                   u_error.dot(R.template cast<T>().cwiseProduct(u_error));
+        if(minimal_time){
+            lagrange = (T) 0;
+        }
+        else{
+            Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
+            Matrix<T, NU, 1> u_error = u - us.template cast<T>();
+            lagrange = x_error.dot(Q.template cast<T>().cwiseProduct(x_error)) +
+                       u_error.dot(R.template cast<T>().cwiseProduct(u_error));
+        }
     }
 
     template<typename T>
     inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        mayer = (T) 0;
+        if(minimal_time){
+            mayer = p(0);
+        }
+        else{
+            mayer = (T) 0;
+        }
     }
 };
 

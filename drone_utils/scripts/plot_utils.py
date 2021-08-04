@@ -28,6 +28,53 @@ def convert_control_to_array(control):
     control_array = np.array([control.servo1, control.servo2, control.bottom, control.top])
     return control_array
 
+def read_state_history(bag, topic, t_init, t_end):
+    state_history = np.empty((0, NX + NP + 1))
+    for topic, msg, t in bag.read_messages(topics=[topic]):
+        if t.to_sec() > t_init and t.to_sec() < t_end:
+            state_array = np.append(t.to_sec() - t_init, convert_state_to_array(msg))
+            state_history = np.vstack((state_history, state_array))
+    return state_history
+
+def read_control_history(bag, topic, t_init, t_end):
+    control_history = np.empty((0, NU + 1))
+    for topic, msg, t in bag.read_messages(topics=[topic]):
+        if t.to_sec() > t_init and t.to_sec() < t_init:
+            control_array = np.append(t.to_sec() - t_init, convert_control_to_array(msg))
+            control_history = np.vstack((control_history, control_array))
+    return control_history
+
+def read_horizon_history(bag, topic, t_init, t_end):
+    NNODE = 0
+    for topic, msg, t in bag.read_messages(topics=[topic]):
+        NNODE = len(msg.trajectory)
+        break
+
+    state_horizon_history = np.empty((NNODE, NX + NP + 1, 0))
+    control_horizon_history = np.empty((NNODE, NU + 1, 0))
+    for topic, msg, t in bag.read_messages(topics=[topic]):
+        if t.to_sec() > t_init and t.to_sec() < t_end:
+            state_horizon = np.empty((0, NX + NP + 1))
+            control_horizon = np.empty((0, NU + 1))
+            for waypoint_stamped in msg.trajectory:
+                x = waypoint_stamped.state.pose.orientation.x
+                y = waypoint_stamped.state.pose.orientation.y
+                z = waypoint_stamped.state.pose.orientation.z
+                w = waypoint_stamped.state.pose.orientation.w
+
+                state_array = np.concatenate((
+                    np.array([waypoint_stamped.header.stamp.to_sec() - t_init]),
+                    convert_state_to_array(waypoint_stamped.state)
+                ))
+                control_array = np.concatenate((
+                    np.array([waypoint_stamped.header.stamp.to_sec() - t_init]),
+                    convert_control_to_array(waypoint_stamped.control)
+                ))
+                state_horizon = np.vstack((state_horizon, state_array))
+                control_horizon = np.vstack((control_horizon, control_array))
+            state_horizon_history = np.dstack((state_horizon_history, state_horizon))
+            control_horizon_history = np.dstack((control_horizon_history, control_horizon))
+    return state_horizon_history, control_horizon_history
 
 NP = 10
 NX = 12
