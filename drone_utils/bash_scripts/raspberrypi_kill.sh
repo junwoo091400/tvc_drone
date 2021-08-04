@@ -1,2 +1,2 @@
 #!/bin/bash
-ssh pi@raspberrypi.local "source /home/pi/ros_catkin_ws/devel/setup.bash; rosnode kill -a"
+ssh drone@ert.local "source /home/drone/drone_ws/devel/setup.bash; rosnode kill -a"

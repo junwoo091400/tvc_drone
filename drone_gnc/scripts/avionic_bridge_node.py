@@ -76,44 +76,45 @@ if __name__ == '__main__':
     control.top = 0
     control.bottom = 0
     control_callback(control)
+    rospy.spin()
     
-    # Config Rpi
-    ser = serial.Serial('/dev/serial0', 115200)  # open serial port
+    # # Config Rpi
+    # ser = serial.Serial('/dev/serial0', 115200)  # open serial port
     
-    # Node rate in Hz
-    rate = rospy.Rate(200)
-    n_average = 100
-    baro = np.zeros(n_average)
+    # # Node rate in Hz
+    # rate = rospy.Rate(200)
+    # n_average = 100
+    # baro = np.zeros(n_average)
 
-    while not rospy.is_shutdown():
+    # while not rospy.is_shutdown():
     
-        # Thread sleep time defined by rate
-        rate.sleep()
+    #     # Thread sleep time defined by rate
+    #     rate.sleep()
         
-        #-----------------------------------------------------------
+    #     #-----------------------------------------------------------
         
-        line = ser.readline()
-        if line[0] == "S" and line[1] == "S" : # SS symbol = sensor message
-            # Decode byte array
-            line = line[2:-2]
-            line_ascii = line.decode('ascii')
-            line_ascii = line_ascii.split(',')
+    #     line = ser.readline()
+    #     if line[0] == "S" and line[1] == "S" : # SS symbol = sensor message
+    #         # Decode byte array
+    #         line = line[2:-2]
+    #         line_ascii = line.decode('ascii')
+    #         line_ascii = line_ascii.split(',')
         
-            rocket_state_raw = np.array(line_ascii, dtype = np.float)
-            # print(rocket_state_raw)
+    #         rocket_state_raw = np.array(line_ascii, dtype = np.float)
+    #         # print(rocket_state_raw)
             
-            # Parse state and publish it on the /sensor_pub topic
-            baro = np.append(baro[1:],rocket_state_raw[7]/100)
-            new_baro = np.convolve(baro, np.ones(n_average)/n_average, mode='valid')
+    #         # Parse state and publish it on the /sensor_pub topic
+    #         baro = np.append(baro[1:],rocket_state_raw[7]/100)
+    #         new_baro = np.convolve(baro, np.ones(n_average)/n_average, mode='valid')
             
-            sensor_data.IMU_acc.x = -rocket_state_raw[1]
-            sensor_data.IMU_acc.y = -rocket_state_raw[2]
-            sensor_data.IMU_acc.z = rocket_state_raw[3]
+    #         sensor_data.IMU_acc.x = -rocket_state_raw[1]
+    #         sensor_data.IMU_acc.y = -rocket_state_raw[2]
+    #         sensor_data.IMU_acc.z = rocket_state_raw[3]
 
-            sensor_data.IMU_gyro.x = -rocket_state_raw[4]
-            sensor_data.IMU_gyro.y = -rocket_state_raw[5]
-            sensor_data.IMU_gyro.z = rocket_state_raw[6]
+    #         sensor_data.IMU_gyro.x = -rocket_state_raw[4]
+    #         sensor_data.IMU_gyro.y = -rocket_state_raw[5]
+    #         sensor_data.IMU_gyro.z = rocket_state_raw[6]
 
-            sensor_data.baro_height = new_baro
+    #         sensor_data.baro_height = new_baro
             
-        sensor_pub.publish(sensor_data)
+    #     sensor_pub.publish(sensor_data)
