@@ -57,7 +57,7 @@ public:
 
     void predictStep(double dT);
 
-    void updateStep(sensor_data_t<double> z);
+    void updateStep(sensor_data_t<double> &z);
 
     void updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control);
 

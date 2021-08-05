@@ -53,17 +53,17 @@ public:
 
     void initTopics(ros::NodeHandle &nh) {
         // Create filtered rocket state publisher
-        kalman_pub = nh.advertise<drone_gnc::DroneState>("/drone_state", 10);
+        kalman_pub = nh.advertise<drone_gnc::DroneState>("/drone_state", 1);
 
         // Subscribe to time_keeper for fsm and time
-        fsm_sub = nh.subscribe("/gnc_fsm_pub", 100, &DroneNavigationNode::fsmCallback, this);
+        fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneNavigationNode::fsmCallback, this);
 
         // Subscribe to time_keeper for fsm and time
-        control_sub = nh.subscribe("/drone_control", 100, &DroneEKF::updateCurrentControl, &kalman);
+        control_sub = nh.subscribe("/drone_control", 1, &DroneEKF::updateCurrentControl, &kalman);
 
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
-        sensor_sub = nh.subscribe("/optitrack_client/Kite/optitrack_pose", 100, &DroneNavigationNode::optitrackCallback,
+        sensor_sub = nh.subscribe("/optitrack_client/Kite/optitrack_pose", 1, &DroneNavigationNode::optitrackCallback,
                                   this);
     }
 
@@ -92,16 +92,27 @@ public:
             new_data.segment(3, 4) = orientation.coeffs();
 
             double time_now = ros::Time::now().toSec();
+            double time_now2 = ros::Time::now().toSec();
             double dT = time_now - last_predict_time;
+//            ROS_INFO_STREAM(ros::Time::now().toSec()  - last_predict_time);
             last_predict_time = time_now;
 
-            kalman.updateStep(new_data);
-
-            publishDroneState();
-
             kalman.predictStep(period);
+//            ROS_INFO_STREAM("predict "<<ros::Time::now().toSec()  - time_now);
+            time_now = ros::Time::now().toSec();
+            kalman.updateStep(new_data);
+//            ROS_INFO_STREAM("update "<<ros::Time::now().toSec()  - time_now);
 
-            last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
+            time_now = ros::Time::now().toSec();
+            publishDroneState();
+//            ROS_INFO_STREAM("publish "<<ros::Time::now().toSec()  - time_now);
+            ros::spinOnce();
+            time_now = ros::Time::now().toSec();
+//            ROS_INFO_STREAM("spin "<<ros::Time::now().toSec()  - time_now);
+
+
+            last_computation_time = (ros::Time::now().toSec() - time_now2) * 1000;
+//            ROS_INFO_STREAM("total "<<last_computation_time);
         }
     }
 
@@ -169,6 +180,7 @@ public:
         std_msgs::Float64 msg3;
         msg3.data = last_computation_time;
         computation_time_pub.publish(msg3);
+//        ROS_INFO_STREAM(last_computation_time);
     }
 };
 

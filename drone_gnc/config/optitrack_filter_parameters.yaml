@@ -12,4 +12,4 @@ predict_vars:
   disturbance_torque: 100
   disturbance_torque_z: 0.1
 
-period: 0.01
+period: 0.002
