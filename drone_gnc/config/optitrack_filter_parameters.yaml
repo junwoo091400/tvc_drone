@@ -1,16 +1,15 @@
 # MPC parameters
 predict_vars:
   x: 0.5
-  z: 0.5
   dx: 600
-  dz: 300
   att: 0.01
   datt: 100
-  thrust_scaling: 0.1
-  torque_scaling: 0.1
+  thrust_scaling: 0.2
+  torque_scaling: 0.2
   servo_offset: 0.1
-  disturbance_torque: 100
-  disturbance_force_z: 0.01
   disturbance_force: 80
+  disturbance_force_z: 0.01
+  disturbance_torque: 100
+  disturbance_torque_z: 0.1
 
 period: 0.01

@@ -79,11 +79,10 @@ Rocket(ros::NodeHandle n) {
         // Speed variation is Force/mass
         xdot.segment(3, 3) = total_force * mass_inv;
 
-        // Quaternion variation is 0.5*q◦w (if w in body frame)
+        // Quaternion variation is 0.5*w◦q (if w in inertial frame)
         xdot.segment(6, 4) = (T) 0.5 * (omega_quat*attitude).coeffs();
 
-
-
+        // Total torque in body frame
         Eigen::Matrix<T, 3, 1> total_torque;
         total_torque = rocket_torque + body_torque + rot_matrix.transpose()*disturbance_torque;
 

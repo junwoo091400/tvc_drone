@@ -1,11 +1,9 @@
 #include "drone_EKF_optitrack.h"
 
 DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
-    double x_var, dx_var, z_var, dz_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, servo_offset_var, disturbance_force_var, disturbance_force_z_var, disturbance_torque_var;
+    double x_var, dx_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, servo_offset_var, disturbance_force_var, disturbance_force_z_var, disturbance_torque_var, disturbance_torque_z_var;
     if (nh.getParam("predict_vars/x", x_var) &&
-        nh.getParam("predict_vars/dz", dx_var) &&
-        nh.getParam("predict_vars/z", z_var) &&
-        nh.getParam("predict_vars/dz", dz_var) &&
+        nh.getParam("predict_vars/dx", dx_var) &&
         nh.getParam("predict_vars/att", att_var) &&
         nh.getParam("predict_vars/datt", datt_var) &&
         nh.getParam("predict_vars/thrust_scaling", thrust_scaling_var) &&
@@ -13,7 +11,8 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
         nh.getParam("predict_vars/servo_offset", servo_offset_var) &&
         nh.getParam("predict_vars/disturbance_force", disturbance_force_var) &&
         nh.getParam("predict_vars/disturbance_force_z", disturbance_force_z_var) &&
-        nh.getParam("predict_vars/disturbance_torque", disturbance_torque_var)) {
+        nh.getParam("predict_vars/disturbance_torque", disturbance_torque_var) &&
+        nh.getParam("predict_vars/disturbance_torque_z", disturbance_torque_z_var)) {
 
         std::vector<double> initial_state;
         nh.getParam("initial_state", initial_state);
@@ -38,15 +37,15 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
         nh.param("estimate_params", estimate_params, false);
 
         Q.setZero();
-        Q.diagonal() << x_var, x_var, z_var,
-                dx_var, dx_var, dz_var,
+        Q.diagonal() << x_var, x_var, x_var,
+                dx_var, dx_var, dx_var,
                 att_var, att_var, att_var, att_var,
                 datt_var, datt_var, datt_var,
                 thrust_scaling_var,
                 torque_scaling_var,
                 servo_offset_var, servo_offset_var,
                 disturbance_force_var, disturbance_force_var, disturbance_force_z_var,
-                disturbance_torque_var, disturbance_torque_var, disturbance_torque_var;
+                disturbance_torque_var, disturbance_torque_var, disturbance_torque_z_var;
 
 
 //        R.setZero();

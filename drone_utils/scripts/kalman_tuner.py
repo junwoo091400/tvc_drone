@@ -30,7 +30,7 @@ for topic, msg, t in bag.read_messages(topics=['/drone_state']):
         state_array = np.append(t.to_sec() - time_init, convert_state_to_array(msg))
         kalman_state_history = np.vstack((kalman_state_history, state_array))
 
-fig_kalman, axe_kalman = plt.subplots(5, 3, figsize=(20, 10))
+fig_kalman, axe_kalman = plt.subplots(6, 3, figsize=(20, 10))
 
 plot_ranges = {
     "t": [0, t_end-time_init],
@@ -60,25 +60,29 @@ plot_ranges = {
 }
 
 kalman_plot_indexes = {
-    (0, 0): ("t", "dx"),
-    (0, 1): ("t", "dy"),
-    (0, 2): ("t", "dz"),
+    (0, 0): ("t", "x"),
+    (0, 1): ("t", "y"),
+    (0, 2): ("t", "z"),
 
-    (1, 0): ("t", "dyaw (x)"),
-    (1, 1): ("t", "dpitch (y)"),
-    (1, 2): ("t", "droll (z)"),
+    (1, 0): ("t", "dx"),
+    (1, 1): ("t", "dy"),
+    (1, 2): ("t", "dz"),
 
-    (2, 0): ("t", "thrust_scaling"),
-    (2, 1): ("t", "servo1_offset"),
-    (2, 2): ("t", "servo2_offset"),
+    (2, 0): ("t", "dyaw (x)"),
+    (2, 1): ("t", "dpitch (y)"),
+    (2, 2): ("t", "droll (z)"),
 
-    (3, 0): ("t", "mx"),
-    (3, 1): ("t", "my"),
-    (3, 2): ("t", "mz"),
+    (3, 0): ("t", "thrust_scaling"),
+    (3, 1): ("t", "servo1_offset"),
+    (3, 2): ("t", "servo2_offset"),
 
-    (4, 0): ("t", "fx"),
-    (4, 1): ("t", "fy"),
-    (4, 2): ("t", "fz"),
+    (4, 0): ("t", "mx"),
+    (4, 1): ("t", "my"),
+    (4, 2): ("t", "mz"),
+
+    (5, 0): ("t", "fx"),
+    (5, 1): ("t", "fy"),
+    (5, 2): ("t", "fz"),
 }
 
 Q_names = ['x', 'x', 'x',
@@ -89,7 +93,7 @@ Q_names = ['x', 'x', 'x',
            'torque_scaling',
            'servo_offset', 'servo_offset',
            'disturbance_force', 'disturbance_force', 'disturbance_force_z',
-           'disturbance_torque', 'disturbance_torque', 'disturbance_torque']
+           'disturbance_torque', 'disturbance_torque', 'disturbance_torque_z']
 
 # set plot ranges
 for plot_idx, (x_name, y_name) in kalman_plot_indexes.items():
