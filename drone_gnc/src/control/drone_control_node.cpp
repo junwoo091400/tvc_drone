@@ -90,8 +90,8 @@ void DroneControlNode::run(){
             ff_index = 0;
             low_level_control_thread.start();
         }
-
     }
+    ROS_INFO_STREAM(ros::Time::now());
 }
 
 
