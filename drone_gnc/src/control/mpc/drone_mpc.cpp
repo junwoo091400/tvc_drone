@@ -173,7 +173,7 @@ void DroneMPC::solve(Drone::state &x0) {
 
     time_now = ros::Time::now().toSec();
     while (ros::Time::now().toSec() < computation_start_time+fixed_computation_time);
-    ROS_INFO_STREAM(ros::Time::now());
+    ROS_INFO_STREAM("");
 
     solution_time = ros::Time::now().toSec();
 }

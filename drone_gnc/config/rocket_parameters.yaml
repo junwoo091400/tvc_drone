@@ -47,7 +47,7 @@ maxPropellerDelta: 30
 maxServo1Angle: 15
 maxServo2Angle: 15
 
-max_servo_rate: 100
+max_servo_rate: 200
 
 estimated:
   thrust_scaling: 1

@@ -17,8 +17,7 @@
 #include "drone_gnc/GetWaypoint.h"
 #include "backup_controller.hpp"
 
-#include <time.h>
-
+#include <mutex>
 #include <iostream>
 #include <chrono>
 #include <numeric>
@@ -84,6 +83,10 @@ private:
     bool received_trajectory = false;
     double guidanceTraj_t0;
     double guidanceTraj_tf;
+
+    std::mutex target_mutex;
+    std::mutex state_mutex;
+    std::mutex fsm_mutex;
 
     double sgm_length;
 

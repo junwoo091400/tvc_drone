@@ -24,13 +24,13 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
 
     int max_ff_index = std::round(period / feedforward_period) - 1;
 
-    low_level_control_thread = nh.createTimer(
-            ros::Duration(feedforward_period), [&](const ros::TimerEvent &) {
-                if (ff_index < max_ff_index) {
-                    publishFeedforwardControl();
-                    ff_index++;
-                }
-            });
+//    low_level_control_thread = nh.createTimer(
+//            ros::Duration(feedforward_period), [&](const ros::TimerEvent &) {
+//                if (ff_index < max_ff_index) {
+//                    publishFeedforwardControl();
+//                    ff_index++;
+//                }
+//            });
 
 
     client_fsm = nh.serviceClient<drone_gnc::GetFSM>("/getFSM_gnc");
@@ -44,6 +44,7 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     fsm_update_thread = nh.createTimer(
             ros::Duration(0.2), [&](const ros::TimerEvent &) {
                 if (client_fsm.call(srv_fsm)) {
+                    const std::lock_guard<std::mutex> lock(fsm_mutex);
                     current_fsm = srv_fsm.response.fsm;
                 }
             });
@@ -80,29 +81,36 @@ void DroneControlNode::run(){
             computeControl();
         }
 
+        fsm_mutex.lock();
+        if(current_fsm.state_machine.compare("Launch") == 0){
+            publishFeedforwardControl();
+        }
+        fsm_mutex.unlock();
+
         publishTrajectory();
         saveDebugInfo();
         publishDebugInfo();
 
-        if (current_fsm.state_machine.compare("Launch") == 0) {
-            low_level_control_thread.stop();
-            publishFeedforwardControl();
-            ff_index = 0;
-            low_level_control_thread.start();
-        }
+//        if (current_fsm.state_machine.compare("Launch") == 0) {
+//            low_level_control_thread.stop();
+//            publishFeedforwardControl();
+//            ff_index = 0;
+//            low_level_control_thread.start();
+//        }
     }
-    ROS_INFO_STREAM(ros::Time::now());
 }
 
 
 // Callback function to store last received state
 void DroneControlNode::stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
+    const std::lock_guard<std::mutex> lock(state_mutex);
     current_state = *rocket_state;
     received_state = true;
 }
 
 // Callback function to store last received state
 void DroneControlNode::targetCallback(const geometry_msgs::Vector3 &target) {
+    const std::lock_guard<std::mutex> lock(target_mutex);
     target_apogee = target;
 }
 
@@ -187,10 +195,12 @@ void DroneControlNode::computeControl() {
 
 
     Drone::state x0;
+    state_mutex.lock();
     x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
             current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
             current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
             current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
+    state_mutex.unlock();
 
     drone_mpc.drone->setParams(current_state.thrust_scaling,
                                current_state.torque_scaling,
@@ -294,10 +304,12 @@ void DroneControlNode::fetchNewTarget() {
     Drone::state target_state;
     Drone::control target_control;
 
+    target_mutex.lock();
     target_state << target_apogee.x, target_apogee.y, target_apogee.z,
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
+    target_mutex.unlock();
 
     target_control << 0, 0, drone->getHoverSpeedAverage(), 0;
 //        }
