@@ -17,7 +17,7 @@ private:
     drone_gnc::FSM current_fsm;
     drone_gnc::DroneControl current_control;
     drone_gnc::DroneControl previous_control;
-    geometry_msgs::Pose optitrack_pose;
+    geometry_msgs::PoseStamped optitrack_pose;
     bool received_optitrack = false;
     bool initialized_optitrack = false;
     Eigen::Quaterniond initial_optitrack_orientation;
@@ -69,31 +69,26 @@ public:
     void kalmanStep() {
         if (received_optitrack) {
             if (!initialized_optitrack) {
-                initial_optitrack_orientation = Eigen::Quaterniond(optitrack_pose.orientation.w,
-                                                                   optitrack_pose.orientation.x,
-                                                                   optitrack_pose.orientation.y,
-                                                                   optitrack_pose.orientation.z);
-                initial_optitrack_position = Eigen::Vector3d(optitrack_pose.position.x, optitrack_pose.position.y,
-                                                             optitrack_pose.position.z);
+                initial_optitrack_orientation = Eigen::Quaterniond(optitrack_pose.pose.orientation.w,
+                                                                   optitrack_pose.pose.orientation.x,
+                                                                   optitrack_pose.pose.orientation.y,
+                                                                   optitrack_pose.pose.orientation.z);
+                initial_optitrack_position = Eigen::Vector3d(optitrack_pose.pose.position.x, optitrack_pose.pose.position.y,
+                                                             optitrack_pose.pose.position.z);
                 initialized_optitrack = true;
             }
 
-            Eigen::Quaterniond raw_orientation(optitrack_pose.orientation.w, optitrack_pose.orientation.x,
-                                               optitrack_pose.orientation.y, optitrack_pose.orientation.z);
-            Eigen::Vector3d raw_position(optitrack_pose.position.x, optitrack_pose.position.y,
-                                         optitrack_pose.position.z);
+            double compute_time_start = ros::Time::now().toSec();
+            Eigen::Quaterniond raw_orientation(optitrack_pose.pose.orientation.w, optitrack_pose.pose.orientation.x,
+                                               optitrack_pose.pose.orientation.y, optitrack_pose.pose.orientation.z);
+            Eigen::Vector3d raw_position(optitrack_pose.pose.position.x, optitrack_pose.pose.position.y,
+                                         optitrack_pose.pose.position.z);
             Eigen::Quaterniond orientation = initial_optitrack_orientation.inverse() * raw_orientation;
             Eigen::Vector3d position = raw_position - initial_optitrack_position;
-
 
             DroneEKF::sensor_data new_data;
             new_data.segment(0, 3) = position;
             new_data.segment(3, 4) = orientation.coeffs();
-
-            double time_now = ros::Time::now().toSec();
-            double dT = time_now - last_predict_time;
-
-            last_predict_time = time_now;
 
             DroneEKF::control u;
             u << previous_control.servo1, previous_control.servo2, (previous_control.bottom + previous_control.top) / 2,
@@ -101,12 +96,17 @@ public:
             ros::spinOnce();
             previous_control = current_control;
 
+//            double time_now = optitrack_pose.header.stamp.toSec();
+            double time_now = ros::Time::now().toSec();
+            double dT = time_now - last_predict_time;
+            last_predict_time = time_now;
+
             kalman.predictStep(dT, u);
             kalman.updateStep(new_data);
 
             publishDroneState();
 
-            last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
+            last_computation_time = (ros::Time::now().toSec() - compute_time_start) * 1000;
         }
     }
 
@@ -118,15 +118,17 @@ public:
 
     // Callback function to store last received state
     void rocket_stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
-        optitrack_pose = rocket_state->pose;
+        optitrack_pose.pose = rocket_state->pose;
+        optitrack_pose.header.stamp = rocket_state->header.stamp;
         received_optitrack = true;
     }
 
     void optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
-        optitrack_pose.position.x = -pose->pose.position.x;
-        optitrack_pose.position.y = -pose->pose.position.y;
-        optitrack_pose.position.z = pose->pose.position.z;
-        optitrack_pose.orientation = pose->pose.orientation;
+        optitrack_pose.pose.position.x = -pose->pose.position.x;
+        optitrack_pose.pose.position.y = -pose->pose.position.y;
+        optitrack_pose.pose.position.z = pose->pose.position.z;
+        optitrack_pose.pose.orientation = pose->pose.orientation;
+        optitrack_pose.header.stamp = pose->header.stamp;
         received_optitrack = true;
     }
 

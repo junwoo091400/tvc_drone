@@ -11,9 +11,9 @@
 
 using namespace Eigen;
 
-ros::Publisher rocket_control_pub, drone_state_pub, kalman_rocket_state_pub, command_pub, fake_optitrack_pub;
+ros::Publisher rocket_control_pub, drone_state_pub, command_pub, fake_optitrack_pub;
 
-float CM_to_thrust_distance = 0.205;
+float CM_to_thrust_distance;
 
 
 Matrix<double, 2, 2> sysA;
@@ -74,7 +74,7 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
     }
 }
 
-double t_start = 0;
+//double t_start = 0;
 void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_state) {
 
 //    //simulator uses angular vel in inertial frame while mpc uses body frame
@@ -111,6 +111,7 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     converted_state.twist = rocket_state->twist;
     converted_state.pose = rocket_state->pose;
     converted_state.thrust_scaling = 1;
+    converted_state.torque_scaling = 1;
     converted_state.header.stamp = now;
 
     drone_state_pub.publish(converted_state);

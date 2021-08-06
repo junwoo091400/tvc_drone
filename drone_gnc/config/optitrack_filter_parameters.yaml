@@ -1,18 +1,18 @@
 # Kalman filter parameters
 predict_vars:
   x: 0.01
-  att: 0.5
+  att: 20
 
   dx: 30
-  datt: 100
+  datt: 500
 
   thrust_scaling: 1
   torque_scaling: 1
   servo_offset: 0.03
-  disturbance_force: 10
+  disturbance_force: 20
   disturbance_force_z: 0
-  disturbance_torque: 60
-  disturbance_torque_z: 10
+  disturbance_torque: 100
+  disturbance_torque_z: 4
 
 update_vars:
   optitrack_x: 0.005
