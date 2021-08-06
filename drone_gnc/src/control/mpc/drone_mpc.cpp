@@ -70,6 +70,7 @@ drone_gnc::DroneControl DroneMPC::getControlCurrentTime() {
                                      drone->maxPropellerSpeed);
     drone_control.bottom = std::min(std::max(drone_control.bottom, drone->minPropellerSpeed),
                                         drone->maxPropellerSpeed);
+    drone_control.header.stamp = ros::Time::now();
     return drone_control;
 }
 

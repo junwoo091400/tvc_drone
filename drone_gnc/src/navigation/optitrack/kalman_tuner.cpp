@@ -15,7 +15,8 @@
 #include <ros/package.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
-
+#include<vector> // for vectors
+using namespace std;
 using namespace Eigen;
 
 DroneEKF* kalman;
@@ -46,7 +47,9 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
     kalman->estimate_params = req.estimate_params;
 
     DroneEKF::state Q(Map<DroneEKF::state>(req.Q.data()));
+    DroneEKF::sensor_data R(Map<DroneEKF::sensor_data>(req.R.data()));
     kalman->setQdiagonal(Q);
+    kalman->setRdiagonal(R);
     kalman->reset();
 
     geometry_msgs::Pose optitrack_pose;
@@ -61,15 +64,20 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
+    drone_gnc::DroneControl current_control, next_control;
+
+    double current_time = 0;
     for(rosbag::MessageInstance const m: view){
-        drone_gnc::DroneControl::ConstPtr current_control = m.instantiate<drone_gnc::DroneControl>();
-        if(current_control != NULL){
-            kalman->updateCurrentControl(current_control);
+        drone_gnc::DroneControl::ConstPtr current_control_ptr = m.instantiate<drone_gnc::DroneControl>();
+        if(current_control_ptr != NULL){
+            current_control = *current_control_ptr;
         }
 
         geometry_msgs::PoseStamped::ConstPtr raw_pose = m.instantiate<geometry_msgs::PoseStamped>();
+//        ROS_ERROR_STREAM(m.getMessageDefinition());
         if (raw_pose != NULL) {
-            double current_time = raw_pose->header.stamp.toSec();
+//            ROS_ERROR_STREAM(raw_pose->header.stamp.toSec() - current_time);
+            current_time = raw_pose->header.stamp.toSec();
             optitrack_pose = optitrackCallback(raw_pose);
 
             if(!initialized_optitrack){
@@ -96,7 +104,12 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
                 new_data.segment(0, 3) = position;
                 new_data.segment(3, 4) = orientation.coeffs();
 
-                kalman->predictStep(period);
+                DroneEKF::control u;
+                u << next_control.servo1, next_control.servo2, (next_control.bottom + next_control.top) / 2,
+                        next_control.top - next_control.bottom;
+                next_control = current_control;
+
+                kalman->predictStep(current_time - last_predict_time, u);
                 kalman->updateStep(new_data);
 
                 last_predict_time = current_time;

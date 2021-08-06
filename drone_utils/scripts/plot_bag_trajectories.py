@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 import rospkg
@@ -18,10 +18,10 @@ bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
 
 time_init = 0
 t_end = 0
-for topic, msg, t in bag.read_messages(topics=['/drone_state']):
+for topic, msg, t in bag.read_messages(topics=['/simu_drone_state']):
     if time_init == 0:
-        time_init = t.to_sec()
-    t_end = t.to_sec()
+        time_init = msg.header.stamp.to_sec()
+    t_end = msg.header.stamp.to_sec()
 # t_end = time_init + 30
 
 kalman_state_history = read_state_history(bag, '/drone_state', time_init, t_end)

@@ -3,11 +3,9 @@
 #include "drone_gnc/FSM.h"
 #include "drone_gnc/DroneState.h"
 #include "drone_gnc/DroneControl.h"
-#include "drone_gnc/Sensor.h"
 
 #include "geometry_msgs/PoseStamped.h"
 
-#include <time.h>
 #include <std_msgs/Float64.h>
 
 #include "drone_EKF_optitrack.h"
@@ -18,6 +16,7 @@ private:
 
     drone_gnc::FSM current_fsm;
     drone_gnc::DroneControl current_control;
+    drone_gnc::DroneControl previous_control;
     geometry_msgs::Pose optitrack_pose;
     bool received_optitrack = false;
     bool initialized_optitrack = false;
@@ -59,7 +58,7 @@ public:
         fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneNavigationNode::fsmCallback, this);
 
         // Subscribe to time_keeper for fsm and time
-        control_sub = nh.subscribe("/drone_control", 1, &DroneEKF::updateCurrentControl, &kalman);
+        control_sub = nh.subscribe("/drone_control", 1, &DroneNavigationNode::controlCallback, this);
 
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
@@ -92,27 +91,22 @@ public:
             new_data.segment(3, 4) = orientation.coeffs();
 
             double time_now = ros::Time::now().toSec();
-            double time_now2 = ros::Time::now().toSec();
             double dT = time_now - last_predict_time;
-//            ROS_INFO_STREAM(ros::Time::now().toSec()  - last_predict_time);
+
             last_predict_time = time_now;
 
-            kalman.predictStep(period);
-//            ROS_INFO_STREAM("predict "<<ros::Time::now().toSec()  - time_now);
-            time_now = ros::Time::now().toSec();
-            kalman.updateStep(new_data);
-//            ROS_INFO_STREAM("update "<<ros::Time::now().toSec()  - time_now);
-
-            time_now = ros::Time::now().toSec();
-            publishDroneState();
-//            ROS_INFO_STREAM("publish "<<ros::Time::now().toSec()  - time_now);
+            DroneEKF::control u;
+            u << previous_control.servo1, previous_control.servo2, (previous_control.bottom + previous_control.top) / 2,
+                    previous_control.top - previous_control.bottom;
             ros::spinOnce();
-            time_now = ros::Time::now().toSec();
-//            ROS_INFO_STREAM("spin "<<ros::Time::now().toSec()  - time_now);
+            previous_control = current_control;
 
+            kalman.predictStep(dT, u);
+            kalman.updateStep(new_data);
 
-            last_computation_time = (ros::Time::now().toSec() - time_now2) * 1000;
-//            ROS_INFO_STREAM("total "<<last_computation_time);
+            publishDroneState();
+
+            last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
         }
     }
 
@@ -120,10 +114,6 @@ public:
     void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
         current_fsm.time_now = fsm->time_now;
         current_fsm.state_machine = fsm->state_machine;
-    }
-
-    // Callback function to store last received sensor data
-    void sensorCallback(const drone_gnc::Sensor::ConstPtr &sensor) {
     }
 
     // Callback function to store last received state
@@ -138,6 +128,12 @@ public:
         optitrack_pose.position.z = pose->pose.position.z;
         optitrack_pose.orientation = pose->pose.orientation;
         received_optitrack = true;
+    }
+
+
+    void controlCallback(const drone_gnc::DroneControl::ConstPtr &control) {
+        current_control = *control;
+        kalman.received_control = true;
     }
 
     void publishDroneState() {
@@ -161,8 +157,6 @@ public:
         kalman_state.twist.angular.z = kalman.X(12);
 
         kalman_state.thrust_scaling = kalman.X(13);
-
-        kalman_state.thrust_scaling = kalman.X(13);
         kalman_state.torque_scaling = kalman.X(14);
         kalman_state.servo1_offset = kalman.X(15);
         kalman_state.servo2_offset = kalman.X(16);
@@ -180,7 +174,6 @@ public:
         std_msgs::Float64 msg3;
         msg3.data = last_computation_time;
         computation_time_pub.publish(msg3);
-//        ROS_INFO_STREAM(last_computation_time);
     }
 };
 

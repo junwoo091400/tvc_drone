@@ -32,11 +32,14 @@ public:
 
     using ad_sensor_data = sensor_data_t<AutoDiffScalar<state_t<double>>>;
 
+    using control = Matrix<double, 4, 1>;
+
     typedef Matrix<double, NX, NX> state_matrix;
 
     state X;
     ad_state ADx;
     bool estimate_params;
+    bool received_control;
 
     DroneEKF(ros::NodeHandle &nh);
     void reset();
@@ -46,16 +49,16 @@ public:
     void setRdiagonal(const sensor_data &Rdiag);
 
     template<typename T>
-    void stateDynamics(const state_t<T> &x, state_t<T> &xdot);
+    void stateDynamics(const state_t<T> &x, const control &u, state_t<T> &xdot);
 
     template<typename T>
     void measurementModel(const state_t<T> &x, sensor_data_t<T> &z);
 
-    void fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pnext);
+    void fullDerivative(const state &x, const state_matrix &P, const control &u, state &xdot, state_matrix &Pnext);
 
-    void RK4(const state &X, const state_matrix &P, double dT, state &Xnext, state_matrix &Pnext);
+    void RK4(const state &X, const state_matrix &P, const control &u, double dT, state &Xnext, state_matrix &Pnext);
 
-    void predictStep(double dT);
+    void predictStep(double dT, const control &u);
 
     void updateStep(sensor_data_t<double> &z);
 
@@ -71,8 +74,6 @@ private:
     Matrix<double, NZ, NX> H;
 
     Drone drone;
-    drone_gnc::DroneControl current_control;
-    bool received_control;
 
     state X0;
 };

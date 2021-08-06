@@ -52,9 +52,9 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
 
 void DroneControlNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
-    rocket_state_sub = nh.subscribe("/drone_state", 100, &DroneControlNode::stateCallback, this);
-    target_sub = nh.subscribe("/target_apogee", 100, &DroneControlNode::targetCallback, this);
-    target_traj_sub = nh.subscribe("/guidance/horizon", 100, &DroneControlNode::targetTrajectoryCallback, this);
+    rocket_state_sub = nh.subscribe("/drone_state", 1, &DroneControlNode::stateCallback, this);
+    target_sub = nh.subscribe("/target_apogee", 1, &DroneControlNode::targetCallback, this);
+    target_traj_sub = nh.subscribe("/guidance/horizon", 1, &DroneControlNode::targetTrajectoryCallback, this);
 
 
     // Publishers
@@ -295,6 +295,7 @@ void DroneControlNode::publishTrajectory() {
 
         horizon_msg.trajectory.push_back(state_msg_stamped);
     }
+    horizon_msg.header.stamp = ros::Time::now();
     horizon_viz_pub.publish(trajectory_msg);
     horizon_pub.publish(horizon_msg);
 }
