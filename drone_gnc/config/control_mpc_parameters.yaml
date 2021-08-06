@@ -14,7 +14,7 @@ input_costs:
   torque: 0.01
 
 # constraints (+ used for scaling)
-min_z: -1
+min_z: 0
 min_dz: -0.6
 
 max_dx: 1.2
