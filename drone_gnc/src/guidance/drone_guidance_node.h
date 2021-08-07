@@ -37,7 +37,6 @@ public:
 
     void computeTrajectory();
     void publishTrajectory();
-    void fetchNewTarget();
 
     void publishDebugInfo();
 
@@ -48,8 +47,9 @@ private:
 
     bool received_state = false;
     drone_gnc::DroneState current_state;
-    geometry_msgs::Vector3 target_apogee;
     drone_gnc::FSM current_fsm;
+    Drone::state target_state;
+    Drone::control target_control;
 
     // Subscribers
     ros::Subscriber rocket_state_sub;

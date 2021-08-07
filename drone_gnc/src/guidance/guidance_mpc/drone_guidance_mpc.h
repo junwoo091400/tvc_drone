@@ -19,9 +19,8 @@ public:
 
     void solve(Drone::state &x0);
 
-    drone_gnc::DroneControl getControlCurrentTime();
-
-    void setTarget(ocp_state &target_state, ocp_control &target_control);
+    void initGuess(Drone::state &x0, Drone::state &target);
+    void setTarget(Drone::state &target_state, Drone::control &target_control);
 
     Drone::state  solution_x_at(const double t);
     Drone::control solution_u_at(const double t);
@@ -34,13 +33,10 @@ public:
     double feedforward_period;
     double fixed_computation_time;
     double last_computation_time = 0;
-    double init_time;
     double horizon_length;
 
 private:
     void warmStart();
-    double solution_time;
-    bool is_simu;
 };
 
 

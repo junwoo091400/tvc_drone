@@ -30,6 +30,7 @@ state_horizon_history, control_horizon_history = read_horizon_history(bag, '/con
 control_history = read_control_history(bag, '/drone_control', time_init, t_end)
 guidance_state_horizon_history, guidance_control_horizon_history = read_horizon_history(bag, '/guidance/horizon', time_init, t_end)
 
+
 state_plot_indexes = {
     (0, 0): ("t", "x"),
     (0, 1): ("t", "y"),
@@ -55,10 +56,10 @@ state_plot_indexes = {
 }
 
 control_plot_indexes = {
-    # (4, 0): ("t", "servo1"),
-    # (4, 0): ("t", "servo2"),
-    # (4, 1): ("t", "bottom"),
-    # (4, 2): ("t", "top"),
+    (4, 0): ("t", "servo1"),
+    (4, 0): ("t", "servo2"),
+    (4, 1): ("t", "bottom"),
+    (4, 2): ("t", "top"),
 }
 
 plot_ranges = {
@@ -133,11 +134,11 @@ else:
         control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon",
                                              'g-')
     if state_horizon_history.size != 0:
-        state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon", 'b-')
+        state_mpc_line_list = plot_history(state_horizon_history[:, :, 0], state_plot_indexes, axe, "mpc horizon", 'g-')
 
     if guidance_control_horizon_history.size != 0:
         guidance_control_mpc_line_list = plot_history(guidance_control_horizon_history[:, :, 0], control_plot_indexes, axe, "guidance traj",
-                                             'g-')
+                                             'y-')
     if guidance_state_horizon_history.size != 0:
         guidance_state_mpc_line_list = plot_history(guidance_state_horizon_history[:, :, 0], state_plot_indexes, axe, "guidance traj", 'y-')
 

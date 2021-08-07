@@ -283,8 +283,8 @@ void DroneControlNode::publishTrajectory() {
         drone_gnc::DroneControl control_msg;
         control_msg.servo1 = control_val(0);
         control_msg.servo2 = control_val(1);
-        control_msg.bottom = control_val(2);
-        control_msg.top = control_val(3);
+        control_msg.bottom = control_val(2) - control_val(3)/2;
+        control_msg.top = control_val(2) + control_val(3)/2;
 
         drone_gnc::DroneWaypointStamped state_msg_stamped;
         state_msg_stamped.state = state_msg;
