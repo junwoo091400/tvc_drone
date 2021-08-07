@@ -1,9 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-
+from geometry_msgs.msg import PoseStamped
 
 def convert_state_to_array(state):
     q = [state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w]
@@ -11,16 +10,33 @@ def convert_state_to_array(state):
         q = [0, 0, 0, 1]
     r = R.from_quat(q)
     attitude_euler = r.as_euler('xyz', degrees=True)
-    state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
-                            state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
-                            attitude_euler[0], attitude_euler[1], attitude_euler[2],
-                            state.twist.angular.x, state.twist.angular.y, state.twist.angular.z,
-                            state.thrust_scaling,
-                            state.torque_scaling,
-                            state.servo1_offset, state.servo2_offset,
-                            state.disturbance_force.x, state.disturbance_force.y, state.disturbance_force.z,
-                            state.disturbance_torque.x, state.disturbance_torque.y, state.disturbance_torque.z,
-                            ])
+    message_type = str(state._type)
+    state_array = None
+    if message_type == 'geometry_msgs/PoseStamped':
+        state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
+                                0, 0, 0,
+                                attitude_euler[0], attitude_euler[1], attitude_euler[2],
+                                0, 0, 0,
+                                0,
+                                0,
+                                0, 0,
+                                0, 0, 0,
+                                0, 0, 0,
+                                ])
+    elif message_type == 'drone_gnc/DroneState':
+        state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
+                                state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
+                                attitude_euler[0], attitude_euler[1], attitude_euler[2],
+                                state.twist.angular.x, state.twist.angular.y, state.twist.angular.z,
+                                state.thrust_scaling,
+                                state.torque_scaling,
+                                state.servo1_offset, state.servo2_offset,
+                                state.disturbance_force.x, state.disturbance_force.y, state.disturbance_force.z,
+                                state.disturbance_torque.x, state.disturbance_torque.y, state.disturbance_torque.z,
+                                ])
+    else:
+        print('type error')
+
     return state_array
 
 
@@ -30,17 +46,19 @@ def convert_control_to_array(control):
 
 def read_state_history(bag, topic, t_init, t_end):
     state_history = np.empty((0, NX + NP + 1))
-    for topic, msg, t in bag.read_messages(topics=[topic]):
-        if t.to_sec() > t_init and t.to_sec() < t_end:
-            state_array = np.append(t.to_sec() - t_init, convert_state_to_array(msg))
+    for _, msg, _ in bag.read_messages(topics=[topic]):
+        t = msg.header.stamp.to_sec()
+        if t > t_init and t < t_end:
+            state_array = np.append(t - t_init, convert_state_to_array(msg))
             state_history = np.vstack((state_history, state_array))
     return state_history
 
 def read_control_history(bag, topic, t_init, t_end):
     control_history = np.empty((0, NU + 1))
-    for topic, msg, t in bag.read_messages(topics=[topic]):
-        if t.to_sec() > t_init and t.to_sec() < t_init:
-            control_array = np.append(t.to_sec() - t_init, convert_control_to_array(msg))
+    for _, msg, _ in bag.read_messages(topics=[topic]):
+        t = msg.header.stamp.to_sec()
+        if t > t_init and t < t_init:
+            control_array = np.append(t - t_init, convert_control_to_array(msg))
             control_history = np.vstack((control_history, control_array))
     return control_history
 
@@ -52,8 +70,9 @@ def read_horizon_history(bag, topic, t_init, t_end):
 
     state_horizon_history = np.empty((NNODE, NX + NP + 1, 0))
     control_horizon_history = np.empty((NNODE, NU + 1, 0))
-    for topic, msg, t in bag.read_messages(topics=[topic]):
-        if t.to_sec() > t_init and t.to_sec() < t_end:
+    for _, msg, _ in bag.read_messages(topics=[topic]):
+        t = msg.header.stamp.to_sec()
+        if t > t_init and t < t_end:
             state_horizon = np.empty((0, NX + NP + 1))
             control_horizon = np.empty((0, NU + 1))
             for waypoint_stamped in msg.trajectory:

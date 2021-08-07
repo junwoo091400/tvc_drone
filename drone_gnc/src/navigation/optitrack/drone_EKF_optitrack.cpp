@@ -2,6 +2,7 @@
 
 DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
     double x_var, dx_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, servo_offset_var, disturbance_force_var, disturbance_force_z_var, disturbance_torque_var, disturbance_torque_z_var;
+    double x_optitrack_var, att_optitrack_var;
     if (nh.getParam("predict_vars/x", x_var) &&
         nh.getParam("predict_vars/dx", dx_var) &&
         nh.getParam("predict_vars/att", att_var) &&
@@ -12,7 +13,9 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
         nh.getParam("predict_vars/disturbance_force", disturbance_force_var) &&
         nh.getParam("predict_vars/disturbance_force_z", disturbance_force_z_var) &&
         nh.getParam("predict_vars/disturbance_torque", disturbance_torque_var) &&
-        nh.getParam("predict_vars/disturbance_torque_z", disturbance_torque_z_var)) {
+        nh.getParam("predict_vars/disturbance_torque_z", disturbance_torque_z_var) &&
+        nh.getParam("update_vars/optitrack_x", x_optitrack_var) &&
+        nh.getParam("update_vars/optitrack_att", att_optitrack_var)) {
 
         std::vector<double> initial_state;
         nh.getParam("initial_state", initial_state);
@@ -21,16 +24,15 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
         bool init_estimated_params;
         nh.param("init_estimated_params", init_estimated_params, false);
 
-        if(init_estimated_params){
-            double thrust_scaling, torque_scaling, servo1_offset,servo2_offset;
+        if (init_estimated_params) {
+            double thrust_scaling, torque_scaling, servo1_offset, servo2_offset;
             nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
             nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
             nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset, 0);
             nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset, 0);
 
             X0 << drone_X0, thrust_scaling, torque_scaling, servo1_offset, servo2_offset, 0, 0, 0, 0, 0, 0;
-        }
-        else{
+        } else {
             X0 << drone_X0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
         }
 
@@ -47,15 +49,13 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
                 disturbance_force_var, disturbance_force_var, disturbance_force_z_var,
                 disturbance_torque_var, disturbance_torque_var, disturbance_torque_z_var;
 
-
 //        R.setZero();
 //        R.diagonal() << accel_x_var, accel_x_var, accel_z_var,
 //                gyro_var, gyro_var, gyro_var;
 //        // baro_var;
         R.setZero();
-        R.diagonal() << 0.01, 0.01, 0.01,
-                0.0001, 0.005, 0.005, 0.005;
-
+        R.diagonal() << x_optitrack_var, x_optitrack_var, x_optitrack_var,
+                att_optitrack_var, att_optitrack_var, att_optitrack_var, att_optitrack_var;
 //        H.setZero();
 //        H.block(0, 13, 3, 3).setIdentity(); //accelerometer
 //        H.block(3, 10, 3, 3).setIdentity(); //gyro
@@ -77,46 +77,36 @@ DroneEKF::DroneEKF(ros::NodeHandle &nh) : drone(nh) {
 
 }
 
-void DroneEKF::reset(){
+void DroneEKF::reset() {
     X = X0;
     P = Q;
     H.setZero();
 
-    current_control.servo1 = 0;
-    current_control.servo2 = 0;
-    current_control.top = 0;
-    current_control.bottom = 0;
     received_control = false;
 }
 
 
-void DroneEKF::setQdiagonal(const state& Qdiag) {
+void DroneEKF::setQdiagonal(const state &Qdiag) {
     Q.diagonal() << Qdiag;
 }
 
-void DroneEKF::setRdiagonal(const sensor_data & Rdiag) {
+void DroneEKF::setRdiagonal(const sensor_data &Rdiag) {
     R.diagonal() << Rdiag;
 }
 
-void DroneEKF::updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
-    current_control = *drone_control;
-    received_control = true;
-}
-
 template<typename T>
-void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
-    if(received_control && estimate_params){
+void DroneEKF::stateDynamics(const state_t<T> &x, const control &u, state_t<T> &xdot) {
+    if (received_control && estimate_params) {
         Eigen::Matrix<T, 13, 1> x_drone = x.segment(0, 13);
-
-        Eigen::Matrix<T, 4, 1> u;
-        u << current_control.servo1, current_control.servo2, (current_control.bottom + current_control.top)/2, current_control.top - current_control.bottom;
 
         Eigen::Matrix<T, 10, 1> params = x.segment(13, 4);
 
+        //TODO
+        Eigen::Matrix<T, 4, 1> u_drone = u;
+
         //state derivatives
-        drone.state_dynamics(x_drone, u, params, xdot);
-    }
-    else{
+        drone.state_dynamics(x_drone, u_drone, params, xdot);
+    } else {
         // Orientation of the rocket with quaternion
         Eigen::Quaternion<T> attitude(x(9), x(6), x(7), x(8));
         attitude.normalize();
@@ -126,7 +116,7 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
         //state derivatives
         xdot.segment(0, 3) = x.segment(3, 3);
         xdot.segment(3, 3) << 0.0, 0.0, 0.0;
-        xdot.segment(6, 4) = 0.5 * (attitude * omega_quat).coeffs();
+        xdot.segment(6, 4) = 0.5 * (omega_quat * attitude).coeffs();
         xdot.segment(10, 3) << 0.0, 0.0, 0.0;
     }
 
@@ -136,19 +126,19 @@ void DroneEKF::stateDynamics(const state_t<T> &x, state_t<T> &xdot) {
 
 template<typename T>
 void DroneEKF::measurementModel(const state_t<T> &x, sensor_data_t<T> &z) {
-    z.segment(0, 3) = x.segment(0,3);
-    z.segment(3, 4) = x.segment(6,4);
+    z.segment(0, 3) = x.segment(0, 3);
+    z.segment(3, 4) = x.segment(6, 4);
 }
 
-void DroneEKF::fullDerivative(const state &x, const state_matrix &P, state &xdot, state_matrix &Pdot) {
+void DroneEKF::fullDerivative(const state &x, const state_matrix &P, const control &u, state &xdot, state_matrix &Pdot) {
     //X derivative
-    stateDynamics(x, xdot);
+    stateDynamics(x, u, xdot);
 
     //P derivative
     //propagate xdot autodiff scalar at current x
     ADx = X;
     ad_state Xdot;
-    stateDynamics(ADx, Xdot);
+    stateDynamics(ADx, u, Xdot);
 
     // obtain the jacobian of f(x)
     for (int i = 0; i < Xdot.size(); i++) {
@@ -159,38 +149,54 @@ void DroneEKF::fullDerivative(const state &x, const state_matrix &P, state &xdot
 }
 
 
-void DroneEKF::RK4(const state &X, const state_matrix &P, double dT, state &Xnext, state_matrix &Pnext) {
+void DroneEKF::RK4(const state &X, const state_matrix &P, const control &u, double dT, state &Xnext, state_matrix &Pnext) {
     state k1, k2, k3, k4;
     state_matrix k1_P, k2_P, k3_P, k4_P;
 
-    fullDerivative(X, P, k1, k1_P);
-    fullDerivative(X + k1 * dT / 2, P + k1_P * dT / 2, k2, k2_P);
-    fullDerivative(X + k2 * dT / 2, P + k2_P * dT / 2, k3, k3_P);
-    fullDerivative(X + k3 * dT, P + k3_P * dT, k4, k4_P);
+    fullDerivative(X, P, u, k1, k1_P);
+    fullDerivative(X + k1 * dT / 2, P + k1_P * dT / 2, u, k2, k2_P);
+    fullDerivative(X + k2 * dT / 2, P + k2_P * dT / 2, u, k3, k3_P);
+    fullDerivative(X + k3 * dT, P + k3_P * dT, u, k4, k4_P);
 
     Xnext = X + (k1 + 2 * k2 + 2 * k3 + k4) * dT / 6;
     Pnext = P + (k1_P + 2 * k2_P + 2 * k3_P + k4_P) * dT / 6;
 }
 
 
-void DroneEKF::predictStep(double dT) {
+void DroneEKF::predictStep(double dT, const control &u) {
     //predict: integrate X and P
-    RK4(X, P, dT, X, P);
+    RK4(X, P, u, dT, X, P);
 }
 
-void DroneEKF::updateStep(sensor_data z) {
+void DroneEKF::updateStep(sensor_data &z) {
     //propagate hdot autodiff scalar at current x
     ADx = X;
     ad_sensor_data hdot;
     measurementModel(ADx, hdot);
+
+    //compute h(x)
+    sensor_data h_x;
+    measurementModel(X, h_x);
 
     // obtain the jacobian of h(x)
     for (int i = 0; i < hdot.size(); i++) {
         H.row(i) = hdot(i).derivatives();
     }
 
-    Matrix<double, NX, NZ> K;
-    K = P * H.transpose() * ((H * P * H.transpose() + R).inverse());
-    X = X + K * (z - H * X);
-    P = P - K * H * P;
+    // copied from https://github.com/LA-EPFL/yakf/blob/master/ExtendedKalmanFilter.h
+    Eigen::Matrix<double, NX, NX> IKH;  // temporary matrix
+    Eigen::Matrix<double, NZ, NZ> S; // innovation covariance
+    Eigen::Matrix<double, NX, NZ> K; // Kalman gain
+    Eigen::Matrix<double, NX, NX> I; // identity
+    I.setIdentity();
+    S = H * P * H.transpose() + R;
+    K = S.llt().solve(H * P).transpose();
+    X = X + K * (z - h_x);
+    IKH = (I - K * H);
+    P = IKH * P * IKH.transpose() + K * R * K.transpose();
+
+//    Matrix<double, NX, NZ> K;
+//    K = P * H.transpose() * ((H * P * H.transpose() + R).inverse());
+//    X = X + K * (z - h_x);
+//    P = P - K * H * P;
 }

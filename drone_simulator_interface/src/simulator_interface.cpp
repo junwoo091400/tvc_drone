@@ -11,9 +11,9 @@
 
 using namespace Eigen;
 
-ros::Publisher rocket_control_pub, drone_state_pub, kalman_rocket_state_pub, command_pub, fake_optitrack_pub;
+ros::Publisher rocket_control_pub, drone_state_pub, command_pub, fake_optitrack_pub;
 
-float CM_to_thrust_distance = 0.205;
+float CM_to_thrust_distance;
 
 
 Matrix<double, 2, 2> sysA;
@@ -74,8 +74,8 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
     }
 }
 
+//double t_start = 0;
 void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_state) {
-    drone_gnc::DroneState converted_state;
 
 //    //simulator uses angular vel in inertial frame while mpc uses body frame
 //    Eigen::Quaterniond attitude(rocket_state->pose.orientation.w, rocket_state->pose.orientation.x,
@@ -86,11 +86,33 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
 //    converted_state.twist.angular.x = omega_inertial(0);
 //    converted_state.twist.angular.y = omega_inertial(1);
 //    converted_state.twist.angular.z = omega_inertial(2);
+//    if(t_start == 0){
+//        t_start = ros::Time::now().toSec();
+//    }
+//    double t = ros::Time::now().toSec() - t_start;
+//    if(t < 1){
+//        drone_gnc::DroneState state_msg;
+//        state_msg.pose.position.x = sin(10*t);
+//        state_msg.twist.linear.x = 10*cos(10*t);
+//        state_msg.pose.orientation.w = 1;
+//        state_msg.header.stamp = ros::Time(t);
+//        drone_state_pub.publish(state_msg);
+//
+//        geometry_msgs::PoseStamped pose_msg;
+//        pose_msg.pose.position.x = -sin(10*t);
+//        pose_msg.pose.orientation.w = 1;
+//        pose_msg.header.stamp = ros::Time(t);
+//        fake_optitrack_pub.publish(pose_msg);
+//        ROS_ERROR_STREAM("t: " << t);
+//    }
 
+    ros::Time now = ros::Time::now();
+    drone_gnc::DroneState converted_state;
     converted_state.twist = rocket_state->twist;
     converted_state.pose = rocket_state->pose;
     converted_state.thrust_scaling = 1;
-    converted_state.header.stamp = ros::Time::now();
+    converted_state.torque_scaling = 1;
+    converted_state.header.stamp = now;
 
     drone_state_pub.publish(converted_state);
 
@@ -100,7 +122,7 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     optitrack_pose.pose.position.y = -rocket_state->pose.position.y;
     optitrack_pose.pose.position.z = rocket_state->pose.position.z;
     optitrack_pose.pose.orientation = rocket_state->pose.orientation;
-    optitrack_pose.header.stamp = ros::Time::now();
+    optitrack_pose.header.stamp = now;
     fake_optitrack_pub.publish(optitrack_pose);
 }
 

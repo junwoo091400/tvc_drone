@@ -1,4 +1,5 @@
 float64[] Q
+float64[] R
 bool estimate_params
 ---
 DroneTrajectory trajectory

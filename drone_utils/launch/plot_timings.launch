@@ -15,7 +15,7 @@
         <rosparam file="$(find drone_gnc)/config/guidance_mpc_parameters.yaml"/>
     </group>
 
-    <node name="plot" pkg="drone_utils" type="plot_bag_trajectories.py" output="screen"/>
+    <node name="plot" pkg="drone_utils" type="plot_timings.py" output="screen"/>
 </launch>
 
 

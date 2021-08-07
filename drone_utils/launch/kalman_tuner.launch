@@ -14,6 +14,7 @@
     </node>
 
     <rosparam param="log_file">"log/log.bag"</rosparam>
+<!--    <rosparam param="log_file">"log/sine_test.bag"</rosparam>-->
 
 
     <node name="plot" pkg="drone_utils" type="kalman_tuner.py" output="screen"/>
