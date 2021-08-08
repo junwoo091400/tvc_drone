@@ -9,14 +9,13 @@
 
 #include <chrono>
 
-#include "../../../submodule/polympc/src/polynomials/ebyshev.hpp"
-#include "../../../submodule/polympc/src/control/continuous_ocp.hpp"
-#include "../../../submodule/polympc/src/polynomials/splines.hpp"
+#include "polynomials/ebyshev.hpp"
+#include "control/continuous_ocp.hpp"
+#include "polynomials/splines.hpp"
 
-#include "../../../submodule/polympc/src/solvers/sqp_base.hpp"
-#include "../../../submodule/polympc/src/solvers/osqp_interface.hpp"
-#include "../../../submodule/polympc/src/control/mpc_wrapper.hpp"
-#include "drone_model.hpp"
+#include "solvers/sqp_base.hpp"
+#include "solvers/osqp_interface.hpp"
+#include "control/mpc_wrapper.hpp"
 #include "mpc_utils.hpp"
 
 using namespace Eigen;
