@@ -80,8 +80,19 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
 
     if (ocp().minimal_time) {
         // initial guess assuming full thrust for first part, then minimum thrust for second part
-        double a1 = drone->getThrust(drone->max_propeller_speed) / drone->dry_mass - 9.81;
-        double a2 = drone->getThrust(drone->min_propeller_speed) / drone->dry_mass - 9.81;
+        double speed1, speed2;
+        if(z_target - z0 > 0){
+            speed1 = drone->max_propeller_speed;
+            speed2 = drone->min_propeller_speed;
+        }
+        else{
+            speed1 = drone->min_propeller_speed;
+            speed2 = drone->max_propeller_speed;
+        }
+
+        double a1 = drone->getThrust(speed1) / drone->dry_mass - 9.81;
+        double a2 = drone->getThrust(speed2) / drone->dry_mass - 9.81;
+
         // obtained by solving delta_z = 1/2 a1 t_mid^2 + v_mid (t_end-t_mid) + 1/2 a2 (t_end-t_mid)^2, v_end = 0
         double t_mid = sqrt(2 * (z_target - z0) / (a1 * (1 - a1 / a2)));
         double t_end = t_mid - a1 / a2 * t_mid;
@@ -96,17 +107,17 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
             if (t < t_mid) {
                 z_guess(i) = 0.5 * a1 * t * t;
                 dz_guess(i) = a1 * t;
-                prop_av_guess(i) = drone->max_propeller_speed;
+                prop_av_guess(i) = speed1;
             } else {
                 z_guess(i) = z_mid + v_mid * (t - t_mid) + 0.5 * a2 * (t - t_mid) * (t - t_mid);
                 dz_guess(i) = v_mid + a2 * (t - t_mid);
-                prop_av_guess(i) = drone->min_propeller_speed;
+                prop_av_guess(i) = speed2;
             }
         }
 
-        traj_state_guess.row(2) = z_guess.reverse();
-        traj_state_guess.row(5) = dz_guess.reverse();
-        traj_control_guess.row(2) = prop_av_guess.reverse();
+        traj_state_guess.row(2) = z_guess.reverse()*ocp().x_scaling_vec(2);
+        traj_state_guess.row(5) = dz_guess.reverse()*ocp().x_scaling_vec(5);
+        traj_control_guess.row(2) = prop_av_guess.reverse()*ocp().u_scaling_vec(2);
 //        ROS_INFO_STREAM("traj guess " << traj_state_guess);
 //        ROS_INFO_STREAM("control guess " << traj_control_guess);
 
@@ -205,7 +216,7 @@ void DroneGuidanceMPC::solve(Drone::state &x0_full) {
     initial_conditions(x0);
 
 //    warmStart();
-    double eps = 0.01;
+    double eps = 0.001;
     ocp_state lbx_f, ubx_f;
     ocp().get_state_bounds(lbx_f, ubx_f);
     if (ocp().minimal_time) {

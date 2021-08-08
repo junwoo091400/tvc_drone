@@ -13,7 +13,7 @@ using namespace Eigen;
 
 ros::Publisher rocket_control_pub, drone_state_pub, command_pub, fake_optitrack_pub;
 
-float CM_to_thrust_distance;
+double CM_to_thrust_distance;
 
 
 Matrix<double, 2, 2> sysA;
@@ -30,8 +30,8 @@ Drone *drone;
 
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
 
-    float thrust = thrust_scaling * drone->getThrust((drone_control->bottom + drone_control->top) * 0.5);
-    float torque = torque_scaling * drone->getTorque(drone_control->top - drone_control->bottom);
+    double thrust = thrust_scaling * drone->getThrust((drone_control->bottom + drone_control->top) * 0.5);
+    double torque = torque_scaling * drone->getTorque(drone_control->top - drone_control->bottom);
 
     // ss model for fixed ts//TODO use integrator time step instead
     x_servo1 = sysA * x_servo1 + sysB * ((double) drone_control->servo1);
