@@ -16,10 +16,11 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include<vector> // for vectors
+
 using namespace std;
 using namespace Eigen;
 
-DroneEKF* kalman;
+DroneEKF *kalman;
 
 bool received_optitrack;
 bool initialized_optitrack;
@@ -40,8 +41,7 @@ geometry_msgs::PoseStamped optitrackCallback(const geometry_msgs::PoseStamped::C
     return optitrack_pose;
 }
 
-bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Response &res)
-{
+bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Response &res) {
     received_optitrack = true;
     initialized_optitrack = false;
 
@@ -59,7 +59,7 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
     rosbag::Bag bag;
     bag.open(ros::package::getPath("drone_utils") + "/" + log_file_path, rosbag::bagmode::Read);
 
-    std::vector <std::string> topics;
+    std::vector<std::string> topics;
     topics.push_back(std::string("/optitrack_client/Kite/optitrack_pose"));
     topics.push_back(std::string("/drone_control"));
 
@@ -69,9 +69,9 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
 
     double t0 = 0;
     double current_time = 0;
-    for(rosbag::MessageInstance const m: view){
+    for (rosbag::MessageInstance const m: view) {
         drone_gnc::DroneControl::ConstPtr current_control_ptr = m.instantiate<drone_gnc::DroneControl>();
-        if(current_control_ptr != NULL){
+        if (current_control_ptr != NULL) {
             current_control = *current_control_ptr;
             kalman->received_control = true;
         }
@@ -84,24 +84,26 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
             current_time = raw_pose->header.stamp.toSec();
             optitrack_pose = optitrackCallback(raw_pose);
 
-            if(t0 == 0){
-                t0 =current_time;
+            if (t0 == 0) {
+                t0 = current_time;
             }
 
-            if(!initialized_optitrack){
+            if (!initialized_optitrack) {
                 last_predict_time = current_time;
                 initial_optitrack_orientation = Eigen::Quaterniond(optitrack_pose.pose.orientation.w,
                                                                    optitrack_pose.pose.orientation.x,
                                                                    optitrack_pose.pose.orientation.y,
                                                                    optitrack_pose.pose.orientation.z);
-                initial_optitrack_position = Eigen::Vector3d(optitrack_pose.pose.position.x, optitrack_pose.pose.position.y,
+                initial_optitrack_position = Eigen::Vector3d(optitrack_pose.pose.position.x,
+                                                             optitrack_pose.pose.position.y,
                                                              optitrack_pose.pose.position.z);
                 initialized_optitrack = true;
             }
 
             if (current_time - last_predict_time > period) {
                 Eigen::Quaterniond raw_orientation(optitrack_pose.pose.orientation.w, optitrack_pose.pose.orientation.x,
-                                                   optitrack_pose.pose.orientation.y, optitrack_pose.pose.orientation.z);
+                                                   optitrack_pose.pose.orientation.y,
+                                                   optitrack_pose.pose.orientation.z);
                 Eigen::Vector3d raw_position(optitrack_pose.pose.position.x, optitrack_pose.pose.position.y,
                                              optitrack_pose.pose.position.z);
                 Eigen::Quaterniond orientation = initial_optitrack_orientation.inverse() * raw_orientation;
@@ -113,7 +115,8 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
                 new_data.segment(3, 4) = orientation.coeffs();
 
                 DroneEKF::control u;
-                u << previous_control.servo1, previous_control.servo2, (previous_control.bottom + previous_control.top) / 2,
+                u << previous_control.servo1, previous_control.servo2,
+                        (previous_control.bottom + previous_control.top) / 2,
                         previous_control.top - previous_control.bottom;
                 previous_control = current_control;
 
@@ -164,6 +167,7 @@ bool kalman_simu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Res
     bag.close();
     return true;
 }
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "navigation");
     ros::NodeHandle nh("navigation");
@@ -178,6 +182,6 @@ int main(int argc, char **argv) {
 
     nh.getParam("period", period);
 
-    ros::ServiceServer service = nh.advertiseService("/kalman_simu", kalman_simu);
+    ros::ServiceServer service = nh.advertiseService("/kalmanSimu", kalmanSimu);
     ros::spin();
 }

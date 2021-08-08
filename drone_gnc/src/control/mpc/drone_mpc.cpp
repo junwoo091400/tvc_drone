@@ -19,7 +19,9 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     set_time_limits(0, horizon_length);
 
     // Setup constraints
-    ocp_state lbx, ubx; ocp_control lbu, ubu; ocp_constraint ubg, lbg;
+    ocp_state lbx, ubx;
+    ocp_control lbu, ubu;
+    ocp_constraint ubg, lbg;
     ocp().getConstraints(lbx, ubx, lbu, ubu, lbg, ubg);
     state_bounds(lbx, ubx);
     control_bounds(lbu, ubu);
@@ -47,7 +49,7 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     setTarget(target_state, target_control);
 
     init_time = ros::Time::now().toSec();
-    fixed_computation_time = mpc_period*0.93;
+    fixed_computation_time = mpc_period * 0.93;
 }
 
 
@@ -59,17 +61,17 @@ drone_gnc::DroneControl DroneMPC::getControlCurrentTime() {
     drone_gnc::DroneControl drone_control;
     drone_control.servo1 = interpolated_control(0);
     drone_control.servo2 = interpolated_control(1);
-    drone_control.bottom = interpolated_control(2) - interpolated_control(3)/2;
-    drone_control.top = interpolated_control(2) + interpolated_control(3)/2;
+    drone_control.bottom = interpolated_control(2) - interpolated_control(3) / 2;
+    drone_control.top = interpolated_control(2) + interpolated_control(3) / 2;
 
-    drone_control.servo1 = std::min(std::max(drone_control.servo1, -drone->maxServo1Angle),
-                                        drone->maxServo1Angle);
-    drone_control.servo2 = std::min(std::max(drone_control.servo2, -drone->maxServo2Angle),
-                                        drone->maxServo2Angle);
-    drone_control.top = std::min(std::max(drone_control.top, drone->minPropellerSpeed),
-                                     drone->maxPropellerSpeed);
-    drone_control.bottom = std::min(std::max(drone_control.bottom, drone->minPropellerSpeed),
-                                        drone->maxPropellerSpeed);
+    drone_control.servo1 = std::min(std::max(drone_control.servo1, -drone->max_servo1_angle),
+                                    drone->max_servo1_angle);
+    drone_control.servo2 = std::min(std::max(drone_control.servo2, -drone->max_servo2_angle),
+                                    drone->max_servo2_angle);
+    drone_control.top = std::min(std::max(drone_control.top, drone->min_propeller_speed),
+                                 drone->max_propeller_speed);
+    drone_control.bottom = std::min(std::max(drone_control.bottom, drone->min_propeller_speed),
+                                    drone->max_propeller_speed);
     drone_control.header.stamp = ros::Time::now();
     return drone_control;
 }
@@ -114,29 +116,29 @@ void DroneMPC::warmStart() {
 //    u_guess(u_guess);
 }
 
-Drone::state DroneMPC::solution_x_at(const double t){
+Drone::state DroneMPC::solution_x_at(const double t) {
     return MPC::solution_x_at(t).segment(0, 13).cwiseProduct(ocp().x_drone_unscaling_vec);
 }
 
-Drone::control DroneMPC::solution_u_at(const double t){
+Drone::control DroneMPC::solution_u_at(const double t) {
     Drone::control u;
-    u.segment(0, 2) =  MPC::solution_x_at(t).segment(13, 2);
-    u.segment(2, 2) =  MPC::solution_u_at(t).segment(2, 2);
+    u.segment(0, 2) = MPC::solution_x_at(t).segment(13, 2);
+    u.segment(2, 2) = MPC::solution_u_at(t).segment(2, 2);
     return u.cwiseProduct(ocp().u_drone_unscaling_vec);
 }
 
-Drone::state DroneMPC::solution_x_at(const int t){
+Drone::state DroneMPC::solution_x_at(const int t) {
     return MPC::solution_x_at(t).segment(0, 13).cwiseProduct(ocp().x_drone_unscaling_vec);
 }
 
-Drone::control DroneMPC::solution_u_at(const int t){
+Drone::control DroneMPC::solution_u_at(const int t) {
     Drone::control u;
-    u.segment(0, 2) =  MPC::solution_x_at(t).segment(13, 2);
-    u.segment(2, 2) =  MPC::solution_u_at(t).segment(2, 2);
+    u.segment(0, 2) = MPC::solution_x_at(t).segment(13, 2);
+    u.segment(2, 2) = MPC::solution_u_at(t).segment(2, 2);
     return u.cwiseProduct(ocp().u_drone_unscaling_vec);
 }
 
-double DroneMPC::node_time(int i){
+double DroneMPC::node_time(int i) {
     return time_grid(i);
 }
 
@@ -148,51 +150,51 @@ void DroneMPC::solve(Drone::state &x0) {
 
     //servo rate constraint
     ocp_state previous_x = MPC::solution_x_at(0).cwiseProduct(ocp().x_unscaling_vec);
-    double maxServoRate = drone->maxServoRate;
+    double maxServoRate = drone->max_servo_rate;
     ocp_state lbx0;
     lbx0.segment(0, 13) = predicted_x0;
-    lbx0(13) = previous_x(13) - maxServoRate*mpc_period;
-    lbx0(14) = previous_x(14) - maxServoRate*mpc_period;
+    lbx0(13) = previous_x(13) - maxServoRate * mpc_period;
+    lbx0(14) = previous_x(14) - maxServoRate * mpc_period;
 
     ocp_state ubx0;
     ubx0.segment(0, 13) = predicted_x0;
-    ubx0(13) = previous_x(13) + maxServoRate*mpc_period;
-    ubx0(14) = previous_x(14) + maxServoRate*mpc_period;
+    ubx0(13) = previous_x(13) + maxServoRate * mpc_period;
+    ubx0(14) = previous_x(14) + maxServoRate * mpc_period;
 
     initial_conditions(lbx0.cwiseProduct(ocp().x_scaling_vec), ubx0.cwiseProduct(ocp().x_scaling_vec));
 
 //    warmStart();
 
-    if (is_simu){
+    if (is_simu) {
         // in simulation, sleep to account fo
-        ros::Duration(mpc_period-feedforward_period).sleep();
+        ros::Duration(mpc_period - feedforward_period).sleep();
     }
 
     double time_now = ros::Time::now().toSec();
     MPC::solve();
-    last_computation_time = (ros::Time::now().toSec()-time_now)*1000;
+    last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
 
     time_now = ros::Time::now().toSec();
     //TODO
-    while (ros::Time::now().toSec() < computation_start_time+fixed_computation_time);
+    while (ros::Time::now().toSec() < computation_start_time + fixed_computation_time);
     ROS_INFO_STREAM("");
 
     solution_time = ros::Time::now().toSec();
 }
 
-void DroneMPC::integrateX0(const Drone::state x0, Drone::state &new_x0){
+void DroneMPC::integrateX0(const Drone::state x0, Drone::state &new_x0) {
     new_x0 = x0;
 
-    int max_ff_index = std::round(mpc_period/feedforward_period);
+    int max_ff_index = std::round(mpc_period / feedforward_period);
 
     int i;
-    for(i = 0; i<max_ff_index-1; i++){
-        Drone::control interpolated_control = solution_u_at(feedforward_period*i);
+    for (i = 0; i < max_ff_index - 1; i++) {
+        Drone::control interpolated_control = solution_u_at(feedforward_period * i);
         drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
     }
     i++;
 
-    Drone::control interpolated_control = solution_u_at(feedforward_period*i);
+    Drone::control interpolated_control = solution_u_at(feedforward_period * i);
     drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
 }
 

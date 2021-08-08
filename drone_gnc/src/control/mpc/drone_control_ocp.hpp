@@ -32,11 +32,11 @@ using namespace std;
 using Polynomial = polympc::Chebyshev<POLY_ORDER, polympc::GAUSS_LOBATTO, double>;
 using Approximation = polympc::Spline<Polynomial, NUM_SEG>;
 
-POLYMPC_FORWARD_DECLARATION(/*Name*/ control_ocp, /*NX*/ 15, /*NU*/ 4, /*NP*/ 0, /*ND*/ 0, /*NG*/3, /*TYPE*/ double)
+POLYMPC_FORWARD_DECLARATION(/*Name*/ DroneControlOCP, /*NX*/ 15, /*NU*/ 4, /*NP*/ 0, /*ND*/ 0, /*NG*/3, /*TYPE*/ double)
 
-class control_ocp : public ContinuousOCP<control_ocp, Approximation, SPARSE> {
+class DroneControlOCP : public ContinuousOCP<DroneControlOCP, Approximation, SPARSE> {
 public:
-    ~control_ocp() = default;
+    ~DroneControlOCP() = default;
 
     Matrix<scalar_t, 11, 1> Q;
     Matrix<scalar_t, Drone::NU, 1> R;
@@ -49,7 +49,7 @@ public:
 
     shared_ptr<Drone> drone;
 
-    scalar_t maxAttitudeAngle;
+    scalar_t max_attitude_angle;
 
     scalar_t min_z;
     scalar_t min_dz;
@@ -73,7 +73,7 @@ public:
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
         scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
-        scalar_t maxAttitudeAngle_degree, weight_scaling;
+        scalar_t max_attitude_angle_degree, weight_scaling;
         if (nh.getParam("mpc/min_z", min_z) &&
             nh.getParam("mpc/min_dz", min_dz) &&
             nh.getParam("mpc/max_dx", max_dx) &&
@@ -94,7 +94,7 @@ public:
             nh.getParam("mpc/input_costs/thrust", thrust_cost) &&
             nh.getParam("mpc/input_costs/torque", torque_cost) &&
 
-            nh.getParam("mpc/max_attitude_angle", maxAttitudeAngle_degree)) {
+            nh.getParam("mpc/max_attitude_angle", max_attitude_angle_degree)) {
 
             Q << x_cost, x_cost, z_cost,
                     dx_cost, dx_cost, dz_cost,
@@ -103,21 +103,21 @@ public:
 
             R << servo_cost, servo_cost, thrust_cost, torque_cost;
 
-            compute_LQR_terminal_cost(drone, Q, R, QN);
+            computeLQRTerminalCost(drone, Q, R, QN);
 
             ROS_INFO_STREAM("QN" << QN);
 
-            maxAttitudeAngle = maxAttitudeAngle_degree * (M_PI / 180);
+            max_attitude_angle = max_attitude_angle_degree * (M_PI / 180);
 
             x_unscaling_vec << scaling_x, scaling_x, scaling_z,
                     max_dx, max_dx, max_dz,
                     1, 1, 1, 1,
                     max_datt, max_datt, max_datt,
-                    drone->maxServo1Angle, drone->maxServo2Angle;
+                    drone->max_servo1_angle, drone->max_servo2_angle;
             x_scaling_vec = x_unscaling_vec.cwiseInverse();
 
-            u_unscaling_vec << drone->maxServoRate, drone->maxServoRate,
-                    drone->maxPropellerSpeed, drone->maxPropellerDelta / 2;
+            u_unscaling_vec << drone->max_servo_rate, drone->max_servo_rate,
+                    drone->max_propeller_speed, drone->maxPropellerDelta / 2;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
 //            u_unscaling_vec.setOnes();
@@ -167,28 +167,28 @@ public:
         const double inf = std::numeric_limits<double>::infinity();
         const double eps = 1e-1;
 
-        lbu << -drone->maxServoRate, -drone->maxServoRate,
-                drone->minPropellerSpeed, -drone->maxPropellerDelta / 2; // lower bound on control
-        ubu << drone->maxServoRate, drone->maxServoRate,
-                drone->maxPropellerSpeed, drone->maxPropellerDelta / 2; // upper bound on control
+        lbu << -drone->max_servo_rate, -drone->max_servo_rate,
+                drone->min_propeller_speed, -drone->maxPropellerDelta / 2; // lower bound on control
+        ubu << drone->max_servo_rate, drone->max_servo_rate,
+                drone->max_propeller_speed, drone->maxPropellerDelta / 2; // upper bound on control
 
         lbx << -inf, -inf, min_z + eps,
                 -max_dx, -max_dx, min_dz,
                 -inf, -inf, -inf, -inf,
                 -max_datt, -max_datt, -inf,
-                -drone->maxServo1Angle, -drone->maxServo2Angle;
+                -drone->max_servo1_angle, -drone->max_servo2_angle;
 
         ubx << inf, inf, inf,
                 max_dx, max_dx, max_dz,
                 inf, inf, inf, inf,
                 max_datt, max_datt, inf,
-                drone->maxServo1Angle, drone->maxServo2Angle;
+                drone->max_servo1_angle, drone->max_servo2_angle;
 
         //TODO fix attitude constraint [cos(maxAttitudeAngle) 1]
-        lbg << cos(maxAttitudeAngle), drone->minPropellerSpeed, drone->minPropellerSpeed;
-        ubg << inf, drone->maxPropellerSpeed, drone->maxPropellerSpeed;
+        lbg << cos(max_attitude_angle), drone->min_propeller_speed, drone->min_propeller_speed;
+        ubg << inf, drone->max_propeller_speed, drone->max_propeller_speed;
         ROS_INFO_STREAM(lbg);
-        ROS_INFO_STREAM("min cos" << cos(maxAttitudeAngle));
+        ROS_INFO_STREAM("min cos" << cos(max_attitude_angle));
 //
         lbu = lbu.cwiseProduct(u_scaling_vec);
         ubu = ubu.cwiseProduct(u_scaling_vec);

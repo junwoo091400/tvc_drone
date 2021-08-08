@@ -2,7 +2,8 @@
 
 DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
                                                                                             drone(drone_ptr),
-                                                                                            backupController(drone_ptr) {
+                                                                                            backupController(
+                                                                                                    drone_ptr) {
     initTopics(nh);
 
     std::vector<double> initial_target_apogee;
@@ -71,7 +72,7 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
     computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 }
 
-void DroneControlNode::run(){
+void DroneControlNode::run() {
     double loop_start_time = ros::Time::now().toSec();
     // State machine ------------------------------------------
     if (received_trajectory || !track_guidance) {
@@ -82,7 +83,7 @@ void DroneControlNode::run(){
         }
 
         fsm_mutex.lock();
-        if(current_fsm.state_machine.compare("Launch") == 0){
+        if (current_fsm.state_machine.compare("Launch") == 0) {
             publishFeedforwardControl();
         }
         fsm_mutex.unlock();
@@ -138,7 +139,7 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
                 waypoint.state.twist.angular.x, waypoint.state.twist.angular.y, waypoint.state.twist.angular.z;
         i++;
     }
-    guidanceTraj_tf =target->trajectory.at(i-1).header.stamp.toSec();
+    guidanceTraj_tf = target->trajectory.at(i - 1).header.stamp.toSec();
 }
 
 Drone::state DroneControlNode::sampleTargetTrajectory(double t) {
@@ -173,15 +174,15 @@ void DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, Dr
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
         double t = time_now + drone_mpc.time_grid(i) - guidanceTraj_t0;
         //TODO remove constants
-        double idx = t * GUIDANCE_NUM_NODE / (guidanceTraj_tf-guidanceTraj_t0);
+        double idx = t * GUIDANCE_NUM_NODE / (guidanceTraj_tf - guidanceTraj_t0);
 
         //linear interpolation
         int l_idx = floor(idx);
-        l_idx = min(l_idx, GUIDANCE_NUM_NODE-1);
+        l_idx = min(l_idx, GUIDANCE_NUM_NODE - 1);
         Drone::state l_state = guidanceTrajectory.col(l_idx);
 
         int u_idx = ceil(idx);
-        u_idx = min(u_idx, GUIDANCE_NUM_NODE-1);
+        u_idx = min(u_idx, GUIDANCE_NUM_NODE - 1);
         Drone::state u_state = guidanceTrajectory.col(u_idx);
 
         Drone::state state = l_state + (u_state - l_state) * (idx - l_idx);
@@ -209,7 +210,6 @@ void DroneControlNode::computeControl() {
                                current_state.disturbance_force.z,
                                current_state.disturbance_torque.x, current_state.disturbance_torque.y,
                                current_state.disturbance_torque.z);
-
 
 
     drone_mpc.solve(x0);
@@ -283,8 +283,8 @@ void DroneControlNode::publishTrajectory() {
         drone_gnc::DroneControl control_msg;
         control_msg.servo1 = control_val(0);
         control_msg.servo2 = control_val(1);
-        control_msg.bottom = control_val(2) - control_val(3)/2;
-        control_msg.top = control_val(2) + control_val(3)/2;
+        control_msg.bottom = control_val(2) - control_val(3) / 2;
+        control_msg.top = control_val(2) + control_val(3) / 2;
 
         drone_gnc::DroneWaypointStamped state_msg_stamped;
         state_msg_stamped.state = state_msg;
@@ -318,12 +318,11 @@ void DroneControlNode::fetchNewTarget() {
     drone_mpc.setTarget(target_state, target_control);
 
     Matrix<double, Drone::NX, DroneMPC::num_nodes> mpc_target_traj;
-    if(!track_guidance){
+    if (!track_guidance) {
         for (int i = 0; i < DroneMPC::num_nodes; i++) {
             mpc_target_traj.col(i) = target_state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
         }
-    }
-    else if (fixed_guidance) {
+    } else if (fixed_guidance) {
         sampleTargetTrajectoryLinear(mpc_target_traj);
     } else {
         sampleTargetTrajectory(mpc_target_traj);
@@ -358,11 +357,14 @@ void DroneControlNode::printDebugInfo() {
 }
 
 void DroneControlNode::publishDebugInfo() {
-    std_msgs::Int32 msg1; msg1.data = drone_mpc.info().iter;
+    std_msgs::Int32 msg1;
+    msg1.data = drone_mpc.info().iter;
     sqp_iter_pub.publish(msg1);
-    std_msgs::Int32 msg2; msg2.data = drone_mpc.info().qp_solver_iter;
+    std_msgs::Int32 msg2;
+    msg2.data = drone_mpc.info().qp_solver_iter;
     qp_iter_pub.publish(msg2);
-    std_msgs::Float64 msg3; msg3.data = drone_mpc.last_computation_time;
+    std_msgs::Float64 msg3;
+    msg3.data = drone_mpc.last_computation_time;
     computation_time_pub.publish(msg3);
 }
 

@@ -36,7 +36,8 @@ public:
 
     double scaling = 1;
 
-    constexpr static double seg_lengths[] = {0.5, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3, 2.97/*ellipse*/ };
+    constexpr static double seg_lengths[] = {0.5, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3,
+                                             2.97/*ellipse*/ };
     double total_length;
     double total_duration;
 
@@ -45,7 +46,7 @@ public:
         for (double seg_length:seg_lengths) {
             total_length += seg_length;
         }
-        total_length*=scaling;
+        total_length *= scaling;
         total_duration = total_length / speed;
         ROS_ERROR_STREAM(total_duration);
         initTopics(nh);
@@ -68,7 +69,7 @@ public:
         ////////// start
         if (s <= seg_lengths[i]) {
             s /= seg_lengths[i];
-            seg_point << 0, 0, 0.5*s;
+            seg_point << 0, 0, 0.5 * s;
             return seg_start + seg_point;
         }
         s -= seg_lengths[i];
@@ -77,7 +78,7 @@ public:
 
         if (s <= seg_lengths[i]) {
             s /= seg_lengths[i];
-            seg_point << 0, -s,0;
+            seg_point << 0, -s, 0;
             return seg_start + seg_point;
         }
         s -= seg_lengths[i];
@@ -87,7 +88,7 @@ public:
 
         if (s <= seg_lengths[i]) {
             s /= seg_lengths[i];
-            seg_point << 0,0,0;
+            seg_point << 0, 0, 0;
             return seg_start + seg_point;
         }
         s -= seg_lengths[i];
@@ -195,7 +196,7 @@ public:
     }
 
     void sample_traj(double t, drone_gnc::DroneState &state_msg) {
-        Vector3d point = sample_path(t * speed)*scaling;
+        Vector3d point = sample_path(t * speed) * scaling;
 //        Vector3d point;
 
 //        point << point2(1), point2(0), point2(2);
@@ -211,7 +212,7 @@ public:
         state_msg.pose.position.y = point.y();
         state_msg.pose.position.z = point.z();
 
-        state_msg.twist.linear.x     = speed_vec.x();
+        state_msg.twist.linear.x = speed_vec.x();
         state_msg.twist.linear.y = speed_vec.y();
         state_msg.twist.linear.z = speed_vec.z();
 

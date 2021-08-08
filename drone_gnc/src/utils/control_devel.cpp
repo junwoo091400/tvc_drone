@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     R << 5, 5, 0.01, 0.01;
 
     Matrix<double, NX - 2, NX - 2> QN;
-    compute_LQR_terminal_cost(drone, Q, R,QN);
+    compute_LQR_terminal_cost(drone, Q, R, QN);
 
     ROS_INFO_STREAM("QN\n" << QN);
 }

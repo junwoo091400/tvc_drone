@@ -23,14 +23,14 @@ public:
     using parameters = parameters_t<double>;
 
 
-    double minPropellerSpeed;
-    double maxPropellerSpeed;
+    double min_propeller_speed;
+    double max_propeller_speed;
     double maxPropellerDelta;
 
-    double maxServo1Angle;
-    double maxServo2Angle;
+    double max_servo1_angle;
+    double max_servo2_angle;
 
-    double maxServoRate;
+    double max_servo_rate;
 
     double thrust_scaling;
     Eigen::Vector3d disturbance_torque;
@@ -41,21 +41,21 @@ public:
     double servo2_offset;
 
     Drone(ros::NodeHandle &nh) : Rocket(nh) {
-        double maxServo1Angle_degree, maxServo2Angle_degree, maxServoRate_degree;
-        if (nh.getParam("/rocket/minPropellerSpeed", minPropellerSpeed) &&
-            nh.getParam("/rocket/maxPropellerSpeed", maxPropellerSpeed) &&
-            nh.getParam("/rocket/maxPropellerDelta", maxPropellerDelta) &&
-            nh.getParam("/rocket/maxServo1Angle", maxServo1Angle_degree) &&
-            nh.getParam("/rocket/maxServo2Angle", maxServo2Angle_degree) &&
-            nh.getParam("/rocket/max_servo_rate", maxServoRate_degree) &&
+        double max_servo1_angle_degree, max_servo2_angle_degree, max_servo_rate_degree;
+        if (nh.getParam("/rocket/min_propeller_speed", min_propeller_speed) &&
+            nh.getParam("/rocket/max_propeller_speed", max_propeller_speed) &&
+            nh.getParam("/rocket/max_propeller_delta", maxPropellerDelta) &&
+            nh.getParam("/rocket/max_servo1_angle", max_servo1_angle_degree) &&
+            nh.getParam("/rocket/max_servo2_angle", max_servo2_angle_degree) &&
+            nh.getParam("/rocket/max_servo_rate", max_servo_rate_degree) &&
             nh.getParam("/rocket/CM_to_thrust_distance", total_CM)) {}
         else {
             ROS_ERROR("Failed to get drone parameters");
         }
 
-        maxServo1Angle = maxServo1Angle_degree * (M_PI / 180);
-        maxServo2Angle = maxServo2Angle_degree * (M_PI / 180);
-        maxServoRate = maxServoRate_degree * (M_PI / 180);
+        max_servo1_angle = max_servo1_angle_degree * (M_PI / 180);
+        max_servo2_angle = max_servo2_angle_degree * (M_PI / 180);
+        max_servo_rate = max_servo_rate_degree * (M_PI / 180);
 
 
         thrust_scaling = 1;

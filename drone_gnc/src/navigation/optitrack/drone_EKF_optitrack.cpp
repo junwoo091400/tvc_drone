@@ -130,7 +130,11 @@ void DroneEKF::measurementModel(const state_t<T> &x, sensor_data_t<T> &z) {
     z.segment(3, 4) = x.segment(6, 4);
 }
 
-void DroneEKF::fullDerivative(const state &x, const state_matrix &P, const control &u, state &xdot, state_matrix &Pdot) {
+void DroneEKF::fullDerivative(const state &x,
+                              const state_matrix &P,
+                              const control &u,
+                              state &xdot,
+                              state_matrix &Pdot) {
     //X derivative
     stateDynamics(x, u, xdot);
 
@@ -149,7 +153,12 @@ void DroneEKF::fullDerivative(const state &x, const state_matrix &P, const contr
 }
 
 
-void DroneEKF::RK4(const state &X, const state_matrix &P, const control &u, double dT, state &Xnext, state_matrix &Pnext) {
+void DroneEKF::RK4(const state &X,
+                   const state_matrix &P,
+                   const control &u,
+                   double dT,
+                   state &Xnext,
+                   state_matrix &Pnext) {
     state k1, k2, k3, k4;
     state_matrix k1_P, k2_P, k3_P, k4_P;
 

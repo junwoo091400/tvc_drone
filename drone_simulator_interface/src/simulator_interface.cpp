@@ -25,13 +25,13 @@ Matrix<double, 2, 1> x_servo2;
 double CM_OFFSET_X = 0;
 
 bool first_command = true;
-double thrust_scaling, torque_scaling, servo1_offset,servo2_offset;
-Drone* drone;
+double thrust_scaling, torque_scaling, servo1_offset, servo2_offset;
+Drone *drone;
 
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
 
-    float thrust = thrust_scaling*drone->getThrust((drone_control->bottom +drone_control->top)*0.5);
-    float torque = torque_scaling*drone->getTorque(drone_control->top - drone_control->bottom);
+    float thrust = thrust_scaling * drone->getThrust((drone_control->bottom + drone_control->top) * 0.5);
+    float torque = torque_scaling * drone->getTorque(drone_control->top - drone_control->bottom);
 
     // ss model for fixed ts//TODO use integrator time step instead
     x_servo1 = sysA * x_servo1 + sysB * ((double) drone_control->servo1);
@@ -58,15 +58,16 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
 
 
     converted_control.torque.x = thrust_vector.y() * CM_to_thrust_distance + propeller_torque.x();
-    converted_control.torque.y = -thrust_vector.x() * CM_to_thrust_distance + propeller_torque.y() - CM_OFFSET_X*thrust_vector.z();
-    converted_control.torque.z = torque + propeller_torque.z() + CM_OFFSET_X*thrust_vector.y();
+    converted_control.torque.y =
+            -thrust_vector.x() * CM_to_thrust_distance + propeller_torque.y() - CM_OFFSET_X * thrust_vector.z();
+    converted_control.torque.z = torque + propeller_torque.z() + CM_OFFSET_X * thrust_vector.y();
 
     converted_control.force.x = thrust_vector.x();
     converted_control.force.y = thrust_vector.y();
     converted_control.force.z = thrust_vector.z();
     rocket_control_pub.publish(converted_control);
 
-    if (first_command){
+    if (first_command) {
         first_command = false;
         std_msgs::String msg;
         msg.data = "Launch";

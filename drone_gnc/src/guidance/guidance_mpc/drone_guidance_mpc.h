@@ -8,7 +8,7 @@
 
 #include "guidance_polympc_redef.hpp"
 
-class DroneGuidanceMPC : public MPC<guidance_ocp, Solver> {
+class DroneGuidanceMPC : public MPC<DroneGuidanceOCP, Solver> {
 
 public:
     using ocp_state = state_t;
@@ -20,12 +20,17 @@ public:
     void solve(Drone::state &x0);
 
     void initGuess(Drone::state &x0, Drone::state &target);
+
     void setTarget(Drone::state &target_state, Drone::control &target_control);
 
-    Drone::state  solution_x_at(const double t);
+    Drone::state solution_x_at(const double t);
+
     Drone::control solution_u_at(const double t);
-    Drone::state  solution_x_at(const int t);
-    Drone::control  solution_u_at(const int t);
+
+    Drone::state solution_x_at(const int t);
+
+    Drone::control solution_u_at(const int t);
+
     double node_time(int i);
 
     std::shared_ptr<Drone> drone;

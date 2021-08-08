@@ -31,11 +31,11 @@ using namespace std;
 using Polynomial = polympc::Chebyshev<POLY_ORDER, polympc::GAUSS_LOBATTO, double>;
 using Approximation = polympc::Spline<Polynomial, NUM_SEG>;
 
-POLYMPC_FORWARD_DECLARATION(/*Name*/ guidance_ocp, /*NX*/ 6, /*NU*/ 3, /*NP*/ 1, /*ND*/ 0, /*NG*/0, /*TYPE*/ double)
+POLYMPC_FORWARD_DECLARATION(/*Name*/ DroneGuidanceOCP, /*NX*/ 6, /*NU*/ 3, /*NP*/ 1, /*ND*/ 0, /*NG*/0, /*TYPE*/ double)
 
-class guidance_ocp : public ContinuousOCP<guidance_ocp, Approximation, SPARSE> {
+class DroneGuidanceOCP : public ContinuousOCP<DroneGuidanceOCP, Approximation, SPARSE> {
 public:
-    ~guidance_ocp() = default;
+    ~DroneGuidanceOCP() = default;
 
     Matrix<scalar_t, NX, 1> Q;
     Matrix<scalar_t, NU, 1> R;
@@ -92,8 +92,8 @@ public:
                     max_dx, max_dx, max_dz;
             x_scaling_vec = x_unscaling_vec.cwiseInverse();
 
-            u_unscaling_vec << drone->maxServo1Angle, drone->maxServo2Angle,
-                    drone->maxPropellerSpeed;
+            u_unscaling_vec << drone->max_servo1_angle, drone->max_servo2_angle,
+                    drone->max_propeller_speed;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
             u_unscaling_vec.setOnes();
@@ -114,11 +114,11 @@ public:
 
     }
 
-    void get_state_bounds(state_t <scalar_t> &lbx, state_t <scalar_t> &ubx){
+    void get_state_bounds(state_t <scalar_t> &lbx, state_t <scalar_t> &ubx) {
         const double inf = std::numeric_limits<double>::infinity();
         const double eps = 1e-1;
 
-        lbx << -inf, -inf, 0-eps,
+        lbx << -inf, -inf, 0 - eps,
                 -max_dx, -max_dx, min_dz;
 
         ubx << inf, inf, inf,
@@ -129,11 +129,11 @@ public:
     }
 
 
-    void get_control_bounds(control_t <scalar_t> &lbu, control_t <scalar_t> &ubu){
-        lbu << -drone->maxServo1Angle, -drone->maxServo2Angle,
-                drone->minPropellerSpeed; // lower bound on control
-        ubu << drone->maxServo1Angle, drone->maxServo2Angle,
-                drone->maxPropellerSpeed; // upper bound on control
+    void get_control_bounds(control_t <scalar_t> &lbu, control_t <scalar_t> &ubu) {
+        lbu << -drone->max_servo1_angle, -drone->max_servo2_angle,
+                drone->min_propeller_speed; // lower bound on control
+        ubu << drone->max_servo1_angle, drone->max_servo2_angle,
+                drone->max_propeller_speed; // upper bound on control
         lbu = lbu.cwiseProduct(u_scaling_vec);
         ubu = ubu.cwiseProduct(u_scaling_vec);
     }
@@ -167,15 +167,15 @@ public:
         Eigen::Matrix<T, 3, 1> thrust_vector = thrust_direction * thrust;
 
         Eigen::Matrix<T, 3, 1> gravity;
-        gravity << (T) 0, (T) 0, (T) -9.81;
+        gravity << (T) 0, (T) 0, (T) - 9.81;
 
         xdot.head(3) = x_unscaled.segment(3, 3);
-        xdot.segment(3, 3) = thrust_vector * (T)drone->dry_mass_inv + gravity;
+        xdot.segment(3, 3) = thrust_vector * (T) drone->dry_mass_inv + gravity;
 
         //unscale
         xdot = xdot.cwiseProduct(x_scaling_vec.template cast<T>());
 
-        if(minimal_time){
+        if (minimal_time) {
             xdot *= p(0);
         }
     }
@@ -199,10 +199,9 @@ public:
                                    const Ref<const parameter_t <T>> p,
                                    const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
-        if(minimal_time){
+        if (minimal_time) {
             lagrange = (T) 0;
-        }
-        else{
+        } else {
             Matrix<T, NX, 1> x_error = x - xs.template cast<T>();
             Matrix<T, NU, 1> u_error = u - us.template cast<T>();
             lagrange = x_error.dot(Q.template cast<T>().cwiseProduct(x_error)) +
@@ -214,10 +213,9 @@ public:
     inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        if(minimal_time){
+        if (minimal_time) {
             mayer = p(0);
-        }
-        else{
+        } else {
             mayer = (T) 0;
         }
     }

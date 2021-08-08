@@ -38,13 +38,13 @@ Cd:
 CM_offset_x: 0
 initial_speed: 0
 
-minPropellerSpeed: 35
-maxPropellerSpeed: 80
+min_propeller_speed: 35
+max_propeller_speed: 80
 
-maxPropellerDelta: 30
+max_propeller_delta: 40
 
-maxServo1Angle: 15
-maxServo2Angle: 15
+max_servo1_angle: 15
+max_servo2_angle: 15
 
 max_servo_rate: 200
 

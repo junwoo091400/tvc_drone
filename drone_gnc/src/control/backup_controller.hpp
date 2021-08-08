@@ -58,14 +58,14 @@ public:
         drone_control.bottom = u(2) - u(3) / 2;
         drone_control.top = u(2) + u(3) / 2;
 
-        drone_control.servo1 = std::min(std::max(drone_control.servo1, -drone->maxServo1Angle),
-                                        drone->maxServo1Angle);
-        drone_control.servo2 = std::min(std::max(drone_control.servo2, -drone->maxServo2Angle),
-                                        drone->maxServo2Angle);
-        drone_control.top = std::min(std::max(drone_control.top, drone->minPropellerSpeed),
-                                     drone->maxPropellerSpeed);
-        drone_control.bottom = std::min(std::max(drone_control.bottom, drone->minPropellerSpeed),
-                                        drone->maxPropellerSpeed);
+        drone_control.servo1 = std::min(std::max(drone_control.servo1, -drone->max_servo1_angle),
+                                        drone->max_servo1_angle);
+        drone_control.servo2 = std::min(std::max(drone_control.servo2, -drone->max_servo2_angle),
+                                        drone->max_servo2_angle);
+        drone_control.top = std::min(std::max(drone_control.top, drone->min_propeller_speed),
+                                     drone->max_propeller_speed);
+        drone_control.bottom = std::min(std::max(drone_control.bottom, drone->min_propeller_speed),
+                                        drone->max_propeller_speed);
 
         return drone_control;
     };

@@ -73,7 +73,8 @@ public:
                                                                    optitrack_pose.pose.orientation.x,
                                                                    optitrack_pose.pose.orientation.y,
                                                                    optitrack_pose.pose.orientation.z);
-                initial_optitrack_position = Eigen::Vector3d(optitrack_pose.pose.position.x, optitrack_pose.pose.position.y,
+                initial_optitrack_position = Eigen::Vector3d(optitrack_pose.pose.position.x,
+                                                             optitrack_pose.pose.position.y,
                                                              optitrack_pose.pose.position.z);
                 initialized_optitrack = true;
             }

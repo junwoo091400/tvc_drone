@@ -27,15 +27,19 @@ public:
     double period;
 
     DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
+
     void initTopics(ros::NodeHandle &nh);
+
     void run();
 
     // Callback function to store last received state
     void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state);
+
     // Callback function to store last received state
     void targetCallback(const geometry_msgs::Vector3 &target);
 
     void computeTrajectory();
+
     void publishTrajectory();
 
     void publishDebugInfo();

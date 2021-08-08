@@ -8,7 +8,7 @@
 
 #include "polympc_redef.hpp"
 
-class DroneMPC : public MPC<control_ocp, Solver> {
+class DroneMPC : public MPC<DroneControlOCP, Solver> {
 
 public:
     using ocp_state = state_t;
@@ -24,12 +24,17 @@ public:
     void setTarget(Drone::state &target_state, Drone::control &target_control);
 
     Drone::state solution_x_at(const double t);
+
     Drone::control solution_u_at(const double t);
+
     Drone::state solution_x_at(const int t);
+
     Drone::control solution_u_at(const int t);
+
     double node_time(int i);
 
     void integrateX0(const Drone::state x0, Drone::state &new_x0);
+
     std::shared_ptr<Drone> drone;
     double mpc_period;
     double feedforward_period;
@@ -40,6 +45,7 @@ public:
 
 private:
     void warmStart();
+
     double solution_time;
     bool is_simu;
 };

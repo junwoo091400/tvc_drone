@@ -15,11 +15,12 @@ using namespace Eigen;
 #include "drone_guidance_ocp.hpp"
 
 /** create solver */
-template<typename Problem, typename QPSolver> class Solver;
+template<typename Problem, typename QPSolver>
+class Solver;
+
 template<typename Problem, typename QPSolver = boxADMM<Problem::VAR_SIZE, Problem::NUM_EQ + Problem::NUM_INEQ,
-        typename Problem::scalar_t, Problem::MATRIXFMT, linear_solver_traits<guidance_ocp::MATRIXFMT>::default_solver>>
-class Solver : public SQPBase<Solver<Problem, QPSolver>, Problem, QPSolver>
-{
+        typename Problem::scalar_t, Problem::MATRIXFMT, linear_solver_traits<DroneGuidanceOCP::MATRIXFMT>::default_solver>>
+class Solver : public SQPBase<Solver<Problem, QPSolver>, Problem, QPSolver> {
 public:
     using Base = SQPBase<Solver<Problem, QPSolver>, Problem, QPSolver>;
     using typename Base::scalar_t;

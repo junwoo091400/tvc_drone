@@ -55,7 +55,7 @@ plot_ranges = {
     "fz": [-3, 3],
     "mx": [-1, 1],
     "my": [-1, 1],
-    "mz": [-1, 1],
+    "mz": [-0.1, 0.1],
 }
 
 kalman_plot_indexes = {

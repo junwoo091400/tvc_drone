@@ -28,7 +28,7 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 }
 
-void DroneGuidanceNode::run(){
+void DroneGuidanceNode::run() {
     double loop_start_time = ros::Time::now().toSec();
     if (received_state) {
         computeTrajectory();
@@ -76,10 +76,13 @@ void DroneGuidanceNode::computeTrajectory() {
 
     drone_mpc.solve(x0);
 
-    //TODO
-    if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(drone_mpc.solution_p()(0)) > 100) {
+    double p_sol = drone_mpc.solution_p()(0);
+    if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
+//        ROS_ERROR_STREAM("p sol" << p_sol);
         ROS_ERROR_STREAM("Guidance MPC error");
         drone_mpc.initGuess(x0, target_state);
+        p_sol = drone_mpc.solution_p()(0);
+//        ROS_ERROR_STREAM("new guess" << p_sol);
     }
 }
 
@@ -89,6 +92,7 @@ void DroneGuidanceNode::publishTrajectory() {
     drone_gnc::DroneTrajectory horizon_msg;
 
     double traj_length = drone_mpc.solution_p()(0);
+//    ROS_ERROR_STREAM("p sol publish" << traj_length);
 
     for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
         Drone::state state_val = drone_mpc.solution_x_at(i);
@@ -122,13 +126,13 @@ void DroneGuidanceNode::publishTrajectory() {
         drone_gnc::DroneControl control_msg;
         control_msg.servo1 = control_val(0);
         control_msg.servo2 = control_val(1);
-        control_msg.bottom = control_val(2) - control_val(3)/2;
-        control_msg.top = control_val(2) + control_val(3)/2;
+        control_msg.bottom = control_val(2) - control_val(3) / 2;
+        control_msg.top = control_val(2) + control_val(3) / 2;
 
         drone_gnc::DroneWaypointStamped state_msg_stamped;
         state_msg_stamped.state = state_msg;
         state_msg_stamped.control = control_msg;
-        state_msg_stamped.header.stamp = time_compute_start + ros::Duration(drone_mpc.node_time(i)*traj_length);
+        state_msg_stamped.header.stamp = time_compute_start + ros::Duration(drone_mpc.node_time(i) * traj_length);
         state_msg_stamped.header.frame_id = ' ';
 
         horizon_msg.trajectory.push_back(state_msg_stamped);
@@ -140,11 +144,14 @@ void DroneGuidanceNode::publishTrajectory() {
 
 
 void DroneGuidanceNode::publishDebugInfo() {
-    std_msgs::Int32 msg1; msg1.data = drone_mpc.info().iter;
+    std_msgs::Int32 msg1;
+    msg1.data = drone_mpc.info().iter;
     sqp_iter_pub.publish(msg1);
-    std_msgs::Int32 msg2; msg2.data = drone_mpc.info().qp_solver_iter;
+    std_msgs::Int32 msg2;
+    msg2.data = drone_mpc.info().qp_solver_iter;
     qp_iter_pub.publish(msg2);
-    std_msgs::Float64 msg3; msg3.data = drone_mpc.last_computation_time;
+    std_msgs::Float64 msg3;
+    msg3.data = drone_mpc.last_computation_time;
     computation_time_pub.publish(msg3);
 }
 
@@ -162,9 +169,5 @@ int main(int argc, char **argv) {
         droneGuidanceNode.run();
     });
 
-    // Start spinner on a different thread to allow spline evaluation while a new solution is computed
-    ros::AsyncSpinner spinner(2);
-    spinner.start();
-    ros::waitForShutdown();
-
+    ros::spin();
 }

@@ -42,6 +42,7 @@ public:
     bool received_control;
 
     DroneEKF(ros::NodeHandle &nh);
+
     void reset();
 
     void setQdiagonal(const state &Qdiag);

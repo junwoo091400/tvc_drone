@@ -290,21 +290,22 @@ bool solveRiccatiIterationC(const Eigen::MatrixXd &A, const Eigen::MatrixXd &B,
     return false; // over iteration limit
 }
 
-void compute_LQR_terminal_cost(Drone &drone, Matrix<double, NX-2, 1> Q_, Matrix<double, NU, 1> R_,  Matrix<double, NX - 2, NX - 2> &QN) {
+void compute_LQR_terminal_cost(Drone &drone, Matrix<double, NX - 2, 1> Q_, Matrix<double, NU, 1> R_,
+                               Matrix<double, NX - 2, NX - 2> &QN) {
     Matrix<double, NX, NX> A_;
     Matrix<double, NX, NU> B_;
     compute_linearized_model(drone, A_, B_);
 
-    Matrix < double, NX - 1, NX - 1 > A;
+    Matrix<double, NX - 1, NX - 1> A;
     A.block(0, 0, 9, 9) = A_.block(0, 0, 9, 9);
     A.block(9, 0, 3, 9) = A_.block(10, 0, 3, 9);
     A.block(0, 9, 9, 3) = A_.block(0, 10, 9, 3);
     A.block(9, 9, 3, 3) = A_.block(10, 10, 3, 3);
-    Matrix < double, NX - 1, NU > B;
+    Matrix<double, NX - 1, NU> B;
     B.block(0, 0, 9, 4) = B_.block(0, 0, 9, 4);
     B.block(9, 0, 3, 4) = B_.block(10, 0, 3, 4);
 
-    Matrix < double, NX - 1, NX - 1 > Q;
+    Matrix<double, NX - 1, NX - 1> Q;
     Q.setZero();
     Q.diagonal().segment(0, 8) << Q_.segment(0, 8), 1e-10, Q_.segment(8, 3);
 
@@ -322,7 +323,7 @@ void compute_LQR_terminal_cost(Drone &drone, Matrix<double, NX-2, 1> Q_, Matrix<
 //    QN = care(A, B * R.inverse() * B.transpose(), Q);
 
     bool found = solveRiccatiIterationC(A, B, Q, R, P, 0.0001, 1.E-5, 100000);
-    if(!found){
+    if (!found) {
         ROS_ERROR_STREAM("Failed to compute terminal cost");
     }
 

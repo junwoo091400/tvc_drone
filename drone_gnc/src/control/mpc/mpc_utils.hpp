@@ -35,9 +35,9 @@ using control = control_t<double>;
 using ad_state = AutoDiffScalar<state>;
 using ad_control = AutoDiffScalar<control>;
 
-void compute_linearized_model(shared_ptr <Drone> drone,
-                              Matrix<double, NX, NX> &A,
-                              Matrix<double, NX, NU> &B) {
+void computeLinearizedModel(shared_ptr<Drone> drone,
+                            Matrix<double, NX, NX> &A,
+                            Matrix<double, NX, NU> &B) {
     state x_bar;
     x_bar << 0, 0, 0,
             0, 0, 0,
@@ -71,9 +71,9 @@ void compute_linearized_model(shared_ptr <Drone> drone,
     Matrix<ad_state, Drone::NP, 1> ad_params(params);
     for (int i = 0; i < ad_params.size(); ++i) ad_params(i).derivatives().setZero();
     drone->state_dynamics(ADx,
-                         ad_u_bar,
-                         ad_params,
-                         Xdot);
+                          ad_u_bar,
+                          ad_params,
+                          Xdot);
 
     // obtain the jacobian of f(x)
     for (int i = 0; i < Xdot.size(); i++) {
@@ -99,9 +99,9 @@ void compute_linearized_model(shared_ptr <Drone> drone,
     for (int i = 0; i < ad_params2.size(); ++i) ad_params2(i).derivatives().setZero();
 
     drone->state_dynamics(ad_x_bar,
-                         ADu,
-                         ad_params2,
-                         Xdot2);
+                          ADu,
+                          ad_params2,
+                          Xdot2);
 
     // obtain the jacobian of f(x)
     for (int i = 0; i < Xdot2.size(); i++) {
@@ -136,22 +136,22 @@ bool solveRiccatiIterationC(const Eigen::MatrixXd &A, const Eigen::MatrixXd &B,
     return false; // over iteration limit
 }
 
-void compute_LQR_terminal_cost(shared_ptr <Drone> drone, Matrix<double, NX - 2, 1> Q_, Matrix<double, NU, 1> R_,
-                               Matrix<double, NX - 2, NX - 2> &QN) {
+void computeLQRTerminalCost(shared_ptr<Drone> drone, Matrix<double, NX - 2, 1> Q_, Matrix<double, NU, 1> R_,
+                            Matrix<double, NX - 2, NX - 2> &QN) {
     Matrix<double, NX, NX> A_;
     Matrix<double, NX, NU> B_;
-    compute_linearized_model(drone, A_, B_);
+    computeLinearizedModel(drone, A_, B_);
 
-    Matrix < double, NX - 1, NX - 1 > A;
+    Matrix<double, NX - 1, NX - 1> A;
     A.block(0, 0, 9, 9) = A_.block(0, 0, 9, 9);
     A.block(9, 0, 3, 9) = A_.block(10, 0, 3, 9);
     A.block(0, 9, 9, 3) = A_.block(0, 10, 9, 3);
     A.block(9, 9, 3, 3) = A_.block(10, 10, 3, 3);
-    Matrix < double, NX - 1, NU > B;
+    Matrix<double, NX - 1, NU> B;
     B.block(0, 0, 9, 4) = B_.block(0, 0, 9, 4);
     B.block(9, 0, 3, 4) = B_.block(10, 0, 3, 4);
 
-    Matrix < double, NX - 1, NX - 1 > Q;
+    Matrix<double, NX - 1, NX - 1> Q;
     Q.setZero();
     Q.diagonal().segment(0, 8) << Q_.segment(0, 8), 1e-10, Q_.segment(8, 3);
 

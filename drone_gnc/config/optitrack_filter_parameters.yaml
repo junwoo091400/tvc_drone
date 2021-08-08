@@ -12,7 +12,7 @@ predict_vars:
   disturbance_force: 20
   disturbance_force_z: 0
   disturbance_torque: 200
-  disturbance_torque_z: 40
+  disturbance_torque_z: 1
 
 update_vars:
   optitrack_x: 0.005
