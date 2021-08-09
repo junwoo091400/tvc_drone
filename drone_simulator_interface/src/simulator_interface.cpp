@@ -43,8 +43,8 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
     //quaternion representing the rotation of the servos around the Y-axis followed by the rotation around the X-axis
     Eigen::Quaterniond
             thrust_rotation(
-            AngleAxisd(drone_control->servo1 + servo1_offset, Vector3d::UnitY()) *
-            AngleAxisd(drone_control->servo2 + servo2_offset, Vector3d::UnitX())
+            AngleAxisd(drone_control->servo1 + servo1_offset, Vector3d::UnitX()) *
+            AngleAxisd(drone_control->servo2 + servo2_offset, Vector3d::UnitY())
     );
 
     //rotated thrust vector, in body frame
@@ -119,8 +119,8 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
 
     geometry_msgs::PoseStamped optitrack_pose;
 
-    optitrack_pose.pose.position.x = -rocket_state->pose.position.x;
-    optitrack_pose.pose.position.y = -rocket_state->pose.position.y;
+    optitrack_pose.pose.position.x = rocket_state->pose.position.x;
+    optitrack_pose.pose.position.y = rocket_state->pose.position.y;
     optitrack_pose.pose.position.z = rocket_state->pose.position.z;
     optitrack_pose.pose.orientation = rocket_state->pose.orientation;
     optitrack_pose.header.stamp = now;

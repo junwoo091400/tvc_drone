@@ -91,8 +91,8 @@ public:
 
         // servomotors thrust vector rotation (see drone_interface for equivalent quaternion implementation)
         Eigen::Matrix<T, 3, 1> thrust_direction;
-        thrust_direction << cos(servo2) * sin(servo1),
-                -sin(servo2),
+        thrust_direction << sin(servo2),
+                -cos(servo2) * sin(servo1),
                 cos(servo1) * cos(servo2);
 
         Eigen::Matrix<T, 3, 1> thrust_vector = thrust_direction * thrust;

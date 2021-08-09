@@ -143,11 +143,11 @@ try:
     i = 0
     for var_name in set(Q_names): # convert to a set to get unique values
         ax_slider = plt.axes([0.25, 0.8 - i * 0.05, 0.65, 0.04], facecolor='white')
-        param_sliders[var_name] = Slider(ax_slider, var_name, 0, max(initial_Q[var_name]*10, 100), valinit=initial_Q[var_name], valstep=0.001)
+        param_sliders[var_name] = Slider(ax_slider, var_name, 0, max(initial_Q[var_name]*10, 1), valinit=initial_Q[var_name], valstep=0.0001)
         i += 1
     for var_name in set(R_names): # convert to a set to get unique values
         ax_slider = plt.axes([0.25, 0.8 - i * 0.05, 0.65, 0.04], facecolor='white')
-        param_sliders[var_name] = Slider(ax_slider, var_name, 0, max(initial_R[var_name]*10, 100), valinit=initial_R[var_name], valstep=0.001)
+        param_sliders[var_name] = Slider(ax_slider, var_name, 0, max(initial_R[var_name]*10, 1), valinit=initial_R[var_name], valstep=0.0001)
         i += 1
 
     def update_kalman(val):
