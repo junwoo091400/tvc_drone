@@ -19,12 +19,12 @@
 <!--       </node>-->
     <rosparam param="fixed_guidance">false</rosparam>
 
-    <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" cwd="node" output="screen">
+    <!-- <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" cwd="node" output="screen">
         <rosparam param="target_apogee">[2, 0, 10]</rosparam>
         <rosparam param="minimal_time">true</rosparam>
-    </node>
+    </node> -->
 
-    <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" cwd="node">
+    <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" launch-prefix="taskset -c 3">
         <rosparam param="target_apogee">[0,0,1]</rosparam>
         <rosparam param="track_guidance">false</rosparam>
     </node>
