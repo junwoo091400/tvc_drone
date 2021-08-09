@@ -19,8 +19,8 @@ fin_sweep: 0.1
 fin_thickness: 0.004
 lug_n: 2
 lug_S: 1.0e-40
-dry_mass: 1.533
-dry_CM: 0.205
+dry_mass: 1.65
+dry_CM: 0.225
 dry_I:
   - 0.0623
   - 0.0669
@@ -30,7 +30,7 @@ propellant_CM: 0.1
 #set Isp to -1 for constant propellant mass
 Isp: -1
 
-CM_to_thrust_distance: 0.205
+CM_to_thrust_distance: 0.225
 Cd:
   - 2
   - 2

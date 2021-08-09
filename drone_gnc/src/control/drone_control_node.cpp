@@ -91,14 +91,14 @@ void DroneControlNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
 
 // Callback function to store last received state
 void DroneControlNode::stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
-    const std::lock_guard<std::mutex> lock(state_mutex);
+//    const std::lock_guard<std::mutex> lock(state_mutex);
     current_state = *rocket_state;
     received_state = true;
 }
 
 // Callback function to store last received state
 void DroneControlNode::targetCallback(const geometry_msgs::Vector3 &target) {
-    const std::lock_guard<std::mutex> lock(target_mutex);
+//    const std::lock_guard<std::mutex> lock(target_mutex);
     target_apogee = target;
 }
 
@@ -190,12 +190,12 @@ void DroneControlNode::computeControl() {
 
 
     Drone::state x0;
-    state_mutex.lock();
+//    state_mutex.lock();
     x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
             current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
             current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
             current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
-    state_mutex.unlock();
+//    state_mutex.unlock();
 
     drone_mpc.drone->setParams(current_state.thrust_scaling,
                                current_state.torque_scaling,
@@ -299,12 +299,12 @@ void DroneControlNode::fetchNewTarget() {
     Drone::state target_state;
     Drone::control target_control;
 
-    target_mutex.lock();
+//    target_mutex.lock();
     target_state << target_apogee.x, target_apogee.y, target_apogee.z,
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
-    target_mutex.unlock();
+//    target_mutex.unlock();
 
     target_control << 0, 0, drone->getHoverSpeedAverage(), 0;
 //        }
@@ -376,9 +376,5 @@ int main(int argc, char **argv) {
     ros::Timer control_thread = nh.createTimer(ros::Duration(droneControlNode.period), [&](const ros::TimerEvent &) {
         droneControlNode.run();
     });
-
-    // Start spinner on a different thread to allow spline evaluation while a new solution is computed
-    ros::AsyncSpinner spinner(3);
-    spinner.start();
-    ros::waitForShutdown();
+    ros::spin();
 }

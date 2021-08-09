@@ -98,8 +98,8 @@ private:
     double guidance_tf;
     double start_time = 0;
 
-    std::mutex target_mutex;
-    std::mutex state_mutex;
+//    std::mutex target_mutex;
+//    std::mutex state_mutex;
 
     double sgm_length;
 

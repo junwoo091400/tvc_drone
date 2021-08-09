@@ -175,8 +175,8 @@ int main(int argc, char **argv) {
 
 //    // Thread to compute control. Duration defines interval time in seconds
     while (ros::ok()){
-        droneGuidanceNode.run();
         ros::spinOnce();
+        droneGuidanceNode.run();
     }
 //    ros::Timer control_thread = nh.createTimer(ros::Duration(droneGuidanceNode.period), [&](const ros::TimerEvent &) {
 //        droneGuidanceNode.run();
