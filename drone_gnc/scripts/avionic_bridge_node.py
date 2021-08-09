@@ -23,8 +23,8 @@ def control_callback(control):
     bottom_motor_cmd = min(max(bottom_motor_cmd, 0), 80)
 
     # convert to PWM
-    servo1_DC = ((control.servo1/(np.pi/2)) + 1.27)*1000
-    servo2_DC = ((-control.servo2/(np.pi/2)) + 1.455)*1000
+    servo1_DC = ((-control.servo1/(np.pi/2)) + 1.455)*1000
+    servo2_DC = ((-control.servo2/(np.pi/2)) + 1.27)*1000
 
     top_motor_DC = int(top_motor_cmd*10 + 1000)
     bottom_motor_DC = int(bottom_motor_cmd*10 + 1000)
