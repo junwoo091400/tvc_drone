@@ -96,8 +96,11 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
         // obtained by solving delta_z = 1/2 a1 t_mid^2 + v_mid (t_end-t_mid) + 1/2 a2 (t_end-t_mid)^2, v_end = 0
         double t_mid = sqrt(2 * (z_target - z0) / (a1 * (1 - a1 / a2)));
         double t_end = t_mid - a1 / a2 * t_mid;
-        double z_mid = 0.5 * a1 * t_mid * t_mid;
+        double z_mid = z0 + 0.5 * a1 * t_mid * t_mid;
         double v_mid = a1 * t_mid;
+
+        ROS_ERROR_STREAM("z0: " << z0 << " target: " << z_target);
+        ROS_ERROR_STREAM("traj length new guess: " << t_end);
 
         RowVectorXd z_guess(ocp().NUM_NODES);
         RowVectorXd dz_guess(ocp().NUM_NODES);
@@ -105,7 +108,7 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
         for (int i = 0; i < time_grid.size(); i++) {
             double t = time_grid(i) * t_end;
             if (t < t_mid) {
-                z_guess(i) = 0.5 * a1 * t * t;
+                z_guess(i) = z0 + 0.5 * a1 * t * t;
                 dz_guess(i) = a1 * t;
                 prop_av_guess(i) = speed1;
             } else {

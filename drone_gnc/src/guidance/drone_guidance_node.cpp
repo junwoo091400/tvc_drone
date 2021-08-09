@@ -10,13 +10,22 @@ DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone>
     current_fsm.state_machine = "Idle";
 
     nh.getParam("mpc/mpc_period", period);
+
+    std::vector<double> initial_target_apogee;
+    nh.getParam("target_apogee", initial_target_apogee);
+
+    target_state << initial_target_apogee.at(0), initial_target_apogee.at(1), initial_target_apogee.at(2),
+            0, 0, 0,
+            0, 0, 0, 1,
+            0, 0, 0;
 }
 
 
 void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
-    rocket_state_sub = nh.subscribe("/simu_drone_state", 100, &DroneGuidanceNode::stateCallback, this);
-    target_sub = nh.subscribe("/target_apogee", 100, &DroneGuidanceNode::targetCallback, this);
+    rocket_state_sub = nh.subscribe("/simu_drone_state", 1, &DroneGuidanceNode::stateCallback, this);
+    target_sub = nh.subscribe("/target_apogee", 1, &DroneGuidanceNode::targetCallback, this);
+    fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneGuidanceNode::fsmCallback, this);
 
     // Publishers
     horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/target_trajectory", 10);
@@ -32,9 +41,20 @@ void DroneGuidanceNode::run() {
     double loop_start_time = ros::Time::now().toSec();
     if (received_state) {
         computeTrajectory();
-        publishTrajectory();
+        double p_sol = drone_mpc.solution_p()(0);
+        if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
+            ROS_ERROR_STREAM("Guidance MPC error");
+            drone_mpc.initGuess(x0, target_state);
+        }
+        else{
+            publishTrajectory();
+        }
         publishDebugInfo();
     }
+}
+
+void DroneGuidanceNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
+    current_fsm = *fsm;
 }
 
 void DroneGuidanceNode::stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
@@ -51,7 +71,6 @@ void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
 
     drone_mpc.setTarget(target_state, target_control);
 
-    Drone::state x0;
     x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
             current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
             current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
@@ -60,7 +79,6 @@ void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
 }
 
 void DroneGuidanceNode::computeTrajectory() {
-    time_compute_start = ros::Time::now();
 
     Drone::state x0;
     x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
@@ -75,15 +93,6 @@ void DroneGuidanceNode::computeTrajectory() {
                                0, 0, 0);
 
     drone_mpc.solve(x0);
-
-    double p_sol = drone_mpc.solution_p()(0);
-    if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
-//        ROS_ERROR_STREAM("p sol" << p_sol);
-        ROS_ERROR_STREAM("Guidance MPC error");
-        drone_mpc.initGuess(x0, target_state);
-        p_sol = drone_mpc.solution_p()(0);
-//        ROS_ERROR_STREAM("new guess" << p_sol);
-    }
 }
 
 void DroneGuidanceNode::publishTrajectory() {
@@ -92,7 +101,7 @@ void DroneGuidanceNode::publishTrajectory() {
     drone_gnc::DroneTrajectory horizon_msg;
 
     double traj_length = drone_mpc.solution_p()(0);
-//    ROS_ERROR_STREAM("p sol publish" << traj_length);
+    time_compute_start = ros::Time::now();
 
     for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
         Drone::state state_val = drone_mpc.solution_x_at(i);

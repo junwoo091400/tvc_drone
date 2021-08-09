@@ -13,9 +13,9 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     target_apogee.z = initial_target_apogee.at(2);
 
     //init segment length
-    double guidance_horizon_length;
-    nh.getParam("guidance/mpc/horizon_length", guidance_horizon_length);
-    sgm_length = guidance_horizon_length / GUIDANCE_NUM_SEG;
+//    double guidance_horizon_length;
+//    nh.getParam("guidance/mpc/horizon_length", guidance_horizon_length);
+    sgm_length = 1.0 / GUIDANCE_NUM_SEG;
 
     nh.param("/fixed_guidance", fixed_guidance, false);
     nh.param("track_guidance", track_guidance, false);
@@ -34,21 +34,9 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
 //            });
 
 
-    client_fsm = nh.serviceClient<drone_gnc::GetFSM>("/getFSM_gnc");
-
     // Initialize fsm
     current_fsm.time_now = 0;
     current_fsm.state_machine = "Idle";
-
-
-    // Get current FSM and time
-    fsm_update_thread = nh.createTimer(
-            ros::Duration(0.2), [&](const ros::TimerEvent &) {
-                if (client_fsm.call(srv_fsm)) {
-                    const std::lock_guard<std::mutex> lock(fsm_mutex);
-                    current_fsm = srv_fsm.response.fsm;
-                }
-            });
 }
 
 void DroneControlNode::initTopics(ros::NodeHandle &nh) {
@@ -56,14 +44,11 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
     rocket_state_sub = nh.subscribe("/drone_state", 1, &DroneControlNode::stateCallback, this);
     target_sub = nh.subscribe("/target_apogee", 1, &DroneControlNode::targetCallback, this);
     target_traj_sub = nh.subscribe("/guidance/horizon", 1, &DroneControlNode::targetTrajectoryCallback, this);
-
+    fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneControlNode::fsmCallback, this);
 
     // Publishers
     horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/mpc_horizon", 10);
     drone_control_pub = nh.advertise<drone_gnc::DroneControl>("/drone_control", 10);
-
-    // Service clients
-    client_waypoint = nh.serviceClient<drone_gnc::GetWaypoint>("/getWaypoint", true);
 
     // Debug
     sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
@@ -82,11 +67,10 @@ void DroneControlNode::run() {
             computeControl();
         }
 
-        fsm_mutex.lock();
-        if (current_fsm.state_machine.compare("Launch") == 0) {
+        if (current_fsm.state_machine == "Launch") {
             publishFeedforwardControl();
+            if(start_time == 0)start_time = ros::Time::now().toSec();
         }
-        fsm_mutex.unlock();
 
         publishTrajectory();
         saveDebugInfo();
@@ -101,6 +85,9 @@ void DroneControlNode::run() {
     }
 }
 
+void DroneControlNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
+    current_fsm = *fsm;
+}
 
 // Callback function to store last received state
 void DroneControlNode::stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
@@ -117,18 +104,20 @@ void DroneControlNode::targetCallback(const geometry_msgs::Vector3 &target) {
 
 
 void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory::ConstPtr &target) {
+    guidance_t0 = target->trajectory.at(0).header.stamp.toSec();
+    guidance_tf = target->trajectory.at(GUIDANCE_NUM_NODE - 1).header.stamp.toSec();
+
     if (!received_trajectory && !fixed_guidance) {
         // init lagrange basis
-        double t0 = target->trajectory.at(0).header.stamp.toSec();
+
+        double traj_length = guidance_tf - guidance_t0;
         Eigen::Matrix<double, GUIDANCE_POLY_ORDER + 1, 1> time_grid;
         for (int i = 0; i < GUIDANCE_POLY_ORDER + 1; i++) {
-            time_grid(i) = target->trajectory.at(i).header.stamp.toSec() - t0;
+            time_grid(i) = (target->trajectory.at(i).header.stamp.toSec() - guidance_t0)/traj_length;
         }
         polympc::LagrangeSpline::compute_lagrange_basis(time_grid, m_basis);
     }
     received_trajectory = true;
-
-    guidanceTraj_t0 = target->trajectory.at(0).header.stamp.toSec();
 
     int i = 0;
     for (auto waypoint: target->trajectory) {
@@ -139,7 +128,6 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
                 waypoint.state.twist.angular.x, waypoint.state.twist.angular.y, waypoint.state.twist.angular.z;
         i++;
     }
-    guidanceTraj_tf = target->trajectory.at(i - 1).header.stamp.toSec();
 }
 
 Drone::state DroneControlNode::sampleTargetTrajectory(double t) {
@@ -154,15 +142,21 @@ Drone::state DroneControlNode::sampleTargetTrajectory(double t) {
 }
 
 void DroneControlNode::sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_traj) {
-    double time_delta = ros::Time::now().toSec() - guidanceTraj_t0;
+    double time_now = ros::Time::now().toSec();
+    //first value is to make startup work, second value is used in general
+    double time_delta = std::min(time_now - start_time, time_now - guidance_t0);
 
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
-        double t = time_delta + drone_mpc.time_grid(i);
+        double t = (time_delta + drone_mpc.time_grid(i))/(guidance_tf-guidance_t0);
+
+        t = min(t, 1.0);
+
         Eigen::Index idx = (Eigen::Index) std::floor(t / sgm_length);
         idx = std::max(Eigen::Index(0), std::min(idx, (Eigen::Index) GUIDANCE_NUM_SEG - 1));
 
         Drone::state state = polympc::LagrangeSpline::eval(t - idx * sgm_length, guidanceTrajectory.block<Drone::NX,
                 GUIDANCE_POLY_ORDER + 1>(0, idx * GUIDANCE_POLY_ORDER), m_basis);
+
         mpc_target_traj.col(i) = state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
     }
 }
@@ -172,9 +166,9 @@ void DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, Dr
     double time_now = ros::Time::now().toSec();
 
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
-        double t = time_now + drone_mpc.time_grid(i) - guidanceTraj_t0;
+        double t = time_now + drone_mpc.time_grid(i) - guidance_t0;
         //TODO remove constants
-        double idx = t * GUIDANCE_NUM_NODE / (guidanceTraj_tf - guidanceTraj_t0);
+        double idx = t * GUIDANCE_NUM_NODE / (guidance_tf - guidance_t0);
 
         //linear interpolation
         int l_idx = floor(idx);

@@ -38,11 +38,15 @@ public:
     // Callback function to store last received state
     void targetCallback(const geometry_msgs::Vector3 &target);
 
+    void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm);
+
     void computeTrajectory();
 
     void publishTrajectory();
 
     void publishDebugInfo();
+
+
 
 
 private:
@@ -54,10 +58,12 @@ private:
     drone_gnc::FSM current_fsm;
     Drone::state target_state;
     Drone::control target_control;
+    Drone::state x0;
 
     // Subscribers
     ros::Subscriber rocket_state_sub;
     ros::Subscriber target_sub;
+    ros::Subscriber fsm_sub;
 
     // Publishers
     ros::Publisher horizon_viz_pub;

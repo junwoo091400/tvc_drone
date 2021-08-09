@@ -35,6 +35,8 @@ public:
 
     void run();
 
+    void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm);
+
     // Callback function to store last received state
     void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state);
 
@@ -92,12 +94,12 @@ private:
     Eigen::Matrix<double, Drone::NX, GUIDANCE_NUM_NODE> guidanceTrajectory;
     Eigen::Matrix<double, GUIDANCE_POLY_ORDER + 1, GUIDANCE_POLY_ORDER + 1> m_basis;
     bool received_trajectory = false;
-    double guidanceTraj_t0;
-    double guidanceTraj_tf;
+    double guidance_t0;
+    double guidance_tf;
+    double start_time = 0;
 
     std::mutex target_mutex;
     std::mutex state_mutex;
-    std::mutex fsm_mutex;
 
     double sgm_length;
 
@@ -110,11 +112,7 @@ private:
     // Publishers
     ros::Publisher horizon_viz_pub;
     ros::Publisher drone_control_pub;
-    drone_gnc::GetFSM srv_fsm;
-
-    // Service clients
-    ros::ServiceClient client_waypoint;
-    ros::ServiceClient client_fsm;
+    ros::Subscriber fsm_sub;
 
     // Debug
     ros::Publisher sqp_iter_pub;

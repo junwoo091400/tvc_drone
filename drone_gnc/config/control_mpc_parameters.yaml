@@ -18,7 +18,7 @@ min_z: 0
 min_dz: -0.6
 
 max_dx: 1.2
-max_dz: 2
+max_dz: 20
 max_datt: 0.6
 max_attitude_angle: 90
 
