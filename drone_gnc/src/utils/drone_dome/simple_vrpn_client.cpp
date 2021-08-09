@@ -151,7 +151,7 @@ namespace vrpn_client_ros
     // use only one tracker
     std::string param_tracker_name_;
     //private_nh.getParam("trackers", param_tracker_name_);
-    private_nh.param<std::string>("trackers",param_tracker_name_,"Kite");
+    private_nh.param<std::string>("trackers",param_tracker_name_,"Drone");
     trackers_.insert(std::make_pair(param_tracker_name_,
                                     std::make_shared<VrpnTrackerRos>(param_tracker_name_, connection_, output_nh_)));
   }

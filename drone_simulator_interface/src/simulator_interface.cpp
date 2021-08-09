@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
     // Create control publisher
     rocket_control_pub = nh.advertise<real_time_simulator::Control>("/control_measured", 10);
 
-    fake_optitrack_pub = nh.advertise<geometry_msgs::PoseStamped>("/optitrack_client/Kite/optitrack_pose", 10);
+    fake_optitrack_pub = nh.advertise<geometry_msgs::PoseStamped>("/optitrack_client/Drone/optitrack_pose", 10);
 
 
     // Subscribe to rocket state

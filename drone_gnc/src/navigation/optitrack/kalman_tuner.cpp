@@ -33,8 +33,8 @@ std::string log_file_path;
 
 geometry_msgs::PoseStamped optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
     geometry_msgs::PoseStamped optitrack_pose;
-    optitrack_pose.pose.position.x = -pose->pose.position.x;
-    optitrack_pose.pose.position.y = -pose->pose.position.y;
+    optitrack_pose.pose.position.x = pose->pose.position.x;
+    optitrack_pose.pose.position.y = pose->pose.position.y;
     optitrack_pose.pose.position.z = pose->pose.position.z;
     optitrack_pose.pose.orientation = pose->pose.orientation;
     optitrack_pose.header.stamp = pose->header.stamp;
@@ -60,7 +60,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
     bag.open(ros::package::getPath("drone_utils") + "/" + log_file_path, rosbag::bagmode::Read);
 
     std::vector<std::string> topics;
-    topics.push_back(std::string("/optitrack_client/Kite/optitrack_pose"));
+    topics.push_back(std::string("/optitrack_client/Drone/optitrack_pose"));
     topics.push_back(std::string("/drone_control"));
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
@@ -182,6 +182,6 @@ int main(int argc, char **argv) {
 
     nh.getParam("period", period);
 
-    ros::ServiceServer service = nh.advertiseService("/kalmanSimu", kalmanSimu);
+    ros::ServiceServer service = nh.advertiseService("/kalman_simu", kalmanSimu);
     ros::spin();
 }
