@@ -23,9 +23,8 @@ scaling_z: 30
 # speed/performance
 horizon_length: 30.0
 
-max_sqp_iter: 5
+max_sqp_iter: 3
 max_qp_iter: 3000
-max_line_search_iter: 8
-mpc_period: 0.1
+max_line_search_iter: 5
 
 weight_scaling: 1

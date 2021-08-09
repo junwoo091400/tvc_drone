@@ -116,7 +116,7 @@ public:
             x_scaling_vec = x_unscaling_vec.cwiseInverse();
 
             u_unscaling_vec << drone->max_servo_rate, drone->max_servo_rate,
-                    drone->max_propeller_speed, drone->maxPropellerDelta / 2;
+                    drone->max_propeller_speed, drone->max_propeller_delta / 2;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
 //            u_unscaling_vec.setOnes();
@@ -167,9 +167,9 @@ public:
         const double eps = 1e-1;
 
         lbu << -drone->max_servo_rate, -drone->max_servo_rate,
-                drone->min_propeller_speed, -drone->maxPropellerDelta / 2; // lower bound on control
+                drone->min_propeller_speed, -drone->max_propeller_delta / 2; // lower bound on control
         ubu << drone->max_servo_rate, drone->max_servo_rate,
-                drone->max_propeller_speed, drone->maxPropellerDelta / 2; // upper bound on control
+                drone->max_propeller_speed, drone->max_propeller_delta / 2; // upper bound on control
 
         lbx << -inf, -inf, min_z + eps,
                 -max_dx, -max_dx, min_dz,

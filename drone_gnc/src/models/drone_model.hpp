@@ -25,7 +25,7 @@ public:
 
     double min_propeller_speed;
     double max_propeller_speed;
-    double maxPropellerDelta;
+    double max_propeller_delta;
 
     double max_servo1_angle;
     double max_servo2_angle;
@@ -44,7 +44,7 @@ public:
         double max_servo1_angle_degree, max_servo2_angle_degree, max_servo_rate_degree;
         if (nh.getParam("/rocket/min_propeller_speed", min_propeller_speed) &&
             nh.getParam("/rocket/max_propeller_speed", max_propeller_speed) &&
-            nh.getParam("/rocket/max_propeller_delta", maxPropellerDelta) &&
+            nh.getParam("/rocket/max_propeller_delta", max_propeller_delta) &&
             nh.getParam("/rocket/max_servo1_angle", max_servo1_angle_degree) &&
             nh.getParam("/rocket/max_servo2_angle", max_servo2_angle_degree) &&
             nh.getParam("/rocket/max_servo_rate", max_servo_rate_degree) &&

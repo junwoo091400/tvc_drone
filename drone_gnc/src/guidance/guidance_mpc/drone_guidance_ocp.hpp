@@ -59,6 +59,7 @@ public:
     Matrix<scalar_t, NU, 1> u_scaling_vec;
 
     bool minimal_time = false;
+    double max_fx;
 
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
@@ -79,6 +80,8 @@ public:
             nh.getParam("mpc/input_costs/servo", servo_cost) &&
             nh.getParam("mpc/input_costs/thrust", thrust_cost)) {
 
+            max_fx = drone->getThrust(drone->max_propeller_speed)*0.2;
+
             nh.param("minimal_time", minimal_time, false);
 
             Q << x_cost, x_cost, z_cost,
@@ -92,7 +95,7 @@ public:
                     max_dx, max_dx, max_dz;
             x_scaling_vec = x_unscaling_vec.cwiseInverse();
 
-            u_unscaling_vec << drone->max_servo1_angle, drone->max_servo2_angle,
+            u_unscaling_vec << max_fx, max_fx,
                     drone->max_propeller_speed;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
@@ -130,9 +133,9 @@ public:
 
 
     void get_control_bounds(control_t <scalar_t> &lbu, control_t <scalar_t> &ubu) {
-        lbu << -drone->max_servo1_angle, -drone->max_servo2_angle,
+        lbu << -max_fx, -max_fx,
                 drone->min_propeller_speed; // lower bound on control
-        ubu << drone->max_servo1_angle, drone->max_servo2_angle,
+        ubu << max_fx, max_fx,
                 drone->max_propeller_speed; // upper bound on control
         lbu = lbu.cwiseProduct(u_scaling_vec);
         ubu = ubu.cwiseProduct(u_scaling_vec);
@@ -152,19 +155,16 @@ public:
 //        Matrix<T, Drone::NP, 1> params;
 //        drone->getParams(params);
 
-        T servo1 = u_unscaled(0);
-        T servo2 = u_unscaled(1);
+        T fx = u_unscaled(0);
+        T fy = u_unscaled(1);
         T prop_av = u_unscaled(2);
 
         //TODO use thrust scaling?
         T thrust = drone->getThrust(prop_av);
 
-        Eigen::Matrix<T, 3, 1> thrust_direction;
-        thrust_direction << cos(servo2) * sin(servo1),
-                -sin(servo2),
-                cos(servo1) * cos(servo2);
 
-        Eigen::Matrix<T, 3, 1> thrust_vector = thrust_direction * thrust;
+        Eigen::Matrix<T, 3, 1> thrust_vector;
+        thrust_vector << fx, fy, thrust;
 
         Eigen::Matrix<T, 3, 1> gravity;
         gravity << (T) 0, (T) 0, (T) - 9.81;

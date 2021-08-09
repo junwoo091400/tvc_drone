@@ -99,8 +99,8 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
         double z_mid = z0 + 0.5 * a1 * t_mid * t_mid;
         double v_mid = a1 * t_mid;
 
-        ROS_ERROR_STREAM("z0: " << z0 << " target: " << z_target);
-        ROS_ERROR_STREAM("traj length new guess: " << t_end);
+        ROS_INFO_STREAM("z0: " << z0 << " target: " << z_target);
+        ROS_INFO_STREAM("traj length new guess: " << t_end);
 
         RowVectorXd z_guess(ocp().NUM_NODES);
         RowVectorXd dz_guess(ocp().NUM_NODES);
