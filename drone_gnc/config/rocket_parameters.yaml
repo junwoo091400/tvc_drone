@@ -51,5 +51,5 @@ max_servo_rate: 200
 estimated:
   thrust_scaling: 1
   torque_scaling: 1
-  servo1_offset: -0.1
-  servo2_offset: 0.1
+  servo1_offset: 0
+  servo2_offset: 0

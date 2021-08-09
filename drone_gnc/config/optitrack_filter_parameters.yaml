@@ -4,7 +4,7 @@ predict_vars:
   att: 4
 
   dx: 30
-  datt: 600
+  datt: 400
 
   thrust_scaling: 1
   torque_scaling: 1
