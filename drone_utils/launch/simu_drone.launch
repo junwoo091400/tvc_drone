@@ -3,7 +3,6 @@
     <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
     <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
     <include file="$(find drone_utils)/launch/gui.launch"/>
-    <rosparam param="navigation/drone_dome">true</rosparam>
     <rosparam param="/is_simu">true</rosparam>
 <!--    <rosparam param="/use_sim_time">true</rosparam>-->
 

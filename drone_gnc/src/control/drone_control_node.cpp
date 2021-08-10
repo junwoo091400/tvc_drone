@@ -83,6 +83,7 @@ void DroneControlNode::run() {
 //            low_level_control_thread.start();
 //        }
     }
+    computation_time = (ros::Time::now().toSec()-loop_start_time)*1000;
 }
 
 void DroneControlNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
@@ -358,7 +359,7 @@ void DroneControlNode::publishDebugInfo() {
     msg2.data = drone_mpc.info().qp_solver_iter;
     qp_iter_pub.publish(msg2);
     std_msgs::Float64 msg3;
-    msg3.data = drone_mpc.last_computation_time;
+    msg3.data = computation_time;
     computation_time_pub.publish(msg3);
 }
 

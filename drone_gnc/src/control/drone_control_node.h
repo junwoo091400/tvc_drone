@@ -97,6 +97,7 @@ private:
     double guidance_t0;
     double guidance_tf;
     double start_time = 0;
+    double computation_time = 0;
 
 //    std::mutex target_mutex;
 //    std::mutex state_mutex;

@@ -18,4 +18,4 @@ fi
 export ROS_IP=$(hostname -I | cut -d' ' -f1) #automatically set to local ip address
 export ROS_MASTER_URI=http://$(getent hosts ert.local | awk '{ print $1 }'):11311 #automatically set to raspberry pi ip address
 
-roslaunch drone_utils real_drone.launch
+roslaunch drone_utils PIL.launch
