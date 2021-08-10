@@ -3,15 +3,15 @@ predict_vars:
   x: 0.01
   att: 4
 
-  dx: 30
-  datt: 400
+  dx: 5
+  datt: 2000
 
-  thrust_scaling: 1
+  thrust_scaling: .6
   torque_scaling: 1
-  servo_offset: 0.01
-  disturbance_force: 20
+  servo_offset: 0
+  disturbance_force: 4
   disturbance_force_z: 0
-  disturbance_torque: 200
+  disturbance_torque: 25
   disturbance_torque_z: 1
 
 update_vars:

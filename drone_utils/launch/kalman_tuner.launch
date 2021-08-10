@@ -13,7 +13,7 @@
         <rosparam param="estimate_params">true</rosparam>
     </node>
 
-    <rosparam param="log_file">"log/log2_f.bag"</rosparam>
+    <rosparam param="log_file">"log/log4.bag"</rosparam>
 <!--    <rosparam param="log_file">"log/sine_test.bag"</rosparam>-->
 
 
