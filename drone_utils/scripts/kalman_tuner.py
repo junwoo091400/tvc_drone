@@ -76,8 +76,8 @@ kalman_plot_indexes = {
     (3, 2): ("t", "droll (z)"),
 
     (4, 0): ("t", "thrust_scaling"),
-    (4, 1): ("t", "servo1_offset"),
-    (4, 2): ("t", "servo2_offset"),
+    (4, 1): ("t", "torque_scaling"),
+    (4, 2): ("t", "servo1_offset"),
 
     (5, 0): ("t", "mx"),
     (5, 1): ("t", "my"),

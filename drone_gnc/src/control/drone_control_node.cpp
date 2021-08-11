@@ -59,6 +59,7 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
 
 void DroneControlNode::run() {
     double loop_start_time = ros::Time::now().toSec();
+    double stall_time;
     // State machine ------------------------------------------
     if (received_trajectory || !track_guidance) {
 
@@ -67,14 +68,18 @@ void DroneControlNode::run() {
             computeControl();
         }
 
-        if (current_fsm.state_machine == "Launch") {
-            publishFeedforwardControl();
-            if(start_time == 0)start_time = ros::Time::now().toSec();
-        }
-
         publishTrajectory();
         saveDebugInfo();
         publishDebugInfo();
+
+        stall_time = loop_start_time + period * 0.93 - ros::Time::now().toSec();
+        if (stall_time > 0) ros::Duration(stall_time).sleep();
+
+
+        if (current_fsm.state_machine == "Launch") {
+            publishFeedforwardControl();
+            if (start_time == 0)start_time = ros::Time::now().toSec();
+        }
 
 //        if (current_fsm.state_machine.compare("Launch") == 0) {
 //            low_level_control_thread.stop();
@@ -83,7 +88,8 @@ void DroneControlNode::run() {
 //            low_level_control_thread.start();
 //        }
     }
-    computation_time = (ros::Time::now().toSec()-loop_start_time)*1000;
+    if (stall_time > 0) computation_time = (ros::Time::now().toSec() - loop_start_time - stall_time) * 1000;
+    else computation_time = (ros::Time::now().toSec() - loop_start_time) * 1000;
 }
 
 void DroneControlNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
@@ -234,7 +240,7 @@ void DroneControlNode::publishFeedforwardControl() {
     if (USE_BACKUP_CONTROLLER) {
         drone_control = backupController.getControl(current_state, target_apogee);
     } else {
-        drone_control = drone_mpc.getControlCurrentTime();
+        drone_control = drone_mpc.getControlMessage(0.0);
     }
 
     drone_control_pub.publish(drone_control);

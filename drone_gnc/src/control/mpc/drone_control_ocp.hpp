@@ -171,7 +171,7 @@ public:
         ubu << drone->max_servo_rate, drone->max_servo_rate,
                 drone->max_propeller_speed, drone->max_propeller_delta / 2; // upper bound on control
 
-        lbx << -inf, -inf, min_z + eps,
+        lbx << -inf, -inf, min_z - eps,
                 -max_dx, -max_dx, min_dz,
                 -inf, -inf, -inf, -inf,
                 -max_datt, -max_datt, -inf,
@@ -238,12 +238,12 @@ public:
 
     g) const noexcept
     {
-        Matrix<T, 2, 1> u_drone = u.segment(2, 2).cwiseProduct(u_unscaling_vec.segment(2, 2).template cast<T>());;
+        Matrix<T, 2, 1> u_drone = u.segment(2, 2).cwiseProduct(u_unscaling_vec.segment(2, 2).template cast<T>());
 
 
         g(0) = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
-        g(1) = u_drone(0) + u_drone(1);
-        g(2) = u_drone(0) - u_drone(1);
+        g(1) = u_drone(0) + 0.5*u_drone(1);
+        g(2) = u_drone(0) - 0.5*u_drone(1);
     }
 
     //workaround to get the current node index in cost functions
@@ -287,6 +287,7 @@ public:
         x_error2.segment(8, 3) = x_error.segment(10, 3);
 
         mayer = x_error2.dot(QN.template cast<T>() * x_error2);
+//        mayer = (T) 0;
     }
 };
 

@@ -5,13 +5,13 @@ state_costs:
   z: 50
   dz: 5
   att: 0.5
-  datt: 5
-  droll: 5
+  datt: 1
+  droll: 1
 
 input_costs:
   servo: 5
   thrust: 0.01
-  torque: 0.01
+  torque: 0.001
 
 # constraints (+ used for scaling)
 min_z: 0

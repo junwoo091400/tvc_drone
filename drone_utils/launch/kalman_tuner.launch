@@ -7,14 +7,14 @@
         <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
     </group>
 
-    <node name="navigation" pkg="drone_gnc" type="kalman_tuner" cwd="node" output="screen" launch-prefix="">
+    <node name="navigation" pkg="drone_gnc" type="kalman_tuner" cwd="node" output="screen">
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
         <rosparam param="init_estimated_params">true</rosparam>
         <rosparam param="estimate_params">true</rosparam>
     </node>
 
-    <rosparam param="log_file">"log/log4.bag"</rosparam>
-<!--    <rosparam param="log_file">"log/sine_test.bag"</rosparam>-->
+    <rosparam param="log_file">"replay_analysis/best_data/20_percent/log2.bag"</rosparam>
+<!--    <rosparam param="log_file">"log/log.bag"</rosparam>-->
 
 
     <node name="plot" pkg="drone_utils" type="kalman_tuner.py" output="screen"/>

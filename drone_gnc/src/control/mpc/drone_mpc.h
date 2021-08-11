@@ -19,7 +19,7 @@ public:
 
     void solve(Drone::state &x0);
 
-    drone_gnc::DroneControl getControlCurrentTime();
+    drone_gnc::DroneControl getControlMessage(double t);
 
     void setTarget(Drone::state &target_state, Drone::control &target_control);
 

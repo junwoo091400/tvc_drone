@@ -53,10 +53,9 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
 }
 
 
-drone_gnc::DroneControl DroneMPC::getControlCurrentTime() {
-    double interp_time = ros::Time::now().toSec() - solution_time;
-    interp_time = std::max(std::min(interp_time, horizon_length), 0.0);
-    Drone::control interpolated_control = solution_u_at(interp_time);
+drone_gnc::DroneControl DroneMPC::getControlMessage(double t) {
+    t = std::max(std::min(t, horizon_length), 0.0);
+    Drone::control interpolated_control = solution_u_at(t);
 
     drone_gnc::DroneControl drone_control;
     drone_control.servo1 = interpolated_control(0);
@@ -144,6 +143,7 @@ double DroneMPC::node_time(int i) {
 
 void DroneMPC::solve(Drone::state &x0) {
     double computation_start_time = ros::Time::now().toSec();
+    solution_time + computation_start_time + mpc_period;
 
     Drone::state predicted_x0;
     integrateX0(x0, predicted_x0);
@@ -173,13 +173,6 @@ void DroneMPC::solve(Drone::state &x0) {
     double time_now = ros::Time::now().toSec();
     MPC::solve();
     last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
-
-    time_now = ros::Time::now().toSec();
-    //TODO
-    while (ros::Time::now().toSec() < computation_start_time + fixed_computation_time);
-    ROS_INFO_STREAM("");
-
-    solution_time = ros::Time::now().toSec();
 }
 
 void DroneMPC::integrateX0(const Drone::state x0, Drone::state &new_x0) {
