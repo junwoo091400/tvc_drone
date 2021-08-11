@@ -2,10 +2,10 @@
 state_costs:
   x: 1
   dx: 0.1
-  z: 50
+  z: 20
   dz: 5
   att: 0.5
-  datt: 1
+  datt: 5
   droll: 1
 
 input_costs:
