@@ -81,6 +81,7 @@ private:
     ros::Timer low_level_control_thread;
     double feedforward_period;
     drone_gnc::FSM current_fsm;
+    double emergency_stop = false;
 
     ros::Timer fsm_update_thread;
 

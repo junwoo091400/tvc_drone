@@ -58,28 +58,39 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
 }
 
 void DroneControlNode::run() {
-    double loop_start_time = ros::Time::now().toSec();
-    double stall_time;
-    // State machine ------------------------------------------
-    if (received_trajectory || !track_guidance) {
 
-        fetchNewTarget();
-        if (!USE_BACKUP_CONTROLLER) {
-            computeControl();
-        }
+    if(emergency_stop){
+        drone_gnc::DroneControl drone_control;
+        drone_control.top = 0;
+        drone_control.bottom = 0;
+        drone_control.servo2 = 0;
+        drone_control.servo1 = 0;
+        drone_control_pub.publish(drone_control);
+        ROS_ERROR_STREAM("emergency stop");
+    }
+    else{
+        double loop_start_time = ros::Time::now().toSec();
+        double stall_time;
+        // State machine ------------------------------------------
+        if ((received_trajectory || !track_guidance) && received_state) {
 
-        publishTrajectory();
-        saveDebugInfo();
-        publishDebugInfo();
+            fetchNewTarget();
+            if (!USE_BACKUP_CONTROLLER) {
+                computeControl();
+            }
 
-        stall_time = loop_start_time + period * 0.93 - ros::Time::now().toSec();
-        if (stall_time > 0) ros::Duration(stall_time).sleep();
+            publishTrajectory();
+            saveDebugInfo();
+            publishDebugInfo();
+
+            stall_time = loop_start_time + period * 0.93 - ros::Time::now().toSec();
+            if (stall_time > 0) ros::Duration(stall_time).sleep();
 
 
-        if (current_fsm.state_machine == "Launch") {
-            publishFeedforwardControl();
-            if (start_time == 0)start_time = ros::Time::now().toSec();
-        }
+            if (current_fsm.state_machine == "Launch") {
+                publishFeedforwardControl();
+                if (start_time == 0)start_time = ros::Time::now().toSec();
+            }
 
 //        if (current_fsm.state_machine.compare("Launch") == 0) {
 //            low_level_control_thread.stop();
@@ -87,9 +98,12 @@ void DroneControlNode::run() {
 //            ff_index = 0;
 //            low_level_control_thread.start();
 //        }
+        }
+        if (stall_time > 0) computation_time = (ros::Time::now().toSec() - loop_start_time - stall_time) * 1000;
+        else computation_time = (ros::Time::now().toSec() - loop_start_time) * 1000;
     }
-    if (stall_time > 0) computation_time = (ros::Time::now().toSec() - loop_start_time - stall_time) * 1000;
-    else computation_time = (ros::Time::now().toSec() - loop_start_time) * 1000;
+
+
 }
 
 void DroneControlNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
@@ -203,6 +217,10 @@ void DroneControlNode::computeControl() {
             current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
             current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
 //    state_mutex.unlock();
+    double attitude_angle_cos = x0(9) * x0(9) - x0(6) * x0(6) - x0(7) * x0(7) + x0(8) * x0(8);
+    if(attitude_angle_cos < cos(0.5) || abs(x0(10)) > 4  || abs(x0(11)) > 4 || abs(x0(12)) > 4){
+        emergency_stop = true;
+    }
 
     drone_mpc.drone->setParams(current_state.thrust_scaling,
                                current_state.torque_scaling,
@@ -217,6 +235,7 @@ void DroneControlNode::computeControl() {
 
     //TODO
     if (isnan(drone_mpc.solution_x_at(0)(0))) {
+
         ROS_ERROR("MPC ISSUE\n");
         DroneMPC::ocp_state x0;
         x0 << 0, 0, 0,
