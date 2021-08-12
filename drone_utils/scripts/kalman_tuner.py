@@ -12,7 +12,7 @@ import seaborn as sns
 
 sns.set()
 
-from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history, read_state_history
+from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, set_plot_ranges, var_indexes, plot_history, read_state_history
 
 rospack = rospkg.RosPack()
 bag = rosbag.Bag(rospack.get_path('drone_utils') +"/"+ rospy.get_param('/log_file'))
@@ -29,7 +29,6 @@ kalman_state_history = read_state_history(bag, '/drone_state', time_init, t_end)
 # time_init = -20
 # t_end = 1
 
-fig_kalman, axe_kalman = plt.subplots(7, 3, figsize=(20, 10))
 
 plot_ranges = {
     "t": [0, t_end-time_init],
@@ -59,33 +58,33 @@ plot_ranges = {
 }
 
 kalman_plot_indexes = {
-    (0, 0): ("t", "x"),
-    (0, 1): ("t", "y"),
-    (0, 2): ("t", "z"),
+    (0, 0): [("t", "x")],
+    (0, 1): [("t", "y")],
+    (0, 2): [("t", "z")],
 
-    (1, 0): ("t", "yaw (x)"),
-    (1, 1): ("t", "pitch (y)"),
-    (1, 2): ("t", "roll (z)"),
+    (1, 0): [("t", "yaw (x)")],
+    (1, 1): [("t", "pitch (y)")],
+    (1, 2): [("t", "roll (z)")],
 
-    (2, 0): ("t", "dx"),
-    (2, 1): ("t", "dy"),
-    (2, 2): ("t", "dz"),
+    (2, 0): [("t", "dx")],
+    (2, 1): [("t", "dy")],
+    (2, 2): [("t", "dz")],
 
-    (3, 0): ("t", "dyaw (x)"),
-    (3, 1): ("t", "dpitch (y)"),
-    (3, 2): ("t", "droll (z)"),
+    (3, 0): [("t", "dyaw (x)")],
+    (3, 1): [("t", "dpitch (y)")],
+    (3, 2): [("t", "droll (z)")],
 
-    (4, 0): ("t", "thrust_scaling"),
-    (4, 1): ("t", "torque_scaling"),
-    (4, 2): ("t", "servo1_offset"),
+    (4, 0): [("t", "thrust_scaling")],
+    (4, 1): [("t", "torque_scaling")],
+    (4, 2): [("t", "servo1_offset")],
 
-    (5, 0): ("t", "mx"),
-    (5, 1): ("t", "my"),
-    (5, 2): ("t", "mz"),
+    (5, 0): [("t", "mx")],
+    (5, 1): [("t", "my")],
+    (5, 2): [("t", "mz")],
 
-    (6, 0): ("t", "fx"),
-    (6, 1): ("t", "fy"),
-    (6, 2): ("t", "fz"),
+    (6, 0): [("t", "fx")],
+    (6, 1): [("t", "fy")],
+    (6, 2): [("t", "fz")],
 }
 
 Q_names = ['x', 'x', 'x',
@@ -101,14 +100,8 @@ Q_names = ['x', 'x', 'x',
 R_names = ['optitrack_x', 'optitrack_x', 'optitrack_x',
            'optitrack_att', 'optitrack_att', 'optitrack_att', 'optitrack_att']
 
-# set plot ranges
-for plot_idx, (x_name, y_name) in kalman_plot_indexes.items():
-    axe_kalman[plot_idx].axis(xmin=plot_ranges[x_name][0],
-                              xmax=plot_ranges[x_name][1],
-                              ymin=plot_ranges[y_name][0],
-                              ymax=plot_ranges[y_name][1])
-    axe_kalman[plot_idx].set_xlabel(x_name)
-    axe_kalman[plot_idx].set_ylabel(y_name)
+fig_kalman, axe_kalman = plt.subplots(7, 3, figsize=(20, 10))
+set_plot_ranges(axe_kalman, plot_ranges, kalman_plot_indexes.items())
 
 try:
     from drone_gnc.srv import KalmanSimu
@@ -162,9 +155,9 @@ try:
 
         for i in range(len(kalman_line_list)):
             l, plot_idx = kalman_line_list[i]
-            x_name, y_name = kalman_plot_indexes[plot_idx]
-            l.set_ydata(new_kalman_state_history[:, var_indexes[y_name]])
-            l.set_xdata(new_kalman_state_history[:, var_indexes[x_name]])
+            for (x_name, y_name) in kalman_plot_indexes[plot_idx]:
+                l.set_ydata(new_kalman_state_history[:, var_indexes[y_name]])
+                l.set_xdata(new_kalman_state_history[:, var_indexes[x_name]])
         fig_kalman.canvas.draw_idle()
 
 

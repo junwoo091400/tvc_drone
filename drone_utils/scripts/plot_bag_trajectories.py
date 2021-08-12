@@ -10,15 +10,15 @@ import seaborn as sns
 
 sns.set()
 
-from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history, read_state_history, read_control_history, read_horizon_history
+from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history, read_state_history, read_control_history, read_horizon_history, set_plot_ranges
 
 rospack = rospkg.RosPack()
-bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
+bag = rosbag.Bag(rospack.get_path('drone_utils') + '/replay_analysis/wind_test_11_08_21/20_percent/log1.bag')
 
 
 time_init = 0
 t_end = 0
-for topic, msg, t in bag.read_messages(topics=['/simu_drone_state']):
+for topic, msg, t in bag.read_messages(topics=['/drone_state']):
     if time_init == 0:
         time_init = msg.header.stamp.to_sec()
     t_end = msg.header.stamp.to_sec()
@@ -32,34 +32,27 @@ guidance_state_horizon_history, guidance_control_horizon_history = read_horizon_
 
 
 state_plot_indexes = {
-    (0, 0): ("t", "x"),
-    (0, 1): ("t", "y"),
-    (0, 2): ("t", "z"),
+    (0, 0): [("t", "x")],
+    (0, 1): [("t", "y")],
+    (0, 2): [("t", "z")],
 
-    (1, 0): ("t", "dx"),
-    (1, 1): ("t", "dy"),
-    (1, 2): ("t", "dz"),
+    (1, 0): [("t", "dx")],
+    (1, 1): [("t", "dy")],
+    (1, 2): [("t", "dz")],
 
-    (2, 0): ("t", "yaw (x)"),
-    (2, 1): ("t", "pitch (y)"),
-    (2, 2): ("t", "roll (z)"),
+    (2, 0): [("t", "yaw (x)")],
+    (2, 1): [("t", "pitch (y)")],
+    (2, 2): [("t", "roll (z)")],
 
-    (3, 0): ("t", "dyaw (x)"),
-    (3, 1): ("t", "dpitch (y)"),
-    (3, 2): ("t", "droll (z)"),
-
-    (4, 0): ("t", "bottom"),
-    (4, 1): ("t", "top"),
-    (4, 2): ("t", "servo1"),
-
-    # (0, 0): ("y", "z"),
+    (3, 0): [("t", "dyaw (x)")],
+    (3, 1): [("t", "dpitch (y)")],
+    (3, 2): [("t", "droll (z)")],
 }
 
 control_plot_indexes = {
-    (4, 0): ("t", "servo1"),
-    (4, 0): ("t", "servo2"),
-    (4, 1): ("t", "bottom"),
-    (4, 2): ("t", "top"),
+    (4, 0): [("t", "bottom"), ("t", "top")],
+    (4, 1): [("t", "servo1")],
+    (4, 2): [("t", "servo2")],
 }
 
 plot_ranges = {
@@ -96,15 +89,7 @@ plot_ranges = {
 
 fig, axe = plt.subplots(5, 3, figsize=(15, 10))
 fig.subplots_adjust(wspace=0.4, hspace=0.5)
-
-# set plot ranges
-for plot_idx, (x_name, y_name) in state_plot_indexes.items() + control_plot_indexes.items():
-    axe[plot_idx].axis(xmin=plot_ranges[x_name][0],
-                       xmax=plot_ranges[x_name][1],
-                       ymin=plot_ranges[y_name][0],
-                       ymax=plot_ranges[y_name][1])
-    axe[plot_idx].set_xlabel(x_name)
-    axe[plot_idx].set_ylabel(y_name)
+set_plot_ranges(axe, plot_ranges, state_plot_indexes.items() + control_plot_indexes.items())
 
 plot_history(kalman_state_history, state_plot_indexes, axe, "state")
 
@@ -118,10 +103,11 @@ def plot_horizon_segment(t):
     state_history = state_horizon_history[:, :, idx]
     control_history = control_horizon_history[:, :, idx]
 
-    for plot_idx, (x_name, y_name) in state_plot_indexes.items():
-        x_data = state_history[:, var_indexes[x_name]]
-        y_data = state_history[:, var_indexes[y_name]]
-        line, = axe[plot_idx].plot(x_data, y_data, 'g-', label='_nolegend_')
+    for plot_idx, name_list in state_plot_indexes.items():
+        for (x_name, y_name) in name_list:
+            x_data = state_history[:, var_indexes[x_name]]
+            y_data = state_history[:, var_indexes[y_name]]
+            line, = axe[plot_idx].plot(x_data, y_data, 'g-', label='_nolegend_')
 
 
 PLOT_HORIZON_SEGMENTS = False
@@ -156,15 +142,15 @@ else:
 
         for i in range(len(state_mpc_line_list)):
             l, plot_idx = state_mpc_line_list[i]
-            x_name, y_name = state_plot_indexes[plot_idx]
-            l.set_ydata(state_history[:, var_indexes[y_name]])
-            l.set_xdata(state_history[:, var_indexes[x_name]])
+            for (x_name, y_name) in state_plot_indexes[plot_idx]:
+                l.set_ydata(state_history[:, var_indexes[y_name]])
+                l.set_xdata(state_history[:, var_indexes[x_name]])
 
         for i in range(len(control_mpc_line_list)):
             l, plot_idx = control_mpc_line_list[i]
-            x_name, y_name = control_plot_indexes[plot_idx]
-            l.set_ydata(control_history[:, var_indexes[y_name]])
-            l.set_xdata(control_history[:, var_indexes[x_name]])
+            for (x_name, y_name) in control_plot_indexes[plot_idx]:
+                l.set_ydata(control_history[:, var_indexes[y_name]])
+                l.set_xdata(control_history[:, var_indexes[x_name]])
 
         time_array = guidance_state_horizon_history[0, 0, :]
         idx = min(np.searchsorted(time_array, time_val, side="left"), time_array.size - 1)
@@ -185,49 +171,38 @@ else:
 
         fig.canvas.draw_idle()
 
-
-    # print(control_horizon_history[:, :, 100])
-
     slider.on_changed(update)
 
 
 axe[0][0].legend(loc='upper left')
 
 kalman_plot_indexes = {
-    (0, 0): ("t", "dx"),
-    (0, 1): ("t", "dy"),
-    (0, 2): ("t", "dz"),
+    (0, 0): [("t", "dx")],
+    (0, 1): [("t", "dy")],
+    (0, 2): [("t", "dz")],
 
-    (1, 0): ("t", "dyaw (x)"),
-    (1, 1): ("t", "dpitch (y)"),
-    (1, 2): ("t", "droll (z)"),
+    (1, 0): [("t", "dyaw (x)")],
+    (1, 1): [("t", "dpitch (y)")],
+    (1, 2): [("t", "droll (z)")],
 
-    (2, 0): ("t", "thrust_scaling"),
-    (2, 1): ("t", "servo1_offset"),
-    (2, 2): ("t", "servo2_offset"),
+    (2, 0): [("t", "thrust_scaling")],
+    (2, 1): [("t", "servo1_offset")],
+    (2, 2): [("t", "servo2_offset")],
 
-    (3, 0): ("t", "mx"),
-    (3, 1): ("t", "my"),
-    (3, 2): ("t", "mz"),
+    (3, 0): [("t", "mx")],
+    (3, 1): [("t", "my")],
+    (3, 2): [("t", "mz")],
 
-    (4, 0): ("t", "fx"),
-    (4, 1): ("t", "fy"),
-    (4, 2): ("t", "fz"),
+    (4, 0): [("t", "fx")],
+    (4, 1): [("t", "fy")],
+    (4, 2): [("t", "fz")],
 }
 
 fig_kalman, axe_kalman = plt.subplots(5, 3, figsize=(20, 10))
+set_plot_ranges(axe_kalman, plot_ranges, kalman_plot_indexes.items())
 
 plot_history(kalman_state_history, kalman_plot_indexes, axe_kalman, "kalman_state")
 
 axe_kalman[0][0].legend(loc='upper left')
-
-# set plot ranges
-for plot_idx, (x_name, y_name) in kalman_plot_indexes.items():
-    axe_kalman[plot_idx].axis(xmin=plot_ranges[x_name][0],
-                              xmax=plot_ranges[x_name][1],
-                              ymin=plot_ranges[y_name][0],
-                              ymax=plot_ranges[y_name][1])
-    axe_kalman[plot_idx].set_xlabel(x_name)
-    axe_kalman[plot_idx].set_ylabel(y_name)
 
 plt.show()

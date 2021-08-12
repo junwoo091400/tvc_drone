@@ -57,7 +57,7 @@ def read_control_history(bag, topic, t_init, t_end):
     control_history = np.empty((0, NU + 1))
     for _, msg, _ in bag.read_messages(topics=[topic]):
         t = msg.header.stamp.to_sec()
-        if t > t_init and t < t_init:
+        if t > t_init and t < t_end:
             control_array = np.append(t - t_init, convert_control_to_array(msg))
             control_history = np.vstack((control_history, control_array))
     return control_history
@@ -140,10 +140,21 @@ def plot_history(history, plot_indexes, axe, name, *plt_args):
         return
     line_list = []
 
-    for plot_idx, (x_name, y_name) in plot_indexes.items():
-        x_data = history[:, var_indexes[x_name]]
-        y_data = history[:, var_indexes[y_name]]
-        line, = axe[plot_idx].plot(x_data, y_data, label=name, *plt_args)
-        line_list.append((line, plot_idx))
+    for plot_idx, name_list in plot_indexes.items():
+        for (x_name, y_name) in name_list:
+            x_data = history[:, var_indexes[x_name]]
+            y_data = history[:, var_indexes[y_name]]
+            line, = axe[plot_idx].plot(x_data, y_data, label=name, *plt_args)
+            line_list.append((line, plot_idx))
 
     return line_list
+
+def set_plot_ranges(axe, plot_ranges, plot_indexes):
+    for plot_idx, name_list in plot_indexes:
+        for (x_name, y_name) in name_list:
+            axe[plot_idx].axis(xmin=plot_ranges[x_name][0],
+                            xmax=plot_ranges[x_name][1],
+                            ymin=plot_ranges[y_name][0],
+                            ymax=plot_ranges[y_name][1])
+            axe[plot_idx].set_xlabel(x_name)
+            axe[plot_idx].set_ylabel(y_name)
