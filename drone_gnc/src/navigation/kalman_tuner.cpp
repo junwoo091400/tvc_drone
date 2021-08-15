@@ -10,7 +10,7 @@
 
 #include <time.h>
 
-#include "drone_EKF_optitrack.h"
+#include "optitrack/drone_EKF_optitrack.hpp"
 
 #include <ros/package.h>
 #include <rosbag/bag.h>
@@ -20,7 +20,7 @@
 using namespace std;
 using namespace Eigen;
 
-DroneEKF *kalman;
+DroneEKFOptitrack *kalman;
 
 bool received_optitrack;
 bool initialized_optitrack;
@@ -47,8 +47,8 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
 
     kalman->estimate_params = req.estimate_params;
 
-    DroneEKF::state Q(Map<DroneEKF::state>(req.Q.data()));
-    DroneEKF::sensor_data R(Map<DroneEKF::sensor_data>(req.R.data()));
+    DroneEKFOptitrack::state Q(Map<DroneEKFOptitrack::state>(req.Q.data()));
+    DroneEKFOptitrack::sensor_data R(Map<DroneEKFOptitrack::sensor_data>(req.R.data()));
     kalman->setQdiagonal(Q);
     kalman->setRdiagonal(R);
     kalman->reset();
@@ -110,11 +110,11 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
                 Eigen::Vector3d position = raw_position - initial_optitrack_position;
 
 
-                DroneEKF::sensor_data new_data;
+                DroneEKFOptitrack::sensor_data new_data;
                 new_data.segment(0, 3) = position;
                 new_data.segment(3, 4) = orientation.coeffs();
 
-                DroneEKF::control u;
+                Drone::control u;
                 u << previous_control.servo1, previous_control.servo2,
                         (previous_control.bottom + previous_control.top) / 2,
                         previous_control.top - previous_control.bottom;
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "navigation");
     ros::NodeHandle nh("navigation");
 
-    DroneEKF kalman_obj(nh);
+    DroneEKFOptitrack kalman_obj(nh);
     kalman = &kalman_obj;
 
     initial_optitrack_orientation.setIdentity();

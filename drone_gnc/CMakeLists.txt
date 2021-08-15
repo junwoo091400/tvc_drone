@@ -9,6 +9,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror")
 set(CMAKE_VERBOSE_MAKEFILE “ON”)
 
+
 option(BUILD_RELEASE "Build release version w/o debugging symbols" ON)
 if (BUILD_RELEASE)
     set(CMAKE_BUILD_TYPE "Release")
@@ -193,7 +194,6 @@ add_subdirectory(src/guidance)
 add_subdirectory(src/models)
 add_subdirectory(src/navigation)
 add_subdirectory(src/utils/drone_dome)
-add_subdirectory(src/navigation/optitrack)
 add_subdirectory(submodule/polympc)
 
 

@@ -11,7 +11,7 @@
 
 using namespace Eigen;
 
-ros::Publisher rocket_control_pub, drone_state_pub, command_pub, fake_optitrack_pub;
+ros::Publisher rocket_control_pub, drone_state_pub, pixhawk_state_pub, command_pub, fake_optitrack_pub;
 
 double CM_to_thrust_distance;
 
@@ -116,6 +116,7 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     converted_state.header.stamp = now;
 
     drone_state_pub.publish(converted_state);
+    pixhawk_state_pub.publish(converted_state);
 
     geometry_msgs::PoseStamped optitrack_pose;
 
@@ -167,6 +168,7 @@ int main(int argc, char **argv) {
 
     // Create drone state publisher
     drone_state_pub = nh.advertise<drone_gnc::DroneState>("/simu_drone_state", 10);
+    pixhawk_state_pub = nh.advertise<drone_gnc::DroneState>("/pixhawk_drone_state", 10);
 
     command_pub = nh.advertise<std_msgs::String>("/commands", 10);
     // Automatic callback of service and publisher from here

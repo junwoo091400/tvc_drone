@@ -8,20 +8,17 @@
 
 #include <std_msgs/Float64.h>
 
-#include "drone_EKF_optitrack.hpp"
+#include "drone_EKF_pixhawk.hpp"
 
 class DroneNavigationNode {
 private:
-    DroneEKFOptitrack kalman;
+    DroneEKFPixhawk kalman;
 
     drone_gnc::FSM current_fsm;
     drone_gnc::DroneControl current_control;
     drone_gnc::DroneControl previous_control;
-    geometry_msgs::PoseStamped optitrack_pose;
-    bool received_optitrack = false;
-    bool initialized_optitrack = false;
-    Eigen::Quaterniond initial_optitrack_orientation;
-    Eigen::Vector3d initial_optitrack_position;
+    drone_gnc::DroneState pixhawk_state;
+    bool received_state = false;
     double last_predict_time;
     double last_computation_time = 0;
 
@@ -43,10 +40,6 @@ public:
 
         nh.getParam("period", period);
 
-        //TODO
-        initial_optitrack_orientation.setIdentity();
-        initial_optitrack_position << 0, 0, 0;
-
         last_predict_time = ros::Time::now().toSec();
     }
 
@@ -62,34 +55,19 @@ public:
 
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
-        sensor_sub = nh.subscribe("/optitrack_client/Drone/optitrack_pose", 1, &DroneNavigationNode::optitrackCallback,
+        sensor_sub = nh.subscribe("/pixhawk_drone_state", 1, &DroneNavigationNode::pixhawkStateCallback,
                                   this);
     }
 
     void kalmanStep() {
-        if (received_optitrack) {
-            if (!initialized_optitrack) {
-                initial_optitrack_orientation = Eigen::Quaterniond(optitrack_pose.pose.orientation.w,
-                                                                   optitrack_pose.pose.orientation.x,
-                                                                   optitrack_pose.pose.orientation.y,
-                                                                   optitrack_pose.pose.orientation.z);
-                initial_optitrack_position = Eigen::Vector3d(optitrack_pose.pose.position.x,
-                                                             optitrack_pose.pose.position.y,
-                                                             optitrack_pose.pose.position.z);
-                initialized_optitrack = true;
-            }
-
+        if (received_state) {
             double compute_time_start = ros::Time::now().toSec();
-            Eigen::Quaterniond raw_orientation(optitrack_pose.pose.orientation.w, optitrack_pose.pose.orientation.x,
-                                               optitrack_pose.pose.orientation.y, optitrack_pose.pose.orientation.z);
-            Eigen::Vector3d raw_position(optitrack_pose.pose.position.x, optitrack_pose.pose.position.y,
-                                         optitrack_pose.pose.position.z);
-            Eigen::Quaterniond orientation = initial_optitrack_orientation.inverse() * raw_orientation;
-            Eigen::Vector3d position = raw_position - initial_optitrack_position;
 
-            DroneEKFOptitrack::sensor_data new_data;
-            new_data.segment(0, 3) = position;
-            new_data.segment(3, 4) = orientation.coeffs();
+            DroneEKFPixhawk::sensor_data new_data;
+            new_data << pixhawk_state.pose.position.x, pixhawk_state.pose.position.y, pixhawk_state.pose.position.z,
+                    pixhawk_state.twist.linear.x, pixhawk_state.twist.linear.y, pixhawk_state.twist.linear.z,
+                    pixhawk_state.pose.orientation.x, pixhawk_state.pose.orientation.y, pixhawk_state.pose.orientation.z, pixhawk_state.pose.orientation.w,
+                    pixhawk_state.twist.angular.x, pixhawk_state.twist.angular.y, pixhawk_state.twist.angular.z;
 
             Drone::control u;
             u << previous_control.servo1, previous_control.servo2, (previous_control.bottom + previous_control.top) / 2,
@@ -118,21 +96,10 @@ public:
     }
 
     // Callback function to store last received state
-    void rocket_stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
-        optitrack_pose.pose = rocket_state->pose;
-        optitrack_pose.header.stamp = rocket_state->header.stamp;
-        received_optitrack = true;
+    void pixhawkStateCallback(const drone_gnc::DroneState::ConstPtr &state) {
+        pixhawk_state = *state;
+        received_state = true;
     }
-
-    void optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
-        optitrack_pose.pose.position.x = pose->pose.position.x;
-        optitrack_pose.pose.position.y = pose->pose.position.y;
-        optitrack_pose.pose.position.z = pose->pose.position.z;
-        optitrack_pose.pose.orientation = pose->pose.orientation;
-        optitrack_pose.header.stamp = pose->header.stamp;
-        received_optitrack = true;
-    }
-
 
     void controlCallback(const drone_gnc::DroneControl::ConstPtr &control) {
         current_control = *control;
