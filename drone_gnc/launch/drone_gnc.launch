@@ -33,7 +33,7 @@
         <rosparam param="initial_state">"Idle"</rosparam>
     </node>
 
-    <node name="navigation" pkg="drone_gnc" type="drone_navigation_optitrack" machine="gnc_machine"
+    <node name="navigation" pkg="drone_gnc" type="drone_navigation_pixhawk" machine="gnc_machine"
           output="screen" launch-prefix="taskset -c 3">
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
         <rosparam param="estimate_params">true</rosparam>
