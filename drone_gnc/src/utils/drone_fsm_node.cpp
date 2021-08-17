@@ -1,5 +1,6 @@
 #include "ros/ros.h"
 #include "drone_gnc/FSM.h"
+#include "drone_gnc/DroneState.h"
 #include <time.h>
 
 #include <sstream>
@@ -11,6 +12,9 @@
 // global variable with time and state machine
 drone_gnc::FSM current_fsm;
 double time_zero;
+drone_gnc::DroneState current_state;
+bool received_state = false;
+geometry_msgs::Vector3 target_apogee;
 
 // Service function: send back fsm (time + state machine)
 bool sendFSM(drone_gnc::GetFSM::Request &req, drone_gnc::GetFSM::Response &res) {
@@ -22,6 +26,18 @@ bool sendFSM(drone_gnc::GetFSM::Request &req, drone_gnc::GetFSM::Response &res) 
 
     return true;
 }
+
+void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
+//    const std::lock_guard<std::mutex> lock(state_mutex);
+    current_state = *rocket_state;
+    received_state = true;
+}
+
+void targetCallback(const geometry_msgs::Vector3 &target) {
+//    const std::lock_guard<std::mutex> lock(target_mutex);
+    target_apogee = target;
+}
+
 
 void processCommand(const std_msgs::String &command) {
     if (command.data.compare("Coast") == 0) {
@@ -56,6 +72,14 @@ int main(int argc, char **argv) {
     // Subscribe to commands
     ros::Subscriber command_sub = nh.subscribe("/commands", 10, processCommand);
 
+    // Subscribe to commands
+    ros::Subscriber target_sub = nh.subscribe("/target_apogee", 1, targetCallback);
+
+    ros::Publisher target_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
+
+    // Subscribe to commands
+    ros::Subscriber state_sub = nh.subscribe("/drone_state", 1, stateCallback);
+
     timer_pub.publish(current_fsm);
 
     nh.getParam("/environment/rail_length", rail_length);
@@ -71,6 +95,14 @@ int main(int argc, char **argv) {
                 current_fsm.state_machine = "Launch";
 
             } else if (current_fsm.state_machine.compare("Launch") == 0) {
+                if (abs(current_state.pose.position.z - target_apogee.z) < 1){
+                    geometry_msgs::Vector3 new_apogee;
+                    new_apogee.x = 0;
+                    new_apogee.y = 0;
+                    new_apogee.z = 0;
+                    target_pub.publish(new_apogee);
+                    ROS_INFO_STREAM("reached target");
+                }
 
             } else if (current_fsm.state_machine.compare("Coast") == 0) {
                 // Do nothing for now
