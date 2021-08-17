@@ -41,10 +41,8 @@ public:
     Matrix<scalar_t, Drone::NU, 1> R;
     Matrix<scalar_t, 11, 11> QN;
 
-//    Matrix<scalar_t, Drone::NX, 1> xs;
-    Matrix<scalar_t, Drone::NU, 1> us;
-
-    Matrix<scalar_t, Drone::NX, NUM_NODES> targetTrajectory;
+    Matrix<scalar_t, Drone::NX, NUM_NODES> target_state_trajectory;
+    Matrix<scalar_t, Drone::NU, NUM_NODES> target_control_trajectory;
 
     shared_ptr<Drone> drone;
 
@@ -254,7 +252,7 @@ public:
                                    const Ref<const parameter_t <T>> p,
                                    const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
-        Matrix<T, 13, 1> x_error = x.segment(0, 13) - targetTrajectory.col(k).template cast<T>();
+        Matrix<T, 13, 1> x_error = x.segment(0, 13) - target_state_trajectory.col(k).template cast<T>();
         Matrix<T, 11, 1> x_error2;
         x_error2.segment(0, 6) = x_error.segment(0, 6);
         x_error2(6) = x_error(9) * x_error(6) - x_error(7) * x_error(8);
@@ -264,7 +262,7 @@ public:
         Matrix<T, 4, 1> u_drone;
         u_drone.segment(0, 2) = x.segment(13, 2);
         u_drone.segment(2, 2) = u.segment(2, 2);
-        Matrix<T, NU, 1> u_error = u_drone - us.template cast<T>();
+        Matrix<T, NU, 1> u_error = u_drone - target_control_trajectory.col(k).template cast<T>();
 
 
         lagrange = x_error2.dot(Q.template cast<T>().cwiseProduct(x_error2)) +
@@ -279,7 +277,7 @@ public:
                                 const scalar_t &t, T &mayer) noexcept {
         k = NUM_NODES - 1;
 
-        Matrix<T, 13, 1> x_error = x.segment(0, 13) - targetTrajectory.col(k).template cast<T>();
+        Matrix<T, 13, 1> x_error = x.segment(0, 13) - target_state_trajectory.col(k).template cast<T>();
         Matrix<T, 11, 1> x_error2;
         x_error2.segment(0, 6) = x_error.segment(0, 6);
         x_error2(6) = x_error(9) * x_error(6) - x_error(7) * x_error(8);

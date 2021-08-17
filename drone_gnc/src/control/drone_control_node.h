@@ -55,9 +55,11 @@ public:
 
     Drone::state sampleTargetTrajectory(double t);
 
-    void sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_traj);
+    void sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
+                                Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj);
 
-    void sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_traj);
+    void sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
+                                      Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj);
 
     void saveDebugInfo();
 
@@ -92,7 +94,8 @@ private:
     static const int GUIDANCE_NUM_NODE = GUIDANCE_POLY_ORDER * GUIDANCE_NUM_SEG + 1;
     //TODO swap automatically between the two
 //    static const int GUIDANCE_NUM_NODE = 800;
-    Eigen::Matrix<double, Drone::NX, GUIDANCE_NUM_NODE> guidanceTrajectory;
+    Eigen::Matrix<double, Drone::NX, GUIDANCE_NUM_NODE> guidance_state_trajectory;
+    Eigen::Matrix<double, Drone::NU, GUIDANCE_NUM_NODE> guidance_control_trajectory;
     Eigen::Matrix<double, GUIDANCE_POLY_ORDER + 1, GUIDANCE_POLY_ORDER + 1> m_basis;
     bool received_trajectory = false;
     double guidance_t0;
@@ -105,7 +108,7 @@ private:
 
     double sgm_length;
 
-    DroneBackupController backupController;
+    DroneBackupController backup_controller;
 
     ros::Subscriber rocket_state_sub;
     ros::Subscriber target_sub;

@@ -33,9 +33,9 @@ void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
     received_state = true;
 }
 
-void targetCallback(const geometry_msgs::Vector3 &target) {
+void targetCallback(const geometry_msgs::Vector3::ConstPtr &target) {
 //    const std::lock_guard<std::mutex> lock(target_mutex);
-    target_apogee = target;
+    target_apogee = *target;
 }
 
 
@@ -77,6 +77,12 @@ int main(int argc, char **argv) {
 
     ros::Publisher target_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
 
+    std::vector<double> initial_target_apogee;
+    nh.getParam("/guidance/target_apogee", initial_target_apogee);
+    target_apogee.x = initial_target_apogee.at(0);
+    target_apogee.y = initial_target_apogee.at(1);
+    target_apogee.z = initial_target_apogee.at(2);
+
     // Subscribe to commands
     ros::Subscriber state_sub = nh.subscribe("/drone_state", 1, stateCallback);
 
@@ -101,7 +107,7 @@ int main(int argc, char **argv) {
                     new_apogee.y = 0;
                     new_apogee.z = 0;
                     target_pub.publish(new_apogee);
-                    ROS_INFO_STREAM("reached target");
+//                    ROS_INFO_STREAM("reached target");
                 }
 
             } else if (current_fsm.state_machine.compare("Coast") == 0) {

@@ -63,19 +63,24 @@ void DroneGuidanceNode::stateCallback(const drone_gnc::DroneState::ConstPtr &roc
 }
 
 void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
-    target_state << target.x, target.y, target.z,
+    Drone::state new_target_state;
+    new_target_state << target.x, target.y, target.z,
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
     target_control << 0, 0, drone->getHoverSpeedAverage(), 0;
 
-    drone_mpc.setTarget(target_state, target_control);
+    drone_mpc.setTarget(new_target_state, target_control);
 
-    x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
-            current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
-            current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
-            current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
-    drone_mpc.initGuess(x0, target_state);
+    // recompute a new guess if sudden target change
+    if((target_state.head(3) - new_target_state.head(3)).norm() > 1){
+        x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
+                current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
+                current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
+                current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
+        drone_mpc.initGuess(x0, target_state);
+    }
+    target_state = new_target_state;
 }
 
 void DroneGuidanceNode::computeTrajectory() {

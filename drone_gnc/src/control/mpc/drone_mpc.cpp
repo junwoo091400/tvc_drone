@@ -46,7 +46,6 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
-    setTarget(target_state, target_control);
 
     init_time = ros::Time::now().toSec();
     fixed_computation_time = mpc_period * 0.93;
@@ -73,13 +72,6 @@ drone_gnc::DroneControl DroneMPC::getControlMessage(double t) {
                                     drone->max_propeller_speed);
     drone_control.header.stamp = ros::Time::now();
     return drone_control;
-}
-
-
-void DroneMPC::setTarget(Drone::state &target_state, Drone::control &target_control) {
-    //TODO
-//    ocp().xs << target_state.cwiseProduct(ocp().x_drone_scaling_vec);
-    ocp().us << target_control.cwiseProduct(ocp().u_drone_scaling_vec);
 }
 
 void DroneMPC::warmStart() {

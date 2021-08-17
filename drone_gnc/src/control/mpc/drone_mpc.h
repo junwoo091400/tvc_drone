@@ -21,8 +21,6 @@ public:
 
     drone_gnc::DroneControl getControlMessage(double t);
 
-    void setTarget(Drone::state &target_state, Drone::control &target_control);
-
     Drone::state solution_x_at(const double t);
 
     Drone::control solution_u_at(const double t);

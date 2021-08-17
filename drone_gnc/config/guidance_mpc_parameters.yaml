@@ -10,8 +10,8 @@ input_costs:
   thrust: 0.01
 
 # constraints (+ used for scaling)
-min_z: -100
-min_dz: -20
+min_z: 0
+min_dz: -2
 
 max_dx: 10
 max_dz: 20
@@ -24,7 +24,7 @@ scaling_z: 30
 horizon_length: 30.0
 
 max_sqp_iter: 3
-max_qp_iter: 3000
+max_qp_iter: 30000
 max_line_search_iter: 5
 
 weight_scaling: 1

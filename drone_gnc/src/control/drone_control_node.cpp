@@ -2,7 +2,7 @@
 
 DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
                                                                                             drone(drone_ptr),
-                                                                                            backupController(
+                                                                                            backup_controller(
                                                                                                     drone_ptr) {
     initTopics(nh);
 
@@ -58,8 +58,8 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
 }
 
 void DroneControlNode::run() {
-
-    if(emergency_stop){
+    bool emergency_stop_enabled = false;
+    if(emergency_stop && emergency_stop_enabled){
         drone_gnc::DroneControl drone_control;
         drone_control.top = 0;
         drone_control.bottom = 0;
@@ -142,11 +142,16 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
 
     int i = 0;
     for (auto waypoint: target->trajectory) {
-        guidanceTrajectory.col(i)
+        guidance_state_trajectory.col(i)
                 << waypoint.state.pose.position.x, waypoint.state.pose.position.y, waypoint.state.pose.position.z,
                 waypoint.state.twist.linear.x, waypoint.state.twist.linear.y, waypoint.state.twist.linear.z,
                 waypoint.state.pose.orientation.x, waypoint.state.pose.orientation.y, waypoint.state.pose.orientation.z, waypoint.state.pose.orientation.w,
                 waypoint.state.twist.angular.x, waypoint.state.twist.angular.y, waypoint.state.twist.angular.z;
+
+        guidance_control_trajectory.col(i)
+                << waypoint.control.servo1, waypoint.control.servo2,
+                0.5*(waypoint.control.bottom+waypoint.control.top),
+                waypoint.control.top - waypoint.control.bottom;
         i++;
     }
 }
@@ -157,12 +162,13 @@ Drone::state DroneControlNode::sampleTargetTrajectory(double t) {
                    std::min(idx, (Eigen::Index) GUIDANCE_NUM_SEG - 1)); // clip idx to stay within the spline bounds
 
     Drone::state state = polympc::LagrangeSpline::eval(t - idx * sgm_length,
-                                                       guidanceTrajectory.block<Drone::NX, GUIDANCE_POLY_ORDER + 1>(
+                                                       guidance_state_trajectory.block<Drone::NX, GUIDANCE_POLY_ORDER + 1>(
                                                                0, idx * GUIDANCE_POLY_ORDER), m_basis);
     return state;
 }
 
-void DroneControlNode::sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_traj) {
+void DroneControlNode::sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
+                                              Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj) {
     double time_now = ros::Time::now().toSec();
     //first value is to make startup work, second value is used in general
     double time_delta = std::min(time_now - start_time, time_now - guidance_t0);
@@ -175,15 +181,21 @@ void DroneControlNode::sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC
         Eigen::Index idx = (Eigen::Index) std::floor(t / sgm_length);
         idx = std::max(Eigen::Index(0), std::min(idx, (Eigen::Index) GUIDANCE_NUM_SEG - 1));
 
-        Drone::state state = polympc::LagrangeSpline::eval(t - idx * sgm_length, guidanceTrajectory.block<Drone::NX,
+        Drone::state state = polympc::LagrangeSpline::eval(t - idx * sgm_length, guidance_state_trajectory.block<Drone::NX,
                 GUIDANCE_POLY_ORDER + 1>(0, idx * GUIDANCE_POLY_ORDER), m_basis);
 
-        mpc_target_traj.col(i) = state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
+        Drone::control control = polympc::LagrangeSpline::eval(t - idx * sgm_length, guidance_control_trajectory.block<Drone::NU,
+                GUIDANCE_POLY_ORDER + 1>(0, idx * GUIDANCE_POLY_ORDER), m_basis);
+
+        mpc_target_state_traj.col(i) = state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
+        mpc_target_control_traj.col(i) = control.cwiseProduct(drone_mpc.ocp().u_drone_scaling_vec);
+
     }
 }
 
 
-void DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_traj) {
+void DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
+                                                    Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj) {
     double time_now = ros::Time::now().toSec();
 
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
@@ -194,14 +206,18 @@ void DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, Dr
         //linear interpolation
         int l_idx = floor(idx);
         l_idx = min(l_idx, GUIDANCE_NUM_NODE - 1);
-        Drone::state l_state = guidanceTrajectory.col(l_idx);
+        Drone::state l_state = guidance_state_trajectory.col(l_idx);
+        Drone::control l_control = guidance_control_trajectory.col(l_idx);
 
         int u_idx = ceil(idx);
         u_idx = min(u_idx, GUIDANCE_NUM_NODE - 1);
-        Drone::state u_state = guidanceTrajectory.col(u_idx);
+        Drone::state u_state = guidance_state_trajectory.col(u_idx);
+        Drone::control u_control = guidance_control_trajectory.col(u_idx);
 
         Drone::state state = l_state + (u_state - l_state) * (idx - l_idx);
-        mpc_target_traj.col(i) = state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
+        Drone::control control = l_control + (u_control - l_control) * (idx - l_idx);
+        mpc_target_state_traj.col(i) = state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
+        mpc_target_control_traj.col(i) = control.cwiseProduct(drone_mpc.ocp().u_drone_scaling_vec);
     }
 }
 
@@ -257,7 +273,7 @@ void DroneControlNode::computeControl() {
 void DroneControlNode::publishFeedforwardControl() {
     drone_gnc::DroneControl drone_control;
     if (USE_BACKUP_CONTROLLER) {
-        drone_control = backupController.getControl(current_state, target_apogee);
+        drone_control = backup_controller.getControl(current_state, target_apogee);
     } else {
         drone_control = drone_mpc.getControlMessage(0.0);
     }
@@ -333,23 +349,27 @@ void DroneControlNode::fetchNewTarget() {
 //    target_mutex.unlock();
 
     target_control << 0, 0, drone->getHoverSpeedAverage(), 0;
-//        }
 
-    drone_mpc.setTarget(target_state, target_control);
-
-    Matrix<double, Drone::NX, DroneMPC::num_nodes> mpc_target_traj;
+    Matrix<double, Drone::NX, DroneMPC::num_nodes> mpc_target_state_traj;
+    Matrix<double, Drone::NU, DroneMPC::num_nodes> mpc_target_control_traj;
     if (!track_guidance) {
         for (int i = 0; i < DroneMPC::num_nodes; i++) {
-            mpc_target_traj.col(i) = target_state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
+            mpc_target_state_traj.col(i) = target_state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
+            mpc_target_control_traj.col(i) = target_control.cwiseProduct(drone_mpc.ocp().u_drone_scaling_vec);
         }
     } else if (fixed_guidance) {
-        sampleTargetTrajectoryLinear(mpc_target_traj);
+        sampleTargetTrajectoryLinear(mpc_target_state_traj, mpc_target_control_traj);
     } else {
-        sampleTargetTrajectory(mpc_target_traj);
+        sampleTargetTrajectory(mpc_target_state_traj, mpc_target_control_traj);
+        //TODO
+        for (int i = 0; i < DroneMPC::num_nodes; i++) {
+            mpc_target_control_traj.col(i) = target_control.cwiseProduct(drone_mpc.ocp().u_drone_scaling_vec);
+        }
     }
 
     //TODO separate
-    drone_mpc.ocp().targetTrajectory = mpc_target_traj;
+    drone_mpc.ocp().target_state_trajectory = mpc_target_state_traj;
+    drone_mpc.ocp().target_control_trajectory = mpc_target_control_traj;
 }
 
 void DroneControlNode::saveDebugInfo() {
