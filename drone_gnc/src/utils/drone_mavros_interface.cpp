@@ -17,9 +17,13 @@
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/ManualControl.h>
 
+#include <mavros_msgs/RCIn.h>
+#include <algorithm>
+
+//using namespace Eigen;
+
 geometry_msgs::Vector3 current_target_apogee;
-void DroneControlNode::targetCallback(const geometry_msgs::Vector3 &target) {
-//    const std::lock_guard<std::mutex> lock(target_mutex);
+void targetCallback(const geometry_msgs::Vector3 &target) {
     current_target_apogee = target;
 }
 
@@ -30,17 +34,23 @@ void mavrosStateCallback(const mavros_msgs::State::ConstPtr& msg){
 }
 
 
-
-//using namespace Eigen;
-
 ros::Publisher pixhawk_control_pub, pixhawk_state_pub, target_apogee_pub;
 boost::array<double, 8> pixhawk_controls;
+double max_servo_angle = 15.0/180.0*M_PI;
 
 void updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
-    pixhawk_controls.at(0) = drone_control->bottom;
-    pixhawk_controls.at(1) = drone_control->top;
-    pixhawk_controls.at(2) = drone_control->servo1;
-    pixhawk_controls.at(3) = drone_control->servo2;
+    double servo1 = std::min(std::max(drone_control->servo1, -max_servo_angle), max_servo_angle);
+    double servo2 = std::min(std::max(drone_control->servo2, -max_servo_angle), max_servo_angle);
+
+    // double bottom = std::min(std::max(drone_control->bottom, 0.0), 95.0);
+    // double top = std::min(std::max(drone_control->top, 0.0), 95.0);
+
+    double bottom = drone_control->bottom;
+    double top = drone_control->top;
+    pixhawk_controls[0] = bottom/100*2 - 1;
+    pixhawk_controls[1] = top/100*2 - 1;
+    pixhawk_controls[2] = servo1/(M_PI/4) - 0.02;
+    pixhawk_controls[3] = servo2/(M_PI/4) + 0.24;
 }
 
 void publishConvertedState(const geometry_msgs::PoseStamped::ConstPtr &mavros_pose,
@@ -53,11 +63,23 @@ void publishConvertedState(const geometry_msgs::PoseStamped::ConstPtr &mavros_po
     pixhawk_state_pub.publish(drone_state);
 }
 
-void RCCallback(const mavros_msgs::ManualControl::ConstPtr& rc_control) {
+double joystic_speed = 1;
+double last_rc_cb;
+double max_z = 2;
+void RCCallback(const mavros_msgs::RCIn::ConstPtr& rc_control) {
+    double dt = ros::Time::now().toSec() - last_rc_cb;
+    double joystic_x = ((double)rc_control->channels[1]-1500)/1000;
+    double joystic_y = ((double)rc_control->channels[2]-1500)/1000;
+    double joystic_z = ((double)rc_control->channels[0]-1000)/1000;
+
+    if(abs(joystic_x)<0.1)joystic_x=0;
+    if(abs(joystic_y)<0.1)joystic_y=0;
+
     geometry_msgs::Vector3 new_target_apogee;
-    new_target_apogee.x = rc_control->x;
-    new_target_apogee.y = rc_control->y;
-    new_target_apogee.z = rc_control->z;
+    new_target_apogee.x = current_target_apogee.x + joystic_x * joystic_speed*dt;
+    new_target_apogee.y = current_target_apogee.y + joystic_y * joystic_speed*dt;
+    new_target_apogee.z = joystic_z*max_z;
+    last_rc_cb = ros::Time::now().toSec();
     target_apogee_pub.publish(new_target_apogee);
 }
 
@@ -80,11 +102,12 @@ int main(int argc, char **argv) {
     // Create control publisher
     pixhawk_control_pub = nh.advertise<mavros_msgs::ActuatorControl>("/mavros/actuator_control", 10);
 
-    target_apogee_pub = nh.advertise<mavros_msgs::ActuatorControl>("/target_apogee", 10);
+    target_apogee_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
 
 
     // Subscribe to drone control
-    ros::Subscriber rc_sub = nh.subscribe("/mavros/manual_control/control", 1, RCCallback);
+    last_rc_cb = ros::Time::now().toSec();
+    ros::Subscriber rc_sub = nh.subscribe("/mavros/rc/in", 1, RCCallback);
 
     // Create state publisher
     pixhawk_state_pub = nh.advertise<drone_gnc::DroneState>("/pixhawk_drone_state", 10);
@@ -97,14 +120,14 @@ int main(int argc, char **argv) {
 
     ros::Rate rate(200.0);
     for(int i = 100; ros::ok() && i > 0; --i){
-        pixhawk_controls.at(0) = 0.6;
-        pixhawk_controls.at(1) = 0.6;
-        pixhawk_controls.at(2) = 0.6;
-        pixhawk_controls.at(3) = 0.6;
+        pixhawk_controls[0] = -1;
+        pixhawk_controls[1] = -1;
+        pixhawk_controls[2] = -0.02;
+        pixhawk_controls[3] = 0.24;
 
         mavros_msgs::ActuatorControl pixhawk_control_msg;
         pixhawk_control_msg.header.stamp = ros::Time::now();
-        pixhawk_control_msg.group_mix = mavros_msgs::ActuatorControl::PX4_MIX_MANUAL_PASSTHROUGH;
+        pixhawk_control_msg.group_mix = mavros_msgs::ActuatorControl::PX4_MIX_FLIGHT_CONTROL;
         pixhawk_control_msg.controls = pixhawk_controls;
 
         pixhawk_control_pub.publish(pixhawk_control_msg);
@@ -143,7 +166,7 @@ int main(int argc, char **argv) {
         }
         mavros_msgs::ActuatorControl pixhawk_control_msg;
         pixhawk_control_msg.header.stamp = ros::Time::now();
-        pixhawk_control_msg.group_mix = mavros_msgs::ActuatorControl::PX4_MIX_MANUAL_PASSTHROUGH;
+        pixhawk_control_msg.group_mix = mavros_msgs::ActuatorControl::PX4_MIX_FLIGHT_CONTROL;
         pixhawk_control_msg.controls = pixhawk_controls;
 
         pixhawk_control_pub.publish(pixhawk_control_msg);
