@@ -15,7 +15,7 @@ predict_vars:
   disturbance_torque_z: 1
 
 update_vars:
-  optitrack_x: 0.005
-  optitrack_att: 0.005
+  optitrack_x: 0.001
+  pixhawk: 0.001
 
 period: 0.005

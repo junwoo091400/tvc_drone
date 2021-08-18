@@ -98,7 +98,9 @@ Q_names = ['x', 'x', 'x',
            'disturbance_torque', 'disturbance_torque', 'disturbance_torque_z']
 
 R_names = ['optitrack_x', 'optitrack_x', 'optitrack_x',
-           'optitrack_att', 'optitrack_att', 'optitrack_att', 'optitrack_att']
+           'pixhawk', 'pixhawk', 'pixhawk', 'pixhawk',
+           'pixhawk', 'pixhawk', 'pixhawk',
+           'pixhawk', 'pixhawk', 'pixhawk']
 
 fig_kalman, axe_kalman = plt.subplots(7, 3, figsize=(20, 10))
 set_plot_ranges(axe_kalman, plot_ranges, kalman_plot_indexes.items())
@@ -118,7 +120,7 @@ try:
 
     # plot "ground truth"
     Q = [1, 1, 1, 2000, 2000, 2000, 1, 1, 1, 1, 4000, 4000, 4000] + [0 for i in range(NP)]
-    R = [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+    R = [0.001] * 13
     resp = kalman_simu(Q, R, False)
     ground_truth_state_history = np.empty((0, NX + NP + 1))
     for waypoint in resp.trajectory.trajectory:
