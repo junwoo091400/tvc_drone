@@ -17,6 +17,9 @@
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/ManualControl.h>
 
+#include <nav_msgs/Odometry.h>
+
+
 #include <mavros_msgs/RCIn.h>
 #include <algorithm>
 
@@ -42,23 +45,20 @@ void updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control
     double servo1 = std::min(std::max(drone_control->servo1, -max_servo_angle), max_servo_angle);
     double servo2 = std::min(std::max(drone_control->servo2, -max_servo_angle), max_servo_angle);
 
-    // double bottom = std::min(std::max(drone_control->bottom, 0.0), 95.0);
-    // double top = std::min(std::max(drone_control->top, 0.0), 95.0);
+    double bottom = std::min(std::max(drone_control->bottom, 0.0), 90.0);
+    double top = std::min(std::max(drone_control->top, 0.0), 90.0);
 
-    double bottom = drone_control->bottom;
-    double top = drone_control->top;
     pixhawk_controls[0] = bottom/100*2 - 1;
     pixhawk_controls[1] = top/100*2 - 1;
     pixhawk_controls[2] = servo1/(M_PI/4) - 0.02;
     pixhawk_controls[3] = servo2/(M_PI/4) + 0.24;
 }
 
-void publishConvertedState(const geometry_msgs::PoseStamped::ConstPtr &mavros_pose,
-                           const geometry_msgs::TwistStamped::ConstPtr &mavros_twist) {
+void publishConvertedState(const nav_msgs::Odometry::ConstPtr& mavros_state) {
     drone_gnc::DroneState drone_state;
     drone_state.header.stamp = ros::Time::now();
-    drone_state.pose = mavros_pose->pose;
-    drone_state.twist = mavros_twist->twist;
+    drone_state.pose = mavros_state->pose.pose;
+    drone_state.twist = mavros_state->twist.twist;
 
     pixhawk_state_pub.publish(drone_state);
 }
@@ -88,10 +88,11 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh("drone_mavros_interface");
 
     // Subscribe to both mavros pose and twist and merge them
-    message_filters::Subscriber<geometry_msgs::PoseStamped> pose_sub(nh, "/mavros/local_position/pose", 1);
-    message_filters::Subscriber<geometry_msgs::TwistStamped> vel_sub(nh, "/mavros/local_position/velocity_body", 1);
-    message_filters::TimeSynchronizer<geometry_msgs::PoseStamped, geometry_msgs::TwistStamped> sync(pose_sub, vel_sub,10);
-    sync.registerCallback(boost::bind(&publishConvertedState, _1, _2));
+    // message_filters::Subscriber<geometry_msgs::PoseStamped> pose_sub(nh, "/mavros/local_position/pose", 1);
+    // message_filters::Subscriber<geometry_msgs::TwistStamped> vel_sub(nh, "/mavros/local_position/velocity_body", 1);
+    // message_filters::TimeSynchronizer<geometry_msgs::PoseStamped, geometry_msgs::TwistStamped> sync(pose_sub, vel_sub,10);
+    // sync.registerCallback(boost::bind(&publishConvertedState, _1, _2));
+    ros::Subscriber pose_sub = nh.subscribe("/mavros/global_position/local", 1, publishConvertedState);
 
     // Subscribe to drone control
     ros::Subscriber drone_control_sub = nh.subscribe("/drone_control", 1, updateCurrentControl);

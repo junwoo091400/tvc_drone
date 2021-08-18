@@ -39,7 +39,7 @@ CM_offset_x: 0
 initial_speed: 0
 
 min_propeller_speed: 35
-max_propeller_speed: 95
+max_propeller_speed: 90
 
 max_propeller_delta: 40
 

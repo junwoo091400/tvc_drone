@@ -135,7 +135,7 @@ double DroneMPC::node_time(int i) {
 
 void DroneMPC::solve(Drone::state &x0) {
     double computation_start_time = ros::Time::now().toSec();
-    solution_time + computation_start_time + mpc_period;
+    solution_time = computation_start_time + mpc_period;
 
     Drone::state predicted_x0;
     integrateX0(x0, predicted_x0);
