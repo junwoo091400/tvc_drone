@@ -77,7 +77,7 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
     ocp_control u0;
     u0 << 0, 0, drone->max_propeller_speed;
     Eigen::MatrixXd traj_control_guess = u0.replicate(1, ocp().NUM_NODES);
-
+    double t_end;
     if (ocp().minimal_time) {
         // initial guess assuming full thrust for first part, then minimum thrust for second part
         double speed1, speed2;
@@ -95,7 +95,7 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
 
         // obtained by solving delta_z = 1/2 a1 t_mid^2 + v_mid (t_end-t_mid) + 1/2 a2 (t_end-t_mid)^2, v_end = 0
         double t_mid = sqrt(2 * (z_target - z0) / (a1 * (1 - a1 / a2)));
-        double t_end = t_mid - a1 / a2 * t_mid;
+        t_end = t_mid - a1 / a2 * t_mid;
         double z_mid = z0 + 0.5 * a1 * t_mid * t_mid;
         double v_mid = a1 * t_mid;
 
@@ -118,16 +118,48 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
             }
         }
 
-        traj_state_guess.row(2) = z_guess.reverse()*ocp().x_scaling_vec(2);
-        traj_state_guess.row(5) = dz_guess.reverse()*ocp().x_scaling_vec(5);
-        traj_control_guess.row(2) = prop_av_guess.reverse()*ocp().u_scaling_vec(2);
+        traj_state_guess.row(2) = z_guess.reverse();
+        traj_state_guess.row(5) = dz_guess.reverse();
+        traj_control_guess.row(2) = prop_av_guess.reverse();
 //        ROS_INFO_STREAM("traj guess " << traj_state_guess);
 //        ROS_INFO_STREAM("control guess " << traj_control_guess);
+        //hack to make it fine if dz is small
+        t_end = std::max(2.0, t_end);
+
+        double dx = (target_state(0) - x0(0)) / t_end;
+        double dy = (target_state(1) - x0(1)) / t_end;
+        double delta_x = target_state(0) - x0(0);
+        double delta_y = target_state(1) - x0(1);
+        VectorXd time_grid_2 = time_grid.cwiseProduct(time_grid);
+        VectorXd time_grid_3 = time_grid.cwiseProduct(time_grid_2);
+
+        ArrayXd dx_guess = 6*delta_x/t_end*(time_grid - time_grid_2);
+        ArrayXd dy_guess = 6*delta_y/t_end*(time_grid - time_grid_2);
+
+        RowVectorXd x_guess = x0(0) + (delta_x*(3*time_grid_2 - 2*time_grid_3)).array();
+        RowVectorXd y_guess = x0(1) + (delta_y*(3*time_grid_2 - 2*time_grid_3)).array();
+
+        RowVectorXd fx_guess = 6*delta_x*(1-2*time_grid.array());
+        RowVectorXd fy_guess = 6*delta_y*(1-2*time_grid.array());
+
+        traj_state_guess.row(0) = x_guess.reverse();
+        traj_state_guess.row(1) = y_guess.reverse();
+        traj_state_guess.row(3) = dx_guess.reverse();
+        traj_state_guess.row(4) = dy_guess.reverse();
+        traj_control_guess.row(0) = fx_guess.reverse();
+        traj_control_guess.row(1) = fy_guess.reverse();
 
         p0 << t_end;
     } else {
         p0 << 1.0;
     }
+
+
+
+    //scaling
+    traj_state_guess = ocp().x_scaling_vec.transpose()*traj_state_guess;
+    traj_control_guess = ocp().u_scaling_vec.transpose()*traj_state_guess;
+
     p_guess(p0);
 
     //TODO scaling

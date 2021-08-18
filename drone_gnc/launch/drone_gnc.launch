@@ -20,7 +20,7 @@
     <rosparam param="fixed_guidance">false</rosparam>
 
     <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen" launch-prefix="taskset -c 3">
-        <rosparam param="target_apogee">[0, 0, 4]</rosparam>
+        <rosparam param="target_apogee">[1, 0, 10]</rosparam>
         <rosparam param="minimal_time">true</rosparam>
     </node>
 
@@ -35,7 +35,7 @@
     </node>
 
     <node name="navigation" pkg="drone_gnc" type="drone_navigation_pixhawk" machine="gnc_machine"
-          output="screen" launch-prefix="taskset -c 3">
+          output="screen" launch-prefix="taskset -c 1">
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
         <rosparam param="estimate_params">true</rosparam>
         <rosparam param="init_estimated_params">true</rosparam>

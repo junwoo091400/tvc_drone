@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
 
     fake_optitrack_pub = nh.advertise<geometry_msgs::PoseStamped>("/optitrack_client/Drone/optitrack_pose", 10);
     fake_pixhawk_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 10);
-    fake_pixhawk_twist_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_body", 10);
+    fake_pixhawk_twist_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_local", 10);
 
 
     // Subscribe to rocket state

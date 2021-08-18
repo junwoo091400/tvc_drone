@@ -12,7 +12,7 @@ if [[ $1 == "-c" ]]; then
 fi
 
 # (ssh drone@ert.local 'sudo cpufreq-set -g performance')&
-(ssh drone@ert.local 'isolcpus=2,3')&
+(ssh drone@ert.local 'isolcpus=1,2,3')&
 
 
 export ROS_IP=$(hostname -I | cut -d' ' -f1) #automatically set to local ip address

@@ -27,6 +27,7 @@ private:
     double last_computation_time = 0;
     Drone::state measured_drone_state;
     Eigen::Vector3d origin;
+    Eigen::Quaterniond initial_orientation;
 
     ros::Publisher kalman_pub;
     ros::Publisher computation_time_pub;
@@ -68,7 +69,7 @@ public:
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
         pixhawk_pose_sub = nh.subscribe("/mavros/local_position/pose", 1, &DroneNavigationNode::pixhawkPoseCallback, this);
-        pixhawk_twist_sub = nh.subscribe("/mavros/local_position/velocity_body", 1, &DroneNavigationNode::pixhawkTwistCallback, this);
+        pixhawk_twist_sub = nh.subscribe("/mavros/local_position/velocity_local", 1, &DroneNavigationNode::pixhawkTwistCallback, this);
 
         optitrack_sub = nh.subscribe("/optitrack_client/Drone/optitrack_pose", 1, &DroneNavigationNode::optitrackCallback,
                                   this);
@@ -76,11 +77,6 @@ public:
 
     void kalmanStep() {
         if (received_pixhawk && received_optitrack) {
-            if(!initialized_origin){
-                origin = measured_drone_state.segment(0, 3);
-                initialized_origin = true;
-            }
-
             double compute_time_start = ros::Time::now().toSec();
 
             DroneEKFPixhawk::sensor_data new_data = measured_drone_state;
@@ -127,9 +123,18 @@ public:
 
     // Callback function to store last received state
     void optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
-        measured_drone_state(0) = pose->pose.position.x;
-        measured_drone_state(1) = pose->pose.position.y;
-        measured_drone_state(2) = pose->pose.position.z;
+        if(!initialized_origin && received_pixhawk){
+            origin = measured_drone_state.segment(0, 3);
+            initial_orientation.coeffs() << measured_drone_state.segment(6, 4);
+            initialized_origin = true;
+        }
+
+        Vector<double, 3> raw_position;
+        raw_position << pose->pose.position.x, pose->pose.position.y, 0;
+
+        Vector<double, 3> absolute_position = initial_orientation._transformVector(raw_position);
+
+        measured_drone_state.head(3) << absolute_position(0), absolute_position(1), pose->pose.position.z;
 
         received_optitrack = true;
     }

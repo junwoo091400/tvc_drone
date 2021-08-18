@@ -54,8 +54,8 @@ float rail_length = 0;
 int main(int argc, char **argv) {
 
     // Init ROS time keeper node
-    ros::init(argc, argv, "gnc_fsm");
-    ros::NodeHandle nh("gnc_fsm");
+    ros::init(argc, argv, "drone_fsm");
+    ros::NodeHandle nh("drone_fsm");
 
     // Initialize fsm
     current_fsm.time_now = 0;
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
                 current_fsm.state_machine = "Launch";
 
             } else if (current_fsm.state_machine.compare("Launch") == 0) {
-                if (abs(current_state.pose.position.z - target_apogee.z) < 1 && land_after_apogee){
+                if (abs(current_state.pose.position.z - target_apogee.z) < 1 && land_after_apogee && target_apogee.z != 0){
                     geometry_msgs::Vector3 new_apogee;
                     new_apogee.x = 0;
                     new_apogee.y = 0;
