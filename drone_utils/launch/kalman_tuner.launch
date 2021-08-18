@@ -15,7 +15,7 @@
 
     <!-- <rosparam param="log_file">"replay_analysis/best_data/20_percent/log1.bag"</rosparam> -->
    <!-- <rosparam param="log_file">"log/log6.bag"</rosparam> -->
-    <rosparam param="log_file">"replay_analysis/wind_test_11_08_21/20_percent/log1.bag"</rosparam>
+    <rosparam param="log_file">"log/log.bag"</rosparam>
 
 
     <node name="plot" pkg="drone_utils" type="kalman_tuner.py" output="screen"/>

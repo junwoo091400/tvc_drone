@@ -21,7 +21,7 @@ private:
     drone_gnc::DroneState pixhawk_state;
     bool received_pixhawk = false;
     //TODO set to false
-    bool received_optitrack = true;
+    bool received_optitrack = false;
     bool initialized_origin = false;
     double last_predict_time;
     double last_computation_time = 0;
@@ -114,7 +114,6 @@ public:
 
     // Callback function to store last received state
     void pixhawkPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
-        measured_drone_state(2) = pose->pose.position.z;
         measured_drone_state.segment(6, 4) << pose->pose.orientation.x, pose->pose.orientation.y, pose->pose.orientation.z, pose->pose.orientation.w;
 
         received_pixhawk = true;
@@ -130,6 +129,7 @@ public:
     void optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
         measured_drone_state(0) = pose->pose.position.x;
         measured_drone_state(1) = pose->pose.position.y;
+        measured_drone_state(2) = pose->pose.position.z;
 
         received_optitrack = true;
     }
