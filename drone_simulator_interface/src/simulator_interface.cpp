@@ -7,11 +7,12 @@
 #include <Eigen/Eigen>
 #include <std_msgs/String.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
 #include "drone_model.hpp"
 
 using namespace Eigen;
 
-ros::Publisher rocket_control_pub, drone_state_pub, pixhawk_state_pub, command_pub, fake_optitrack_pub;
+ros::Publisher rocket_control_pub, drone_state_pub, pixhawk_state_pub, command_pub, fake_optitrack_pub, fake_pixhawk_pose_pub, fake_pixhawk_twist_pub;
 
 double CM_to_thrust_distance;
 
@@ -118,14 +119,17 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     drone_state_pub.publish(converted_state);
     pixhawk_state_pub.publish(converted_state);
 
-    geometry_msgs::PoseStamped optitrack_pose;
+    geometry_msgs::PoseStamped pose_msg;
+    pose_msg.pose = rocket_state->pose;
+    pose_msg.header.stamp = now;
 
-    optitrack_pose.pose.position.x = rocket_state->pose.position.x;
-    optitrack_pose.pose.position.y = rocket_state->pose.position.y;
-    optitrack_pose.pose.position.z = rocket_state->pose.position.z;
-    optitrack_pose.pose.orientation = rocket_state->pose.orientation;
-    optitrack_pose.header.stamp = now;
-    fake_optitrack_pub.publish(optitrack_pose);
+    geometry_msgs::TwistStamped twist_msg;
+    twist_msg.twist = rocket_state->twist;
+    twist_msg.header.stamp = now;
+
+    fake_optitrack_pub.publish(pose_msg);
+    fake_pixhawk_pose_pub.publish(pose_msg);
+    fake_pixhawk_twist_pub.publish(twist_msg);
 }
 
 int main(int argc, char **argv) {
@@ -161,6 +165,8 @@ int main(int argc, char **argv) {
     rocket_control_pub = nh.advertise<real_time_simulator::Control>("/control_measured", 10);
 
     fake_optitrack_pub = nh.advertise<geometry_msgs::PoseStamped>("/optitrack_client/Drone/optitrack_pose", 10);
+    fake_pixhawk_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 10);
+    fake_pixhawk_twist_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity", 10);
 
 
     // Subscribe to rocket state

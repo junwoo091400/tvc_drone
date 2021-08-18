@@ -62,7 +62,8 @@ int main(int argc, char **argv) {
     std::string initial_state;
     nh.param<std::string>("initial_state", initial_state, "Idle");
     current_fsm.state_machine = initial_state;
-
+    bool land_after_apogee;
+    nh.param<bool>("land_after_apogee", land_after_apogee, false);
     // Create timer service
     ros::ServiceServer timer_service = nh.advertiseService("/getFSM_gnc", sendFSM);
 
@@ -101,7 +102,7 @@ int main(int argc, char **argv) {
                 current_fsm.state_machine = "Launch";
 
             } else if (current_fsm.state_machine.compare("Launch") == 0) {
-                if (abs(current_state.pose.position.z - target_apogee.z) < 1){
+                if (abs(current_state.pose.position.z - target_apogee.z) < 1 && land_after_apogee){
                     geometry_msgs::Vector3 new_apogee;
                     new_apogee.x = 0;
                     new_apogee.y = 0;

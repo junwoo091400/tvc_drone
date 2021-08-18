@@ -5,6 +5,7 @@
 #include "drone_gnc/DroneControl.h"
 
 #include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/TwistStamped.h"
 
 #include <std_msgs/Float64.h>
 
@@ -18,15 +19,23 @@ private:
     drone_gnc::DroneControl current_control;
     drone_gnc::DroneControl previous_control;
     drone_gnc::DroneState pixhawk_state;
-    bool received_state = false;
+    bool received_pixhawk = false;
+    //TODO set to false
+    bool received_optitrack = true;
+    bool initialized_origin = false;
     double last_predict_time;
     double last_computation_time = 0;
+    Drone::state measured_drone_state;
+    Eigen::Vector3d origin;
 
     ros::Publisher kalman_pub;
     ros::Publisher computation_time_pub;
     ros::Subscriber fsm_sub;
     ros::Subscriber control_sub;
-    ros::Subscriber sensor_sub;
+    ros::Subscriber optitrack_sub;
+    ros::Subscriber pixhawk_pose_sub;
+    ros::Subscriber pixhawk_twist_sub;
+
 public:
     double period;
 
@@ -39,6 +48,9 @@ public:
         current_fsm.state_machine = "Idle";
 
         nh.getParam("period", period);
+
+        measured_drone_state.setZero();
+        measured_drone_state(9) = 1;
 
         last_predict_time = ros::Time::now().toSec();
     }
@@ -55,19 +67,24 @@ public:
 
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
-        sensor_sub = nh.subscribe("/pixhawk_drone_state", 1, &DroneNavigationNode::pixhawkStateCallback,
+        pixhawk_pose_sub = nh.subscribe("/mavros/local_position/pose", 1, &DroneNavigationNode::pixhawkPoseCallback, this);
+        pixhawk_twist_sub = nh.subscribe("/mavros/local_position/velocity", 1, &DroneNavigationNode::pixhawkTwistCallback, this);
+
+        optitrack_sub = nh.subscribe("/optitrack_client/Drone/optitrack_pose", 1, &DroneNavigationNode::optitrackCallback,
                                   this);
     }
 
     void kalmanStep() {
-        if (received_state) {
+        if (received_pixhawk && received_optitrack) {
+            if(!initialized_origin){
+                origin = measured_drone_state.segment(0, 3);
+                initialized_origin = true;
+            }
+
             double compute_time_start = ros::Time::now().toSec();
 
-            DroneEKFPixhawk::sensor_data new_data;
-            new_data << pixhawk_state.pose.position.x, pixhawk_state.pose.position.y, pixhawk_state.pose.position.z,
-                    pixhawk_state.twist.linear.x, pixhawk_state.twist.linear.y, pixhawk_state.twist.linear.z,
-                    pixhawk_state.pose.orientation.x, pixhawk_state.pose.orientation.y, pixhawk_state.pose.orientation.z, pixhawk_state.pose.orientation.w,
-                    pixhawk_state.twist.angular.x, pixhawk_state.twist.angular.y, pixhawk_state.twist.angular.z;
+            DroneEKFPixhawk::sensor_data new_data = measured_drone_state;
+            new_data.segment(0, 3) -= origin;
 
             Drone::control u;
             u << previous_control.servo1, previous_control.servo2, (previous_control.bottom + previous_control.top) / 2,
@@ -96,9 +113,25 @@ public:
     }
 
     // Callback function to store last received state
-    void pixhawkStateCallback(const drone_gnc::DroneState::ConstPtr &state) {
-        pixhawk_state = *state;
-        received_state = true;
+    void pixhawkPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
+        measured_drone_state(2) = pose->pose.position.z;
+        measured_drone_state.segment(6, 4) << pose->pose.orientation.x, pose->pose.orientation.y, pose->pose.orientation.z, pose->pose.orientation.w;
+
+        received_pixhawk = true;
+    }
+
+    // Callback function to store last received state
+    void pixhawkTwistCallback(const geometry_msgs::TwistStamped::ConstPtr &twist) {
+        measured_drone_state.segment(3, 3) << twist->twist.linear.x, twist->twist.linear.y, twist->twist.linear.z;
+        measured_drone_state.segment(10, 3) << twist->twist.angular.x, twist->twist.angular.y,twist->twist.angular.z;
+    }
+
+    // Callback function to store last received state
+    void optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
+        measured_drone_state(0) = pose->pose.position.x;
+        measured_drone_state(1) = pose->pose.position.y;
+
+        received_optitrack = true;
     }
 
     void controlCallback(const drone_gnc::DroneControl::ConstPtr &control) {
