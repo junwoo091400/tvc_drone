@@ -115,7 +115,7 @@ public:
             //state derivatives
             xdot.segment(0, 3) = x.segment(3, 3);
             xdot.segment(3, 3) << 0.0, 0.0, 0.0;
-            xdot.segment(6, 4) = 0.5 * (omega_quat * attitude).coeffs();
+            xdot.segment(6, 4) = 0.5 * (attitude * omega_quat).coeffs();
             xdot.segment(10, 3) << 0.0, 0.0, 0.0;
         }
 

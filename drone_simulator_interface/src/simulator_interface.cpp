@@ -79,11 +79,15 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
 //double t_start = 0;
 void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_state) {
 
-//    //simulator uses angular vel in inertial frame while mpc uses body frame
-//    Eigen::Quaterniond attitude(rocket_state->pose.orientation.w, rocket_state->pose.orientation.x,
-//                               rocket_state->pose.orientation.y, rocket_state->pose.orientation.z);
-//    Eigen::Vector3d omega_inertial(rocket_state->twist.angular.x, rocket_state->twist.angular.y, rocket_state->twist.angular.z);
-//    Eigen::Vector3d omega_body = attitude.inverse()._transformVector(omega_inertial);
+    //simulator uses angular vel in inertial frame while mpc uses body frame
+    Eigen::Quaterniond attitude(rocket_state->pose.orientation.w, rocket_state->pose.orientation.x,
+                               rocket_state->pose.orientation.y, rocket_state->pose.orientation.z);
+    Eigen::Vector3d omega_inertial(rocket_state->twist.angular.x, rocket_state->twist.angular.y, rocket_state->twist.angular.z);
+    Eigen::Vector3d omega_body = attitude.inverse()._transformVector(omega_inertial);
+    geometry_msgs::Vector3 omega_body_msg;
+    omega_body_msg.x = omega_body(0);
+    omega_body_msg.y = omega_body(1);
+    omega_body_msg.z = omega_body(2);
 
 //    converted_state.twist.angular.x = omega_inertial(0);
 //    converted_state.twist.angular.y = omega_inertial(1);
@@ -110,7 +114,8 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
 
     ros::Time now = ros::Time::now();
     drone_gnc::DroneState converted_state;
-    converted_state.twist = rocket_state->twist;
+    converted_state.twist.angular = omega_body_msg;
+    converted_state.twist.linear = rocket_state->twist.linear;
     converted_state.pose = rocket_state->pose;
     converted_state.thrust_scaling = 1;
     converted_state.torque_scaling = 1;
@@ -120,11 +125,11 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     pixhawk_state_pub.publish(converted_state);
 
     geometry_msgs::PoseStamped pose_msg;
-    pose_msg.pose = rocket_state->pose;
+    pose_msg.pose = converted_state.pose;
     pose_msg.header.stamp = now;
 
     geometry_msgs::TwistStamped twist_msg;
-    twist_msg.twist = rocket_state->twist;
+    twist_msg.twist = converted_state.twist;
     twist_msg.header.stamp = now;
 
     fake_optitrack_pub.publish(pose_msg);
@@ -166,7 +171,7 @@ int main(int argc, char **argv) {
 
     fake_optitrack_pub = nh.advertise<geometry_msgs::PoseStamped>("/optitrack_client/Drone/optitrack_pose", 10);
     fake_pixhawk_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 10);
-    fake_pixhawk_twist_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity", 10);
+    fake_pixhawk_twist_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_body", 10);
 
 
     // Subscribe to rocket state

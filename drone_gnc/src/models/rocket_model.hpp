@@ -80,14 +80,18 @@ public:
         xdot.segment(3, 3) = total_force * mass_inv;
 
         // Quaternion variation is 0.5*w◦q (if w in inertial frame)
-        xdot.segment(6, 4) = (T) 0.5 * (omega_quat * attitude).coeffs();
+        xdot.segment(6, 4) = (T) 0.5 * (attitude * omega_quat).coeffs();
+
+        Eigen::Vector<T, 3> omega = x.segment(10, 3);
 
         // Total torque in body frame
         Eigen::Matrix<T, 3, 1> total_torque;
         total_torque = rocket_torque + body_torque + rot_matrix.transpose() * disturbance_torque;
 
         // Angular speed variation is Torque/Inertia
-        xdot.segment(10, 3) = rot_matrix * (total_torque.cwiseProduct(inertia_inv.template cast<T>()));
+        xdot.segment(10, 3) = (total_torque -
+                               omega.cross(inertia.template cast<T>().cwiseProduct(omega)))
+                .cwiseProduct(inertia_inv.template cast<T>());
     }
 
 };

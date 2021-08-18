@@ -68,7 +68,7 @@ public:
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
         pixhawk_pose_sub = nh.subscribe("/mavros/local_position/pose", 1, &DroneNavigationNode::pixhawkPoseCallback, this);
-        pixhawk_twist_sub = nh.subscribe("/mavros/local_position/velocity", 1, &DroneNavigationNode::pixhawkTwistCallback, this);
+        pixhawk_twist_sub = nh.subscribe("/mavros/local_position/velocity_body", 1, &DroneNavigationNode::pixhawkTwistCallback, this);
 
         optitrack_sub = nh.subscribe("/optitrack_client/Drone/optitrack_pose", 1, &DroneNavigationNode::optitrackCallback,
                                   this);
