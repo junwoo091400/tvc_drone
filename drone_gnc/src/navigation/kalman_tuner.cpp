@@ -78,7 +78,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
                 t0 = current_time;
             }
         }
-        if (m.getTopic() == "/mavros/local_position/velocity_body") {
+        if (m.getTopic() == "/mavros/local_position/velocity_local") {
             pixhawk_twist = *m.instantiate<geometry_msgs::TwistStamped>();
         }
 

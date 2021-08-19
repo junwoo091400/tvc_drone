@@ -162,7 +162,7 @@ public:
                         control_t<scalar_t> &lbu, control_t<scalar_t> &ubu,
                         constraint_t <scalar_t> &lbg, constraint_t <scalar_t> &ubg) {
         const double inf = std::numeric_limits<double>::infinity();
-        const double eps = 1e-1;
+        const double eps = 1e-3;
 
         lbu << -drone->max_servo_rate, -drone->max_servo_rate,
                 drone->min_propeller_speed, -drone->max_propeller_delta / 2; // lower bound on control

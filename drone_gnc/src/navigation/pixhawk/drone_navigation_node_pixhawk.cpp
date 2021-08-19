@@ -23,6 +23,7 @@ private:
     //TODO set to false
     bool received_optitrack = false;
     bool initialized_origin = false;
+    bool initialized_orientation = false;
     double last_predict_time;
     double last_computation_time = 0;
     Drone::state measured_drone_state;
@@ -77,6 +78,11 @@ public:
 
     void kalmanStep() {
         if (received_pixhawk && received_optitrack) {
+            if(!initialized_origin){
+                origin = measured_drone_state.segment(0, 3);
+                initialized_origin = true;
+            }
+
             double compute_time_start = ros::Time::now().toSec();
 
             DroneEKFPixhawk::sensor_data new_data = measured_drone_state;
@@ -123,20 +129,22 @@ public:
 
     // Callback function to store last received state
     void optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
-        if(!initialized_origin && received_pixhawk){
-            origin = measured_drone_state.segment(0, 3);
-            initial_orientation.coeffs() << measured_drone_state.segment(6, 4);
-            initialized_origin = true;
+        if(received_pixhawk){
+            if(!initialized_orientation){
+                initial_orientation.coeffs() << measured_drone_state.segment(6, 4);
+                initialized_orientation = true;
+            }
+
+            Vector<double, 3> raw_position;
+            raw_position << pose->pose.position.x, pose->pose.position.y, 0;
+
+            Vector<double, 3> absolute_position = initial_orientation._transformVector(raw_position);
+
+            measured_drone_state.head(3) << absolute_position(0), absolute_position(1), pose->pose.position.z;
+
+            received_optitrack = true;
         }
-
-        Vector<double, 3> raw_position;
-        raw_position << pose->pose.position.x, pose->pose.position.y, 0;
-
-        Vector<double, 3> absolute_position = initial_orientation._transformVector(raw_position);
-
-        measured_drone_state.head(3) << absolute_position(0), absolute_position(1), pose->pose.position.z;
-
-        received_optitrack = true;
+        
     }
 
     void controlCallback(const drone_gnc::DroneControl::ConstPtr &control) {

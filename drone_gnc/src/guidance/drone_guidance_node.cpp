@@ -24,7 +24,7 @@ DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone>
 void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
     rocket_state_sub = nh.subscribe("/simu_drone_state", 1, &DroneGuidanceNode::stateCallback, this);
-    target_sub = nh.subscribe("/target_apogee", 1, &DroneGuidanceNode::targetCallback, this);
+    // target_sub = nh.subscribe("/target_apogee", 1, &DroneGuidanceNode::targetCallback, this);
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneGuidanceNode::fsmCallback, this);
 
     // Publishers

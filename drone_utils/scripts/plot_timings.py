@@ -14,7 +14,7 @@ sns.set()
 from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history, read_state_history, read_control_history, read_horizon_history
 
 rospack = rospkg.RosPack()
-bag = rosbag.Bag(rospack.get_path('drone_utils') + '/replay_analysis/wind_test_11_08_21/20_percent/log1.bag')
+bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
 
 time_init = 0
 t_end = 0
