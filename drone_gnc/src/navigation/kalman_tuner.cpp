@@ -12,7 +12,6 @@
 #include <time.h>
 
 #include "pixhawk/drone_EKF_pixhawk.hpp"
-
 #include <ros/package.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
@@ -55,7 +54,8 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
 
     geometry_msgs::PoseStamped optitrack_pose;
     geometry_msgs::PoseStamped pixhawk_pose;
-    geometry_msgs::TwistStamped pixhawk_twist;
+    geometry_msgs::TwistStamped pixhawk_twist_local;
+    geometry_msgs::TwistStamped pixhawk_twist_body;
 
     double t0 = 0;
     double current_time = 0;
@@ -64,7 +64,6 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
         drone_gnc::DroneControl::ConstPtr current_control_ptr = m.instantiate<drone_gnc::DroneControl>();
         if (current_control_ptr != NULL) {
             current_control = *current_control_ptr;
-            last_predict_time = current_control.header.stamp.toSec();
             kalman->received_control = true;
         }
 
@@ -76,10 +75,15 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
             current_time = pixhawk_pose.header.stamp.toSec();
             if (t0 == 0) {
                 t0 = current_time;
+                last_predict_time = current_time;
             }
         }
         if (m.getTopic() == "/mavros/local_position/velocity_local") {
-            pixhawk_twist = *m.instantiate<geometry_msgs::TwistStamped>();
+            pixhawk_twist_local = *m.instantiate<geometry_msgs::TwistStamped>();
+        }
+
+        if (m.getTopic() == "/mavros/local_position/velocity_body") {
+            pixhawk_twist_body = *m.instantiate<geometry_msgs::TwistStamped>();
         }
 
         if (!initialized_origin) {
@@ -92,9 +96,9 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
             DroneEKFPixhawk::sensor_data new_data;
             new_data
                     << optitrack_pose.pose.position.x, optitrack_pose.pose.position.y, optitrack_pose.pose.position.z,
-                    pixhawk_twist.twist.linear.x, pixhawk_twist.twist.linear.y, pixhawk_twist.twist.linear.z,
+                    pixhawk_twist_local.twist.linear.x, pixhawk_twist_local.twist.linear.y, pixhawk_twist_local.twist.linear.z,
                     pixhawk_pose.pose.orientation.x, pixhawk_pose.pose.orientation.y, pixhawk_pose.pose.orientation.z, pixhawk_pose.pose.orientation.w,
-                    pixhawk_twist.twist.angular.x, pixhawk_twist.twist.angular.y, pixhawk_twist.twist.angular.z;
+                    pixhawk_twist_body.twist.angular.x, pixhawk_twist_body.twist.angular.y, pixhawk_twist_body.twist.angular.z;
             new_data.segment(0, 3) -= origin;
 
             Drone::control u;
@@ -105,7 +109,6 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
 
             kalman->predictStep(current_time - last_predict_time, u);
             kalman->updateStep(new_data);
-
             last_predict_time = current_time;
 
             drone_gnc::DroneState kalman_state;

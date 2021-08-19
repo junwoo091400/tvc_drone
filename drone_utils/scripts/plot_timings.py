@@ -14,7 +14,7 @@ sns.set()
 from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history, read_state_history, read_control_history, read_horizon_history
 
 rospack = rospkg.RosPack()
-bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
+bag = rosbag.Bag(rospack.get_path('drone_utils') +"/"+ rospy.get_param('/log_file'))
 
 time_init = 0
 t_end = 0

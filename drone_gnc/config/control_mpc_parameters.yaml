@@ -2,7 +2,7 @@
 state_costs:
   x: 3
   dx: 0.1
-  z: 20
+  z: 5
   dz: 10
   att: 0.5
   datt: 1
@@ -47,7 +47,7 @@ horizon_length: 1.0
 max_sqp_iter: 1
 max_qp_iter: 25
 max_line_search_iter: 4
-mpc_period: 0.01666
+mpc_period: 0.02
 feedforward_period: 0.02
 
 weight_scaling: 64

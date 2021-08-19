@@ -1,4 +1,6 @@
 <launch>
+    <arg name="path" default="log/log.bag" />
+
     <group ns="rocket">
         <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
     </group>
@@ -15,7 +17,7 @@
 
     <!-- <rosparam param="log_file">"replay_analysis/best_data/20_percent/log1.bag"</rosparam> -->
    <!-- <rosparam param="log_file">"log/log6.bag"</rosparam> -->
-    <rosparam param="log_file">"log/log.bag"</rosparam>
+    <param name="log_file" value="$(arg path)" />
 
 
     <node name="plot" pkg="drone_utils" type="kalman_tuner.py" output="screen"/>

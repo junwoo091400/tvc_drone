@@ -12,7 +12,7 @@
 
 using namespace Eigen;
 
-ros::Publisher rocket_control_pub, drone_state_pub, pixhawk_state_pub, command_pub, fake_optitrack_pub, fake_pixhawk_pose_pub, fake_pixhawk_twist_pub;
+ros::Publisher rocket_control_pub, drone_state_pub, pixhawk_state_pub, command_pub, fake_optitrack_pub, fake_pixhawk_pose_pub, fake_pixhawk_twist_local_pub, fake_pixhawk_twist_body_pub;
 
 double CM_to_thrust_distance;
 
@@ -81,8 +81,9 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
 
     //simulator uses angular vel in inertial frame while mpc uses body frame
     Eigen::Quaterniond attitude(rocket_state->pose.orientation.w, rocket_state->pose.orientation.x,
-                               rocket_state->pose.orientation.y, rocket_state->pose.orientation.z);
-    Eigen::Vector3d omega_inertial(rocket_state->twist.angular.x, rocket_state->twist.angular.y, rocket_state->twist.angular.z);
+                                rocket_state->pose.orientation.y, rocket_state->pose.orientation.z);
+    Eigen::Vector3d omega_inertial(rocket_state->twist.angular.x, rocket_state->twist.angular.y,
+                                   rocket_state->twist.angular.z);
     Eigen::Vector3d omega_body = attitude.inverse()._transformVector(omega_inertial);
     geometry_msgs::Vector3 omega_body_msg;
     omega_body_msg.x = omega_body(0);
@@ -128,13 +129,18 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     pose_msg.pose = converted_state.pose;
     pose_msg.header.stamp = now;
 
-    geometry_msgs::TwistStamped twist_msg;
-    twist_msg.twist = converted_state.twist;
-    twist_msg.header.stamp = now;
+    geometry_msgs::TwistStamped twist_msg_local;
+    twist_msg_local.twist.linear = converted_state.twist.linear;
+    twist_msg_local.header.stamp = now;
+
+    geometry_msgs::TwistStamped twist_msg_body;
+    twist_msg_body.twist.angular = converted_state.twist.angular;
+    twist_msg_body.header.stamp = now;
 
     fake_optitrack_pub.publish(pose_msg);
     fake_pixhawk_pose_pub.publish(pose_msg);
-    fake_pixhawk_twist_pub.publish(twist_msg);
+    fake_pixhawk_twist_local_pub.publish(twist_msg_local);
+    fake_pixhawk_twist_body_pub.publish(twist_msg_body);
 }
 
 int main(int argc, char **argv) {
@@ -171,7 +177,9 @@ int main(int argc, char **argv) {
 
     fake_optitrack_pub = nh.advertise<geometry_msgs::PoseStamped>("/optitrack_client/Drone/optitrack_pose", 10);
     fake_pixhawk_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 10);
-    fake_pixhawk_twist_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_local", 10);
+    fake_pixhawk_twist_local_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_local",
+                                                                             10);
+    fake_pixhawk_twist_body_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_body", 10);
 
 
     // Subscribe to rocket state

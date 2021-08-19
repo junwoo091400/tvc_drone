@@ -25,7 +25,7 @@
     </node>
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" output="screen" launch-prefix="taskset -c 3">
-        <rosparam param="target_apogee">[0,0,1.5]</rosparam>
+        <rosparam param="target_apogee">[0,0,1]</rosparam>
         <rosparam param="track_guidance">false</rosparam>
     </node>
 
