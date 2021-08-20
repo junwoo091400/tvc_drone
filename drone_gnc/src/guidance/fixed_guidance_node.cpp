@@ -33,6 +33,7 @@ using namespace Eigen;
 class DroneFixedGuidanceNode {
 public:
     double speed;
+    drone_gnc::FSM current_fsm;
 
     double scaling = 1;
 
@@ -40,6 +41,7 @@ public:
                                              2.97/*ellipse*/ };
     double total_length;
     double total_duration;
+    bool published = false;
 
     DroneFixedGuidanceNode(ros::NodeHandle &nh) : speed(0.35) {
         total_length = 0;
@@ -52,13 +54,24 @@ public:
         initTopics(nh);
     }
 
+    void run() {
+        if (current_fsm.state_machine == "Launch" && !published) {
+            publishTrajectory();
+            published = true;
+        }
+    }
+
 
     void initTopics(ros::NodeHandle &nh) {
+        fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneFixedGuidanceNode::fsmCallback, this);
         // Publishers
         horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/target_trajectory", 10);
         horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("horizon", 10);
     }
 
+    void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
+        current_fsm = *fsm;
+    }
 
     Vector3d sample_path(double s) {
         Vector3d seg_point;
@@ -267,6 +280,7 @@ public:
 
 
 private:
+    ros::Subscriber fsm_sub;
     // Publishers
     ros::Publisher horizon_viz_pub;
 
@@ -283,41 +297,10 @@ int main(int argc, char **argv) {
 
     DroneFixedGuidanceNode droneGuidanceNode(nh);
 
-    ros::ServiceClient client_fsm = nh.serviceClient<drone_gnc::GetFSM>("/getFSM_gnc");
-
-    drone_gnc::GetFSM srv_fsm;
-
-    drone_gnc::FSM current_fsm;
-    // Initialize fsm
-    current_fsm.time_now = 0;
-    current_fsm.state_machine = "Idle";
-
-    // Get current FSM and time
-    ros::Timer fsm_update_thread = nh.createTimer(
-            ros::Duration(0.1), [&](const ros::TimerEvent &) {
-                if (client_fsm.call(srv_fsm)) {
-                    current_fsm = srv_fsm.response.fsm;
-                }
-            });
-    bool published = false;
-    // Thread to compute control. Duration defines interval time in seconds
     ros::Timer control_thread = nh.createTimer(ros::Duration(0.2), [&](const ros::TimerEvent &) {
-
-        if ((current_fsm.state_machine.compare("Launch") == 0) && !published) {
-            droneGuidanceNode.publishTrajectory();
-            published = true;
-
-        } else if (current_fsm.state_machine.compare("Coast") == 0) {
-            // Slow down control to 10s period for reducing useless computation
-            control_thread.setPeriod(ros::Duration(10.0));
-
-
-        }
+        droneGuidanceNode.run();
     });
 
-    // Start spinner on a different thread to allow spline evaluation while a new solution is computed
-    ros::AsyncSpinner spinner(3);
-    spinner.start();
-    ros::waitForShutdown();
+    ros::spin();
 
 }

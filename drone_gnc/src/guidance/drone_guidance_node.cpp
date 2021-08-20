@@ -2,10 +2,7 @@
 
 DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
                                                                                               drone(drone_ptr) {
-    initTopics(nh);
-
     // Initialize fsm
-    client_fsm = nh.serviceClient<drone_gnc::GetFSM>("/getFSM_gnc");
     current_fsm.time_now = 0;
     current_fsm.state_machine = "Idle";
 
@@ -18,6 +15,8 @@ DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone>
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
+
+    initTopics(nh);
 }
 
 

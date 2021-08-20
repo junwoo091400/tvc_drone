@@ -15,8 +15,8 @@
         <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
     </group>
 
-<!--       <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">-->
-<!--       </node>-->
+<!--   <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">-->
+<!--   </node>-->
     <rosparam param="fixed_guidance">false</rosparam>
 
     <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen" launch-prefix="taskset -c 1">

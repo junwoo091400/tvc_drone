@@ -16,17 +16,6 @@ drone_gnc::DroneState current_state;
 bool received_state = false;
 geometry_msgs::Vector3 target_apogee;
 
-// Service function: send back fsm (time + state machine)
-bool sendFSM(drone_gnc::GetFSM::Request &req, drone_gnc::GetFSM::Response &res) {
-    // Update current time
-    if (current_fsm.state_machine.compare("Idle") != 0) current_fsm.time_now = ros::Time::now().toSec() - time_zero;
-
-    res.fsm.time_now = current_fsm.time_now;
-    res.fsm.state_machine = current_fsm.state_machine;
-
-    return true;
-}
-
 void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
 //    const std::lock_guard<std::mutex> lock(state_mutex);
     current_state = *rocket_state;
@@ -64,8 +53,6 @@ int main(int argc, char **argv) {
     current_fsm.state_machine = initial_state;
     bool land_after_apogee;
     nh.param<bool>("land_after_apogee", land_after_apogee, false);
-    // Create timer service
-    ros::ServiceServer timer_service = nh.advertiseService("/getFSM_gnc", sendFSM);
 
     // Create timer publisher and associated thread (100Hz)
     ros::Publisher timer_pub = nh.advertise<drone_gnc::FSM>("/gnc_fsm_pub", 10);
@@ -78,11 +65,13 @@ int main(int argc, char **argv) {
 
     ros::Publisher target_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
 
-    std::vector<double> initial_target_apogee;
-    nh.getParam("/guidance/target_apogee", initial_target_apogee);
-    target_apogee.x = initial_target_apogee.at(0);
-    target_apogee.y = initial_target_apogee.at(1);
-    target_apogee.z = initial_target_apogee.at(2);
+    if(land_after_apogee){
+        std::vector<double> initial_target_apogee;
+        nh.getParam("/guidance/target_apogee", initial_target_apogee);
+        target_apogee.x = initial_target_apogee.at(0);
+        target_apogee.y = initial_target_apogee.at(1);
+        target_apogee.z = initial_target_apogee.at(2);
+    }
 
     // Subscribe to commands
     ros::Subscriber state_sub = nh.subscribe("/drone_state", 1, stateCallback);
