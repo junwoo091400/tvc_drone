@@ -9,10 +9,10 @@ def convert_state_to_array(state):
     if np.isnan(q).any():
         q = [0, 0, 0, 1]
     r = R.from_quat(q)
-    attitude_euler = r.as_euler('xyz', degrees=True)
+    attitude_euler = r.as_euler("xyz", degrees=True)
     message_type = str(state._type)
     state_array = None
-    if message_type == 'geometry_msgs/PoseStamped':
+    if message_type == "geometry_msgs/PoseStamped":
         state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
                                 0, 0, 0,
                                 attitude_euler[0], attitude_euler[1], attitude_euler[2],
@@ -23,7 +23,7 @@ def convert_state_to_array(state):
                                 0, 0, 0,
                                 0, 0, 0,
                                 ])
-    elif message_type == 'drone_gnc/DroneState':
+    elif message_type == "drone_gnc/DroneState":
         state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
                                 state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
                                 attitude_euler[0], attitude_euler[1], attitude_euler[2],
@@ -35,7 +35,7 @@ def convert_state_to_array(state):
                                 state.disturbance_torque.x, state.disturbance_torque.y, state.disturbance_torque.z,
                                 ])
     else:
-        print('type error')
+        print("type error")
 
     return state_array
 
@@ -114,6 +114,7 @@ state_indexes = OrderedDict([
     ("dpitch (y)", 11),
     ("droll (z)", 12)
 ])
+
 control_indexes = OrderedDict([
     ("servo1", 1),
     ("servo2", 2),
@@ -133,6 +134,43 @@ param_indexes = OrderedDict([
     ("mz", 22),
 ])
 var_indexes = OrderedDict(OrderedDict([("t", 0)]).items() + state_indexes.items() + control_indexes.items() + param_indexes.items())
+
+
+state_titles = OrderedDict([
+    ("x", r"$\boldsymbol{x}$ [m]"),
+    ("y", r"$\boldsymbol{y}$ [m]"),
+    ("z", r"$\boldsymbol{z}$ [m]"),
+    ("dx", r"$\boldsymbol{v_x}$ [m/s]"),
+    ("dy", r"$\boldsymbol{v_y}$ [m/s]"),
+    ("dz", r"$\boldsymbol{v_z}$ [m/s]"),
+    ("yaw (x)", r"$\boldsymbol{\alpha}$ [$\degree$]"),
+    ("pitch (y)", r"$\boldsymbol{\beta}$ [$\degree$]"),
+    ("roll (z)", r"$\boldsymbol{\gamma}$ [$\degree$]"),
+    ("dyaw (x)", r"$\boldsymbol{\omega_x}$ [/s]"),
+    ("dpitch (y)", r"$\boldsymbol{\omega_y}$ [/s]"),
+    ("droll (z)", r"$\boldsymbol{\omega_z}$ [/s]"),
+])
+
+control_titles = OrderedDict([
+    ("servo1", r"$\boldsymbol{\theta_1}$ [$\degree$]"),
+    ("servo2", r"$\boldsymbol{\theta_2}$ [$\degree$]"),
+    ("bottom", r"$\boldsymbol{P_B}$ [\%]"),
+    ("top", r"$\boldsymbol{P_T}$ [\%]"),
+])
+
+param_titles = OrderedDict([
+    ("thrust_scaling", r"thrust scaling"),
+    ("torque_scaling", r"torque scaling"),
+    ("servo1_offset", r"servo1 offset [$\degree$]"),
+    ("servo2_offset", r"servo2 offset [$\degree$]"),
+    ("fx", r"$\boldsymbol{F_x}$ [N]"),
+    ("fy", r"$\boldsymbol{F_y}$ [N]"),
+    ("fz", r"$\boldsymbol{F_z}$ [N]"),
+    ("mx", r"$\boldsymbol{M_x}$ [Nm]"),
+    ("my", r"$\boldsymbol{M_y}$ [Nm]"),
+    ("mz", r"$\boldsymbol{M_z}$ [Nm]"),
+])
+var_titles = OrderedDict(OrderedDict([("t", r"$\boldsymbol{t}$ [s]")]).items() + state_titles.items() + control_titles.items() + param_titles.items())
 
 
 def plot_history(history, plot_indexes, axe, name, *plt_args):
@@ -156,5 +194,5 @@ def set_plot_ranges(axe, plot_ranges, plot_indexes):
                             xmax=plot_ranges[x_name][1],
                             ymin=plot_ranges[y_name][0],
                             ymax=plot_ranges[y_name][1])
-            axe[plot_idx].set_xlabel(x_name)
-            axe[plot_idx].set_ylabel(y_name)
+            axe[plot_idx].set_xlabel(var_titles[x_name])
+            axe[plot_idx].set_ylabel(var_titles[y_name])

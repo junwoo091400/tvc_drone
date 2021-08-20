@@ -4,16 +4,22 @@
 import rospkg
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rc('font', family='serif', serif='cm10')
+plt.rc('text', usetex=True)
+plt.rc('text.latex', preamble=r'\usepackage{gensymb}\usepackage{amsmath}')
+# plt.rcParams['text.latex.preamble'] = [r'\boldmath']
+
 from matplotlib.widgets import Slider
 import rosbag
 import seaborn as sns
 
 sns.set()
 
-from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history, read_state_history, read_control_history, read_horizon_history, set_plot_ranges
+from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history,\
+    read_state_history, read_control_history, read_horizon_history, set_plot_ranges
 
 rospack = rospkg.RosPack()
-bag = rosbag.Bag(rospack.get_path('drone_utils') + '/replay_analysis/wind_test_11_08_21/20_percent/log1.bag')
+bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
 
 
 time_init = 0
@@ -49,11 +55,23 @@ state_plot_indexes = {
     (3, 2): [("t", "droll (z)")],
 }
 
+# state_plot_indexes = {
+#     (0, 0): [("x", "z")],
+#     (0, 1): [("t", "x")],
+#     (0, 2): [("t", "z")],
+#
+#     (1, 0): [("t", "fx")],
+#     (1, 1): [("t", "my")],
+#     (1, 2): [("t", "thrust_scaling")],
+# }
+
 control_plot_indexes = {
     (4, 0): [("t", "bottom"), ("t", "top")],
     (4, 1): [("t", "servo1")],
     (4, 2): [("t", "servo2")],
 }
+
+# control_plot_indexes = {}
 
 plot_ranges = {
     "t": [0, t_end - time_init],
@@ -88,6 +106,7 @@ plot_ranges = {
 }
 
 fig, axe = plt.subplots(5, 3, figsize=(15, 10))
+# fig, axe = plt.subplots(2, 3, figsize=(15, 10))
 fig.subplots_adjust(wspace=0.4, hspace=0.5)
 set_plot_ranges(axe, plot_ranges, state_plot_indexes.items() + control_plot_indexes.items())
 
@@ -105,9 +124,10 @@ def plot_horizon_segment(t):
 
     for plot_idx, name_list in state_plot_indexes.items():
         for (x_name, y_name) in name_list:
-            x_data = state_history[:, var_indexes[x_name]]
-            y_data = state_history[:, var_indexes[y_name]]
-            line, = axe[plot_idx].plot(x_data, y_data, 'g-', label='_nolegend_')
+            if var_indexes[x_name] <= NX and var_indexes[y_name] <= NX:
+                x_data = state_history[:, var_indexes[x_name]]
+                y_data = state_history[:, var_indexes[y_name]]
+                line, = axe[plot_idx].plot(x_data, y_data, 'g-', label='_nolegend_')
 
 
 PLOT_HORIZON_SEGMENTS = False
@@ -143,14 +163,16 @@ else:
         for i in range(len(state_mpc_line_list)):
             l, plot_idx = state_mpc_line_list[i]
             for (x_name, y_name) in state_plot_indexes[plot_idx]:
-                l.set_ydata(state_history[:, var_indexes[y_name]])
-                l.set_xdata(state_history[:, var_indexes[x_name]])
+                if var_indexes[x_name] <= NX and var_indexes[y_name] <= NX:
+                    l.set_ydata(state_history[:, var_indexes[y_name]])
+                    l.set_xdata(state_history[:, var_indexes[x_name]])
 
         for i in range(len(control_mpc_line_list)):
             l, plot_idx = control_mpc_line_list[i]
             for (x_name, y_name) in control_plot_indexes[plot_idx]:
-                l.set_ydata(control_history[:, var_indexes[y_name]])
-                l.set_xdata(control_history[:, var_indexes[x_name]])
+                if var_indexes[x_name] <= NX and var_indexes[y_name] <= NX:
+                    l.set_ydata(control_history[:, var_indexes[y_name]])
+                    l.set_xdata(control_history[:, var_indexes[x_name]])
 
         time_array = guidance_state_horizon_history[0, 0, :]
         idx = min(np.searchsorted(time_array, time_val, side="left"), time_array.size - 1)
@@ -159,15 +181,17 @@ else:
 
         for i in range(len(guidance_state_mpc_line_list)):
             l, plot_idx = guidance_state_mpc_line_list[i]
-            x_name, y_name = state_plot_indexes[plot_idx]
-            l.set_ydata(state_history[:, var_indexes[y_name]])
-            l.set_xdata(state_history[:, var_indexes[x_name]])
+            for (x_name, y_name) in state_plot_indexes[plot_idx]:
+                if var_indexes[x_name] <= NX and var_indexes[y_name] <= NX:
+                    l.set_ydata(state_history[:, var_indexes[y_name]])
+                    l.set_xdata(state_history[:, var_indexes[x_name]])
 
         for i in range(len(guidance_control_mpc_line_list)):
             l, plot_idx = guidance_control_mpc_line_list[i]
-            x_name, y_name = control_plot_indexes[plot_idx]
-            l.set_ydata(control_history[:, var_indexes[y_name]])
-            l.set_xdata(control_history[:, var_indexes[x_name]])
+            for (x_name, y_name) in control_plot_indexes[plot_idx]:
+                if var_indexes[x_name] <= NX and var_indexes[y_name] <= NX:
+                    l.set_ydata(control_history[:, var_indexes[y_name]])
+                    l.set_xdata(control_history[:, var_indexes[x_name]])
 
         fig.canvas.draw_idle()
 
@@ -201,7 +225,7 @@ kalman_plot_indexes = {
 fig_kalman, axe_kalman = plt.subplots(5, 3, figsize=(20, 10))
 set_plot_ranges(axe_kalman, plot_ranges, kalman_plot_indexes.items())
 
-plot_history(kalman_state_history, kalman_plot_indexes, axe_kalman, "kalman_state")
+plot_history(kalman_state_history, kalman_plot_indexes, axe_kalman, r"Kalman state")
 
 axe_kalman[0][0].legend(loc='upper left')
 
