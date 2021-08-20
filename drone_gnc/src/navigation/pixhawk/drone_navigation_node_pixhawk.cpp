@@ -4,6 +4,8 @@
 
 DroneNavigationNode::DroneNavigationNode(ros::NodeHandle &nh) : kalman(nh) {
     // init publishers and subscribers
+    nh.param<bool>("use_gps", use_gps, false);
+
     initTopics(nh);
 
     // Initialize fsm
@@ -18,6 +20,7 @@ DroneNavigationNode::DroneNavigationNode(ros::NodeHandle &nh) : kalman(nh) {
     origin.setZero();
 
     last_predict_time = ros::Time::now().toSec();
+
 }
 
 void DroneNavigationNode::initTopics(ros::NodeHandle &nh) {
@@ -32,14 +35,23 @@ void DroneNavigationNode::initTopics(ros::NodeHandle &nh) {
 
     computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
-    pixhawk_pose_sub = nh.subscribe("/mavros/local_position/pose", 1, &DroneNavigationNode::pixhawkPoseCallback, this);
-    pixhawk_twist_local_sub = nh.subscribe("/mavros/local_position/velocity_local", 1,
-                                           &DroneNavigationNode::pixhawkTwistLocalCallback, this);
-    pixhawk_twist_body_sub = nh.subscribe("/mavros/local_position/velocity_body", 1,
-                                          &DroneNavigationNode::pixhawkTwistBodyCallback, this);
+    if (use_gps) {
+        pixhawk_ekf_sub = nh.subscribe("/mavros/global_position/local", 1, &DroneNavigationNode::pixhawkEKFCallback,
+                                       this);
+        pixhawk_twist_body_sub = nh.subscribe("/mavros/local_position/velocity_body", 1,
+                                              &DroneNavigationNode::pixhawkTwistBodyCallback, this);
+    } else {
+        pixhawk_pose_sub = nh.subscribe("/mavros/local_position/pose", 1, &DroneNavigationNode::pixhawkPoseCallback,
+                                        this);
+        pixhawk_twist_local_sub = nh.subscribe("/mavros/local_position/velocity_local", 1,
+                                               &DroneNavigationNode::pixhawkTwistLocalCallback, this);
+        pixhawk_twist_body_sub = nh.subscribe("/mavros/local_position/velocity_body", 1,
+                                              &DroneNavigationNode::pixhawkTwistBodyCallback, this);
+        optitrack_sub = nh.subscribe("/optitrack_client/Drone/optitrack_pose", 1,
+                                     &DroneNavigationNode::optitrackCallback,
+                                     this);
+    }
 
-    optitrack_sub = nh.subscribe("/optitrack_client/Drone/optitrack_pose", 1, &DroneNavigationNode::optitrackCallback,
-                                 this);
 }
 
 void DroneNavigationNode::kalmanStep() {
@@ -78,6 +90,15 @@ void DroneNavigationNode::kalmanStep() {
 void DroneNavigationNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
     current_fsm.time_now = fsm->time_now;
     current_fsm.state_machine = fsm->state_machine;
+}
+
+// Callback function to store last received state
+void DroneNavigationNode::pixhawkEKFCallback(const nav_msgs::Odometry::ConstPtr &state) {
+    measured_drone_state.head(10)
+            << state->pose.pose.position.x, state->pose.pose.position.y, state->pose.pose.position.z,
+            state->twist.twist.linear.x, state->twist.twist.linear.y, state->twist.twist.linear.z,
+            state->pose.pose.orientation.x, state->pose.pose.orientation.y, state->pose.pose.orientation.z, state->pose.pose.orientation.w;
+    received_pixhawk = true;
 }
 
 // Callback function to store last received state

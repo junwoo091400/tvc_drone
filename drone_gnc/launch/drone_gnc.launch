@@ -39,6 +39,7 @@
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
         <rosparam param="estimate_params">true</rosparam>
         <rosparam param="init_estimated_params">false</rosparam>
+        <rosparam param="use_gps">false</rosparam>
     </node>
 </launch>
 

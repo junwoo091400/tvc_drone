@@ -7,6 +7,8 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/TwistStamped.h"
 
+#include "nav_msgs/Odometry.h"
+
 #include <std_msgs/Float64.h>
 
 #include "drone_EKF_pixhawk.hpp"
@@ -29,6 +31,7 @@ private:
     Drone::state measured_drone_state;
     Eigen::Vector3d origin;
     Eigen::Quaterniond initial_orientation;
+    bool use_gps;
 
     ros::Publisher kalman_pub;
     ros::Publisher computation_time_pub;
@@ -38,6 +41,7 @@ private:
     ros::Subscriber pixhawk_pose_sub;
     ros::Subscriber pixhawk_twist_local_sub;
     ros::Subscriber pixhawk_twist_body_sub;
+    ros::Subscriber pixhawk_ekf_sub;
 
 public:
     double period;
@@ -50,6 +54,7 @@ public:
     // Callback function to store last received fsm
     void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm);
 
+    void pixhawkEKFCallback(const nav_msgs::Odometry::ConstPtr &state);
     // Callback function to store last received state
     void pixhawkPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &pose);
     // Callback function to store last received state
