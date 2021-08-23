@@ -3,19 +3,18 @@
     <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
     <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
 <!--    <include file="$(find drone_utils)/launch/gui.launch"/>-->
-    <rosparam param="navigation/drone_dome">true</rosparam>
     <rosparam param="/is_simu">true</rosparam>
 
-<!--    <node name ="benchmark" pkg="drone_utils" type="benchmark.py" output="screen"/>-->
+    <node pkg="rosbag" type="record" name="recorder" args="record -a -O $(find drone_utils)/log/log.bag"/>
+    <node name ="benchmark" pkg="drone_utils" type="benchmark.py" output="screen"/>
 
     <!--    <rosparam param="/use_sim_time">true</rosparam>-->
 
     <!-- transform drone_kalman to rocket state for visualization-->
-    <node name="drone_to_rocket_state" pkg="topic_tools" type="transform" args="/drone_state /kalman_rocket_state real_time_simulator/State
-              'real_time_simulator.msg.State(twist=m.twist, pose=m.pose, propeller_mass=0)'
-              --import real_time_simulator drone_gnc"/>
+<!--    <node name="drone_to_rocket_state" pkg="topic_tools" type="transform" args="/drone_state /kalman_rocket_state real_time_simulator/State-->
+<!--              'real_time_simulator.msg.State(twist=m.twist, pose=m.pose, propeller_mass=0)'-->
+<!--              &#45;&#45;import real_time_simulator drone_gnc"/>-->
 
-    <node pkg="rosbag" type="record" name="recorder" args="record -a -O $(find drone_utils)/log/log.bag"/>
 </launch>
 
 

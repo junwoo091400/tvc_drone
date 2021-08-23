@@ -6,13 +6,13 @@ predict_vars:
   dx: 5
   datt: 2000
 
-  thrust_scaling: .6
+  thrust_scaling: 0.1
   torque_scaling: 5
   servo_offset: 0
-  disturbance_force: 40
+  disturbance_force: 10
   disturbance_force_z: 0
-  disturbance_torque: 100
-  disturbance_torque_z: 1
+  disturbance_torque: 30
+  disturbance_torque_z: 0.5
 
 update_vars:
   optitrack_x: 0.001

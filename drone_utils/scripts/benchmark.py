@@ -8,19 +8,11 @@ import time
 import matplotlib
 import matplotlib.pyplot as plt
 
-from drone_gnc.msg import DroneControl
-from drone_gnc.msg import FSM
 from drone_gnc.msg import DroneState
-from drone_gnc.msg import Sensor
-from drone_gnc.msg import Trajectory
-from drone_gnc.msg import Waypoint
 from geometry_msgs.msg import Vector3
 
 from std_msgs.msg import String
 from std_msgs.msg import Float64
-from drone_gnc.srv import GetFSM
-from drone_gnc.srv import InterpolateControlSpline
-
 
 computation_time_array = np.empty((0))
 def saveComputationTime(computation_time):
@@ -28,27 +20,24 @@ def saveComputationTime(computation_time):
     computation_time_array = np.append(computation_time_array, computation_time.data)
     print "mpc:", computation_time.data, "ms"
 
-current_pos = Vector3()
-
-def stateCallback(state):
-    global current_pos
-    current_pos = state.pose.position.x
+# current_pos = Vector3()
+# def stateCallback(state):
+#     global current_pos
 
 if __name__ == '__main__':
     # Init ROS
     rospy.init_node('benchmark', anonymous=True)
 
-    rospy.Subscriber("/drone_state", DroneState, stateCallback)
-
-    rospy.wait_for_service('/getFSM_gnc')
-    client_fsm = rospy.ServiceProxy('/getFSM_gnc', GetFSM)
+    # rospy.Subscriber("/drone_state", DroneState, stateCallback)
 
     command_pub = rospy.Publisher('/commands', String, queue_size=10)
     target_apogee_pub = rospy.Publisher('/target_apogee', Vector3, queue_size=10)
 
     rospy.Subscriber("/control/debug/computation_time", Float64, saveComputationTime)
 
+
     time.sleep(1)
+    target_apogee_pub.publish(Vector3(1, 0, 0))
     command_pub.publish("Launch")
 
     start_time = rospy.get_time()

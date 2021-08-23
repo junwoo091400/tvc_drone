@@ -1,4 +1,4 @@
-<launch>
+<launch>true
     <arg name="path" default="log/log.bag" />
 
     <group ns="rocket">
@@ -11,7 +11,7 @@
 
     <node name="navigation" pkg="drone_gnc" type="kalman_tuner" cwd="node" output="screen">
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
-        <rosparam param="init_estimated_params">true</rosparam>
+        <rosparam param="init_estimated_params">false</rosparam>
         <rosparam param="estimate_params">true</rosparam>
     </node>
 

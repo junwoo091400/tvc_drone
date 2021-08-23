@@ -4,10 +4,13 @@
 import rospkg
 import numpy as np
 import matplotlib.pyplot as plt
-plt.rc('font', family='serif', serif='cm10')
-plt.rc('text', usetex=True)
-plt.rc('text.latex', preamble=r'\usepackage{gensymb}\usepackage{amsmath}')
-# plt.rcParams['text.latex.preamble'] = [r'\boldmath']
+
+USE_LATEX = False
+
+if USE_LATEX:
+    plt.rc('font', family='serif', serif='cm10')
+    plt.rc('text', usetex=True)
+    plt.rc('text.latex', preamble=r'\usepackage{gensymb}\usepackage{amsmath}')
 
 from matplotlib.widgets import Slider
 import rosbag
@@ -84,19 +87,19 @@ plot_ranges = {
     "yaw (x)": [-15, 15],
     "pitch (y)": [-15, 15],
     "roll (z)": [-90, 90],
-    "dyaw (x)": [-2, 2],
-    "dpitch (y)": [-2, 2],
-    "droll (z)": [-2, 2],
+    "dyaw (x)": [-20, 20],
+    "dpitch (y)": [-20, 20],
+    "droll (z)": [-4, 4],
 
-    "servo1": [-0.15, 0.15],
-    "servo2": [-0.15, 0.15],
+    "servo1": [-15, 15],
+    "servo2": [-15, 15],
     "bottom": [0, 100],
     "top": [0, 100],
 
     "thrust_scaling": [0, 1.5],
     "torque_scaling": [0, 1.5],
-    "servo1_offset": [-0.1, 0.1],
-    "servo2_offset": [-0.1, 0.1],
+    "servo1_offset": [-3, 3],
+    "servo2_offset": [-3, 3],
     "fx": [-1, 1],
     "fy": [-1, 1],
     "fz": [-1, 1],
@@ -108,7 +111,7 @@ plot_ranges = {
 fig, axe = plt.subplots(5, 3, figsize=(15, 10))
 # fig, axe = plt.subplots(2, 3, figsize=(15, 10))
 fig.subplots_adjust(wspace=0.4, hspace=0.5)
-set_plot_ranges(axe, plot_ranges, state_plot_indexes.items() + control_plot_indexes.items())
+set_plot_ranges(axe, plot_ranges, state_plot_indexes.items() + control_plot_indexes.items(), USE_LATEX)
 
 plot_history(kalman_state_history, state_plot_indexes, axe, "state")
 
@@ -130,7 +133,7 @@ def plot_horizon_segment(t):
                 line, = axe[plot_idx].plot(x_data, y_data, 'g-', label='_nolegend_')
 
 
-PLOT_HORIZON_SEGMENTS = False
+PLOT_HORIZON_SEGMENTS = True
 
 if PLOT_HORIZON_SEGMENTS:
     for t in np.arange(1.4, t_end - time_init, 1):

@@ -44,6 +44,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
     topics.push_back(std::string("/optitrack_client/Drone/optitrack_pose"));
     topics.push_back(std::string("/mavros/local_position/pose"));
     topics.push_back(std::string("/mavros/local_position/velocity_body"));
+    topics.push_back(std::string("/mavros/local_position/velocity_local"));
     topics.push_back(std::string("/drone_control"));
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));

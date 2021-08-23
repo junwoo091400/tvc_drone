@@ -4,6 +4,8 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from geometry_msgs.msg import PoseStamped
 
+rad2deg = 180/np.pi
+
 def convert_state_to_array(state):
     q = [state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w]
     if np.isnan(q).any():
@@ -27,10 +29,10 @@ def convert_state_to_array(state):
         state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
                                 state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
                                 attitude_euler[0], attitude_euler[1], attitude_euler[2],
-                                state.twist.angular.x, state.twist.angular.y, state.twist.angular.z,
+                                state.twist.angular.x*rad2deg, state.twist.angular.y*rad2deg, state.twist.angular.z*rad2deg,
                                 state.thrust_scaling,
                                 state.torque_scaling,
-                                state.servo1_offset, state.servo2_offset,
+                                state.servo1_offset*rad2deg, state.servo2_offset*rad2deg,
                                 state.disturbance_force.x, state.disturbance_force.y, state.disturbance_force.z,
                                 state.disturbance_torque.x, state.disturbance_torque.y, state.disturbance_torque.z,
                                 ])
@@ -41,7 +43,7 @@ def convert_state_to_array(state):
 
 
 def convert_control_to_array(control):
-    control_array = np.array([control.servo1, control.servo2, control.bottom, control.top])
+    control_array = np.array([control.servo1*rad2deg, control.servo2*rad2deg, control.bottom, control.top])
     return control_array
 
 def read_state_history(bag, topic, t_init, t_end):
@@ -136,7 +138,7 @@ param_indexes = OrderedDict([
 var_indexes = OrderedDict(OrderedDict([("t", 0)]).items() + state_indexes.items() + control_indexes.items() + param_indexes.items())
 
 
-state_titles = OrderedDict([
+state_titles_latex = OrderedDict([
     ("x", r"$\boldsymbol{x}$ [m]"),
     ("y", r"$\boldsymbol{y}$ [m]"),
     ("z", r"$\boldsymbol{z}$ [m]"),
@@ -146,19 +148,19 @@ state_titles = OrderedDict([
     ("yaw (x)", r"$\boldsymbol{\alpha}$ [$\degree$]"),
     ("pitch (y)", r"$\boldsymbol{\beta}$ [$\degree$]"),
     ("roll (z)", r"$\boldsymbol{\gamma}$ [$\degree$]"),
-    ("dyaw (x)", r"$\boldsymbol{\omega_x}$ [/s]"),
-    ("dpitch (y)", r"$\boldsymbol{\omega_y}$ [/s]"),
-    ("droll (z)", r"$\boldsymbol{\omega_z}$ [/s]"),
+    ("dyaw (x)", r"$\boldsymbol{\omega_x}$ [$\degree$/s]"),
+    ("dpitch (y)", r"$\boldsymbol{\omega_y}$ [$\degree$/s]"),
+    ("droll (z)", r"$\boldsymbol{\omega_z}$ [$\degree$/s]"),
 ])
 
-control_titles = OrderedDict([
+control_titles_latex = OrderedDict([
     ("servo1", r"$\boldsymbol{\theta_1}$ [$\degree$]"),
     ("servo2", r"$\boldsymbol{\theta_2}$ [$\degree$]"),
     ("bottom", r"$\boldsymbol{P_B}$ [\%]"),
     ("top", r"$\boldsymbol{P_T}$ [\%]"),
 ])
 
-param_titles = OrderedDict([
+param_titles_latex = OrderedDict([
     ("thrust_scaling", r"thrust scaling"),
     ("torque_scaling", r"torque scaling"),
     ("servo1_offset", r"servo1 offset [$\degree$]"),
@@ -170,7 +172,44 @@ param_titles = OrderedDict([
     ("my", r"$\boldsymbol{M_y}$ [Nm]"),
     ("mz", r"$\boldsymbol{M_z}$ [Nm]"),
 ])
-var_titles = OrderedDict(OrderedDict([("t", r"$\boldsymbol{t}$ [s]")]).items() + state_titles.items() + control_titles.items() + param_titles.items())
+var_titles_latex = OrderedDict(OrderedDict([("t", r"$\boldsymbol{t}$ [s]")]).items() + state_titles_latex.items() + control_titles_latex.items() + param_titles_latex.items())
+
+
+state_titles = OrderedDict([
+    ("x", r"x [m]"),
+    ("y", r"y [m]"),
+    ("z", r"z [m]"),
+    ("dx", r"v_x [m/s]"),
+    ("dy", r"v_y [m/s]"),
+    ("dz", r"v_z [m/s]"),
+    ("yaw (x)", r"alpha [deg]"),
+    ("pitch (y)", r"beta [deg]"),
+    ("roll (z)", r"gamma [deg]"),
+    ("dyaw (x)", r"w_x [deg/s]"),
+    ("dpitch (y)", r"w_y[deg/s]"),
+    ("droll (z)", r"w_z [deg/s]"),
+])
+
+control_titles = OrderedDict([
+    ("servo1", r"servo1 [deg]"),
+    ("servo2", r"servo2 [deg]"),
+    ("bottom", r"P_B [\%]"),
+    ("top", r"P_T [\%]"),
+])
+
+param_titles = OrderedDict([
+    ("thrust_scaling", r"thrust scaling"),
+    ("torque_scaling", r"torque scaling"),
+    ("servo1_offset", r"servo1 offset [deg]"),
+    ("servo2_offset", r"servo2 offset [deg]"),
+    ("fx", r"F_x [N]"),
+    ("fy", r"F_y [N]"),
+    ("fz", r"F_z [N]"),
+    ("mx", r"M_x [Nm]"),
+    ("my", r"M_y [Nm]"),
+    ("mz", r"M_z [Nm]"),
+])
+var_titles = OrderedDict(OrderedDict([("t", r"t [s]")]).items() + state_titles.items() + control_titles.items() + param_titles.items())
 
 
 def plot_history(history, plot_indexes, axe, name, *plt_args):
@@ -187,12 +226,16 @@ def plot_history(history, plot_indexes, axe, name, *plt_args):
 
     return line_list
 
-def set_plot_ranges(axe, plot_ranges, plot_indexes):
+def set_plot_ranges(axe, plot_ranges, plot_indexes, use_latex=False):
     for plot_idx, name_list in plot_indexes:
         for (x_name, y_name) in name_list:
             axe[plot_idx].axis(xmin=plot_ranges[x_name][0],
                             xmax=plot_ranges[x_name][1],
                             ymin=plot_ranges[y_name][0],
                             ymax=plot_ranges[y_name][1])
-            axe[plot_idx].set_xlabel(var_titles[x_name])
-            axe[plot_idx].set_ylabel(var_titles[y_name])
+            if use_latex:
+                axe[plot_idx].set_xlabel(var_titles_latex[x_name])
+                axe[plot_idx].set_ylabel(var_titles_latex[y_name])
+            else:
+                axe[plot_idx].set_xlabel(var_titles[x_name])
+                axe[plot_idx].set_ylabel(var_titles[y_name])
