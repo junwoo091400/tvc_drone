@@ -10,7 +10,7 @@
 
 #include "drone_EKF_optitrack.hpp"
 
-class DroneNavigationNode {
+class DroneNavigationNodeOptitrack {
 private:
     DroneEKFOptitrack kalman;
 
@@ -33,7 +33,7 @@ private:
 public:
     double period;
 
-    DroneNavigationNode(ros::NodeHandle &nh) : kalman(nh) {
+    DroneNavigationNodeOptitrack(ros::NodeHandle &nh) : kalman(nh) {
         // init publishers and subscribers
         initTopics(nh);
 
@@ -55,14 +55,14 @@ public:
         kalman_pub = nh.advertise<drone_gnc::DroneState>("/drone_state", 1);
 
         // Subscribe to time_keeper for fsm and time
-        fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneNavigationNode::fsmCallback, this);
+        fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneNavigationNodeOptitrack::fsmCallback, this);
 
         // Subscribe to time_keeper for fsm and time
-        control_sub = nh.subscribe("/drone_control", 1, &DroneNavigationNode::controlCallback, this);
+        control_sub = nh.subscribe("/drone_control", 1, &DroneNavigationNodeOptitrack::controlCallback, this);
 
         computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
-        sensor_sub = nh.subscribe("/optitrack_client/Drone/optitrack_pose", 1, &DroneNavigationNode::optitrackCallback,
+        sensor_sub = nh.subscribe("/optitrack_client/Drone/optitrack_pose", 1, &DroneNavigationNodeOptitrack::optitrackCallback,
                                   this);
     }
 
@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "navigation");
     ros::NodeHandle nh("navigation");
 
-    DroneNavigationNode droneNavigationNode(nh);
+    DroneNavigationNodeOptitrack droneNavigationNode(nh);
 
     // Thread to compute kalman. Duration defines interval time in seconds
     ros::Timer control_thread = nh.createTimer(ros::Duration(droneNavigationNode.period), [&](const ros::TimerEvent &) {

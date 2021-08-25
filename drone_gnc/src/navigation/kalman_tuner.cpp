@@ -57,6 +57,9 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
     geometry_msgs::PoseStamped pixhawk_pose;
     geometry_msgs::TwistStamped pixhawk_twist_local;
     geometry_msgs::TwistStamped pixhawk_twist_body;
+    bool received_pixhawk = false;
+    bool initialized_orientation = false;
+    Quaterniond initial_orientation;
 
     double t0 = 0;
     double current_time = 0;
@@ -69,7 +72,22 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
         }
 
         if (m.getTopic() == "/optitrack_client/Drone/optitrack_pose") {
-            optitrack_pose = *m.instantiate<geometry_msgs::PoseStamped>();
+            geometry_msgs::PoseStamped optitrack_pose_raw = *m.instantiate<geometry_msgs::PoseStamped>();
+            if (received_pixhawk) {
+                if (!initialized_orientation) {
+                    initial_orientation.coeffs() << pixhawk_pose.pose.orientation.x, pixhawk_pose.pose.orientation.y, pixhawk_pose.pose.orientation.z, pixhawk_pose.pose.orientation.w;
+                            initialized_orientation = true;
+                }
+
+                Vector<double, 3> raw_position;
+                raw_position << -optitrack_pose_raw.pose.position.x, -optitrack_pose_raw.pose.position.y, 0;
+
+                Vector<double, 3> absolute_position = initial_orientation._transformVector(raw_position);
+
+                optitrack_pose.pose.position.x = absolute_position(0);
+                optitrack_pose.pose.position.y = absolute_position(1);
+                optitrack_pose.pose.position.z = optitrack_pose_raw.pose.position.z;
+            }
         }
         if (m.getTopic() == "/mavros/local_position/pose") {
             pixhawk_pose = *m.instantiate<geometry_msgs::PoseStamped>();

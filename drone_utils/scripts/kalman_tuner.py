@@ -30,33 +30,38 @@ kalman_state_history = read_state_history(bag, '/drone_state', time_init, t_end)
 # t_end = 1
 
 
+
 plot_ranges = {
-    "t": [0, t_end-time_init],
+    "t": [0, t_end - time_init],
     "x": [-3, 3],
     "y": [-3, 3],
-    "z": [-1, 2],
-    "dx": [-10, 10],
-    "dy": [-3, 3],
+    "z": [-1, 3],
+    "dx": [-1.5, 1.5],
+    "dy": [-1.5, 1.5],
     "dz": [-1.5, 5],
     "yaw (x)": [-15, 15],
     "pitch (y)": [-15, 15],
     "roll (z)": [-90, 90],
-    "dyaw (x)": [-4, 4],
-    "dpitch (y)": [-4, 4],
-    "droll (z)": [-2, 2],
+    "dyaw (x)": [-50, 50],
+    "dpitch (y)": [-50, 50],
+    "droll (z)": [-25, 25],
+
+    "servo1": [-15, 15],
+    "servo2": [-15, 15],
+    "bottom": [0, 100],
+    "top": [0, 100],
 
     "thrust_scaling": [0, 1.5],
     "torque_scaling": [0, 1.5],
-    "servo1_offset": [-0.3, 0.3],
-    "servo2_offset": [-1, 1],
-    "fx": [-3, 3],
-    "fy": [-3, 3],
-    "fz": [-3, 3],
+    "servo1_offset": [-3, 3],
+    "servo2_offset": [-3, 3],
+    "fx": [-1, 1],
+    "fy": [-1, 1],
+    "fz": [-1, 1],
     "mx": [-1, 1],
     "my": [-1, 1],
-    "mz": [-0.1, 0.1],
+    "mz": [-1, 1],
 }
-
 kalman_plot_indexes = {
     (0, 0): [("t", "x")],
     (0, 1): [("t", "y")],

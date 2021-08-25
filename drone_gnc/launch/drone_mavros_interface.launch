@@ -10,7 +10,9 @@
 		<rosparam command="load" file="$(find mavros)/launch/px4_config.yaml" />
 	</node>
 
-    <node name="mavros_interface" pkg="drone_gnc" type="drone_mavros_interface" machine="gnc_machine"/>
+    <node name="drone_mavros_interface" pkg="drone_gnc" type="drone_mavros_interface" machine="gnc_machine">
+		<param name="enable_rc_control" value="false" />
+	</node>
 </launch>
 
 

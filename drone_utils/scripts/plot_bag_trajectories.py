@@ -22,7 +22,7 @@ from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX,
     read_state_history, read_control_history, read_horizon_history, set_plot_ranges
 
 rospack = rospkg.RosPack()
-bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
+bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log6.bag')
 
 
 time_init = 0
@@ -133,7 +133,7 @@ def plot_horizon_segment(t):
                 line, = axe[plot_idx].plot(x_data, y_data, 'g-', label='_nolegend_')
 
 
-PLOT_HORIZON_SEGMENTS = True
+PLOT_HORIZON_SEGMENTS = False
 
 if PLOT_HORIZON_SEGMENTS:
     for t in np.arange(1.4, t_end - time_init, 1):

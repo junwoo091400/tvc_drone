@@ -13,7 +13,7 @@
 
 #include "drone_EKF_pixhawk.hpp"
 
-class DroneNavigationNode {
+class DroneNavigationNodePixhawk {
 private:
     DroneEKFPixhawk kalman;
 
@@ -46,7 +46,7 @@ private:
 public:
     double period;
 
-    DroneNavigationNode(ros::NodeHandle &nh);
+    DroneNavigationNodePixhawk(ros::NodeHandle &nh);
     void initTopics(ros::NodeHandle &nh);
 
     void kalmanStep();

@@ -30,6 +30,7 @@ public:
             nh.getParam("update_vars/optitrack_x", x_optitrack_var) &&
             nh.getParam("update_vars/pixhawk", pixhawk_var)) {
 
+            Q.setZero();
             Q.diagonal() << x_var, x_var, x_var,
                     dx_var, dx_var, dx_var,
                     att_var, att_var, att_var, att_var,
@@ -40,8 +41,11 @@ public:
                     disturbance_force_var, disturbance_force_var, disturbance_force_z_var,
                     disturbance_torque_var, disturbance_torque_var, disturbance_torque_z_var;
 
-            R.setIdentity();
-            R *= 0.001;
+            R.setZero();
+            R.diagonal() << x_optitrack_var, x_optitrack_var, x_optitrack_var,
+                    pixhawk_var, pixhawk_var, pixhawk_var,
+                    pixhawk_var, pixhawk_var, pixhawk_var, pixhawk_var,
+                    pixhawk_var, pixhawk_var, pixhawk_var;
 
         } else {
             ROS_ERROR("Failed to get kalman filter parameter");

@@ -108,7 +108,12 @@ int main(int argc, char **argv) {
 
     // Subscribe to drone control
     last_rc_cb = ros::Time::now().toSec();
-    ros::Subscriber rc_sub = nh.subscribe("/mavros/rc/in", 1, RCCallback);
+    bool enable_rc_control;
+    nh.param<bool>("enable_rc_control", enable_rc_control, false);
+    ros::Subscriber rc_sub;
+    if (enable_rc_control){
+         rc_sub = nh.subscribe("/mavros/rc/in", 1, RCCallback);
+    }
 
     // Create state publisher
     pixhawk_state_pub = nh.advertise<drone_gnc::DroneState>("/pixhawk_drone_state", 10);

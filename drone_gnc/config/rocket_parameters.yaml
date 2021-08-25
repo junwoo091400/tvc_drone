@@ -19,7 +19,7 @@ fin_sweep: 0.1
 fin_thickness: 0.004
 lug_n: 2
 lug_S: 1.0e-40
-dry_mass: 1.75
+dry_mass: 1.8
 dry_CM: 0.225
 dry_I:
   - 0.0623
