@@ -15,7 +15,6 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     //init segment length
 //    double guidance_horizon_length;
 //    nh.getParam("guidance/mpc/horizon_length", guidance_horizon_length);
-    sgm_length = 1.0 / GUIDANCE_NUM_SEG;
 
     nh.param("/fixed_guidance", fixed_guidance, false);
     nh.param("track_guidance", track_guidance, false);
@@ -59,7 +58,7 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
 
 void DroneControlNode::run() {
     bool emergency_stop_enabled = false;
-    if(emergency_stop && emergency_stop_enabled){
+    if (emergency_stop && emergency_stop_enabled) {
         drone_gnc::DroneControl drone_control;
         drone_control.top = 0;
         drone_control.bottom = 0;
@@ -67,13 +66,12 @@ void DroneControlNode::run() {
         drone_control.servo1 = 0;
         drone_control_pub.publish(drone_control);
         ROS_ERROR_STREAM("emergency stop");
-    }
-    else{
+    } else {
         double loop_start_time = ros::Time::now().toSec();
         double stall_time;
         // State machine ------------------------------------------
-        if ((received_trajectory || !track_guidance) && received_state) {
 
+        if ((received_trajectory || !track_guidance) && received_state) {
             fetchNewTarget();
             if (!USE_BACKUP_CONTROLLER) {
                 computeControl();
@@ -86,18 +84,20 @@ void DroneControlNode::run() {
             stall_time = loop_start_time + period * 0.93 - ros::Time::now().toSec();
             if (stall_time > 0) ros::Duration(stall_time).sleep();
 
-
-            if (current_fsm.state_machine == "Launch") {
-                publishFeedforwardControl();
-                if (start_time == 0)start_time = ros::Time::now().toSec();
+            if (current_fsm.state_machine == "Idle") {
+                start_time = ros::Time::now().toSec();
             }
-
+            else if (current_fsm.state_machine == "Launch") {
+                publishFeedforwardControl();
+            }
 //        if (current_fsm.state_machine.compare("Launch") == 0) {
 //            low_level_control_thread.stop();
 //            publishFeedforwardControl();
 //            ff_index = 0;
 //            low_level_control_thread.start();
 //        }
+        }
+        else{
         }
         if (stall_time > 0) computation_time = (ros::Time::now().toSec() - loop_start_time - stall_time) * 1000;
         else computation_time = (ros::Time::now().toSec() - loop_start_time) * 1000;
@@ -125,20 +125,34 @@ void DroneControlNode::targetCallback(const geometry_msgs::Vector3 &target) {
 
 
 void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory::ConstPtr &target) {
+    if (!received_trajectory) {
+        GUIDANCE_NUM_SEG = target->num_segment;
+        GUIDANCE_NUM_NODE = target->num_node;
+        GUIDANCE_POLY_ORDER = GUIDANCE_NUM_NODE / GUIDANCE_NUM_SEG;
+        SEG_LENGTH = 1.0 / GUIDANCE_NUM_SEG;
+
+        guidance_t0 = target->trajectory.at(0).header.stamp.toSec();
+        guidance_tf = target->trajectory.at(GUIDANCE_NUM_NODE - 1).header.stamp.toSec();
+
+        guidance_state_trajectory = Eigen::MatrixXd(Drone::NX, GUIDANCE_NUM_NODE);
+        guidance_control_trajectory = Eigen::MatrixXd(Drone::NU, GUIDANCE_NUM_NODE);
+        if (fixed_guidance) {
+
+        } else {
+            // init lagrange basis
+            double traj_length = guidance_tf - guidance_t0;
+            VectorXd time_grid(GUIDANCE_POLY_ORDER + 1, 1);
+            for (int i = 0; i < GUIDANCE_POLY_ORDER + 1; i++) {
+                time_grid(i) = (target->trajectory.at(i).header.stamp.toSec() - guidance_t0) / traj_length;
+            }
+            m_basis = Eigen::MatrixXd(GUIDANCE_POLY_ORDER + 1, GUIDANCE_POLY_ORDER + 1);
+            polympc::LagrangeSpline::compute_lagrange_basis(time_grid, m_basis);
+        }
+        received_trajectory = true;
+    }
+
     guidance_t0 = target->trajectory.at(0).header.stamp.toSec();
     guidance_tf = target->trajectory.at(GUIDANCE_NUM_NODE - 1).header.stamp.toSec();
-
-    if (!received_trajectory && !fixed_guidance) {
-        // init lagrange basis
-
-        double traj_length = guidance_tf - guidance_t0;
-        Eigen::Matrix<double, GUIDANCE_POLY_ORDER + 1, 1> time_grid;
-        for (int i = 0; i < GUIDANCE_POLY_ORDER + 1; i++) {
-            time_grid(i) = (target->trajectory.at(i).header.stamp.toSec() - guidance_t0)/traj_length;
-        }
-        polympc::LagrangeSpline::compute_lagrange_basis(time_grid, m_basis);
-    }
-    received_trajectory = true;
 
     int i = 0;
     for (auto waypoint: target->trajectory) {
@@ -150,20 +164,21 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
 
         guidance_control_trajectory.col(i)
                 << waypoint.control.servo1, waypoint.control.servo2,
-                0.5*(waypoint.control.bottom+waypoint.control.top),
+                0.5 * (waypoint.control.bottom + waypoint.control.top),
                 waypoint.control.top - waypoint.control.bottom;
         i++;
     }
 }
 
 Drone::state DroneControlNode::sampleTargetTrajectory(double t) {
-    Eigen::Index idx = (Eigen::Index) std::floor(t / sgm_length);
+    Eigen::Index idx = (Eigen::Index) std::floor(t / SEG_LENGTH);
     idx = std::max(Eigen::Index(0),
                    std::min(idx, (Eigen::Index) GUIDANCE_NUM_SEG - 1)); // clip idx to stay within the spline bounds
 
-    Drone::state state = polympc::LagrangeSpline::eval(t - idx * sgm_length,
-                                                       guidance_state_trajectory.block<Drone::NX, GUIDANCE_POLY_ORDER + 1>(
-                                                               0, idx * GUIDANCE_POLY_ORDER), m_basis);
+    Drone::state state = polympc::LagrangeSpline::eval(t - idx * SEG_LENGTH,
+                                                       guidance_state_trajectory.block(
+                                                               0, idx * GUIDANCE_POLY_ORDER, Drone::NX,
+                                                               GUIDANCE_POLY_ORDER + 1), m_basis);
     return state;
 }
 
@@ -174,28 +189,32 @@ void DroneControlNode::sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC
     double time_delta = std::min(time_now - start_time, time_now - guidance_t0);
 
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
-        double t = (time_delta + drone_mpc.time_grid(i))/(guidance_tf-guidance_t0);
+        //scaled time;
+        double t = (time_delta + drone_mpc.time_grid(i)) / (guidance_tf - guidance_t0);
 
-        t = min(t, 1.0);
+        //Clip between 0 and 1;
+        t = max(min(t, 1.0), 0.0);
 
-        Eigen::Index idx = (Eigen::Index) std::floor(t / sgm_length);
+        Eigen::Index idx = std::floor(t / SEG_LENGTH);
         idx = std::max(Eigen::Index(0), std::min(idx, (Eigen::Index) GUIDANCE_NUM_SEG - 1));
 
-        Drone::state state = polympc::LagrangeSpline::eval(t - idx * sgm_length, guidance_state_trajectory.block<Drone::NX,
-                GUIDANCE_POLY_ORDER + 1>(0, idx * GUIDANCE_POLY_ORDER), m_basis);
+        MatrixXd state_guidance_segment = guidance_state_trajectory.block(0, idx * GUIDANCE_POLY_ORDER, Drone::NX,
+                                                                          GUIDANCE_POLY_ORDER + 1);
+        mpc_target_state_traj.col(i) = polympc::LagrangeSpline::eval(t - idx * SEG_LENGTH, state_guidance_segment,
+                                                                     m_basis);
 
-        Drone::control control = polympc::LagrangeSpline::eval(t - idx * sgm_length, guidance_control_trajectory.block<Drone::NU,
-                GUIDANCE_POLY_ORDER + 1>(0, idx * GUIDANCE_POLY_ORDER), m_basis);
-
-        mpc_target_state_traj.col(i) = state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
-        mpc_target_control_traj.col(i) = control.cwiseProduct(drone_mpc.ocp().u_drone_scaling_vec);
+        MatrixXd control_guidance_segment = guidance_control_trajectory.block(0, idx * GUIDANCE_POLY_ORDER, Drone::NX,
+                                                                              GUIDANCE_POLY_ORDER + 1);
+        mpc_target_control_traj.col(i) = polympc::LagrangeSpline::eval(t - idx * SEG_LENGTH, control_guidance_segment,
+                                                                       m_basis);
 
     }
 }
 
 
-void DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
-                                                    Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj) {
+void
+DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
+                                               Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj) {
     double time_now = ros::Time::now().toSec();
 
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
@@ -234,7 +253,7 @@ void DroneControlNode::computeControl() {
             current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
 //    state_mutex.unlock();
     double attitude_angle_cos = x0(9) * x0(9) - x0(6) * x0(6) - x0(7) * x0(7) + x0(8) * x0(8);
-    if(attitude_angle_cos < cos(0.5) || abs(x0(10)) > 4  || abs(x0(11)) > 4 || abs(x0(12)) > 4){
+    if (attitude_angle_cos < cos(0.5) || abs(x0(10)) > 4 || abs(x0(11)) > 4 || abs(x0(12)) > 4) {
         emergency_stop = true;
     }
 
@@ -354,22 +373,19 @@ void DroneControlNode::fetchNewTarget() {
     Matrix<double, Drone::NU, DroneMPC::num_nodes> mpc_target_control_traj;
     if (!track_guidance) {
         for (int i = 0; i < DroneMPC::num_nodes; i++) {
-            mpc_target_state_traj.col(i) = target_state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
-            mpc_target_control_traj.col(i) = target_control.cwiseProduct(drone_mpc.ocp().u_drone_scaling_vec);
+            mpc_target_state_traj.col(i) = target_state;
+            mpc_target_control_traj.col(i) = target_control;
         }
     } else if (fixed_guidance) {
         sampleTargetTrajectoryLinear(mpc_target_state_traj, mpc_target_control_traj);
     } else {
         sampleTargetTrajectory(mpc_target_state_traj, mpc_target_control_traj);
-        //TODO
-        for (int i = 0; i < DroneMPC::num_nodes; i++) {
-            mpc_target_control_traj.col(i) = target_control.cwiseProduct(drone_mpc.ocp().u_drone_scaling_vec);
-        }
     }
 
-    //TODO separate
-    drone_mpc.ocp().target_state_trajectory = mpc_target_state_traj;
-    drone_mpc.ocp().target_control_trajectory = mpc_target_control_traj;
+    //assign while scaling
+    drone_mpc.ocp().target_state_trajectory = drone_mpc.ocp().x_drone_scaling_vec.asDiagonal() * mpc_target_state_traj;
+    drone_mpc.ocp().target_control_trajectory =
+            drone_mpc.ocp().u_drone_scaling_vec.asDiagonal() * mpc_target_control_traj;
 }
 
 void DroneControlNode::saveDebugInfo() {

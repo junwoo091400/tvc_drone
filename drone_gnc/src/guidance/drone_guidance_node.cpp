@@ -23,7 +23,11 @@ DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone>
 void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
     rocket_state_sub = nh.subscribe("/simu_drone_state", 1, &DroneGuidanceNode::stateCallback, this);
-    // target_sub = nh.subscribe("/target_apogee", 1, &DroneGuidanceNode::targetCallback, this);
+    bool control_track_guidance;
+    nh.param<bool>("/control/track_guidance", control_track_guidance, false);
+    if (control_track_guidance){
+        target_sub = nh.subscribe("/target_apogee", 1, &DroneGuidanceNode::targetCallback, this);
+    }
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneGuidanceNode::fsmCallback, this);
 
     // Publishers
@@ -150,6 +154,9 @@ void DroneGuidanceNode::publishTrajectory() {
 
         horizon_msg.trajectory.push_back(state_msg_stamped);
     }
+    horizon_msg.num_node = drone_mpc.ocp().NUM_NODES;
+    horizon_msg.num_segment = NUM_SEG;
+
     horizon_viz_pub.publish(trajectory_msg);
     horizon_msg.header.stamp = time_compute_start;
     horizon_pub.publish(horizon_msg);

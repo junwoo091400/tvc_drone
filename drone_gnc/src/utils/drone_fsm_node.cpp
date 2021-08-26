@@ -29,12 +29,17 @@ void targetCallback(const geometry_msgs::Vector3::ConstPtr &target) {
 
 
 void processCommand(const std_msgs::String &command) {
-    if (command.data.compare("Coast") == 0) {
+    if (command.data == "Coast") {
         current_fsm.state_machine = "Coast";
     } else {
-        //received launch command
-        time_zero = ros::Time::now().toSec();
-        current_fsm.state_machine = "Launch";
+        if(command.data == "stop" || command.data == "Stop"){
+            current_fsm.state_machine = "Idle";
+        }
+        else{
+            //received launch command
+            time_zero = ros::Time::now().toSec();
+            current_fsm.state_machine = "Launch";
+        }
     }
 }
 
@@ -82,22 +87,21 @@ int main(int argc, char **argv) {
 
     ros::Timer FSM_thread = nh.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent &) {
         // Update FSM
-        if (current_fsm.state_machine.compare("Idle") == 0) {
+        if (current_fsm.state_machine == "Idle") {
         } else {
             // Update current time
             current_fsm.time_now = ros::Time::now().toSec() - time_zero;
 
-            if (current_fsm.state_machine.compare("Rail") == 0) {
+            if (current_fsm.state_machine == "Rail") {
                 current_fsm.state_machine = "Launch";
 
-            } else if (current_fsm.state_machine.compare("Launch") == 0) {
+            } else if (current_fsm.state_machine == "Launch") {
                 if (abs(current_state.pose.position.z - target_apogee.z) < 1 && land_after_apogee && target_apogee.z != 0){
                     geometry_msgs::Vector3 new_apogee;
                     new_apogee.x = 0;
                     new_apogee.y = 0;
                     new_apogee.z = 0;
                     target_pub.publish(new_apogee);
-//                    ROS_INFO_STREAM("reached target");
                 }
 
             } else if (current_fsm.state_machine.compare("Coast") == 0) {

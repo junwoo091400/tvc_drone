@@ -157,8 +157,8 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
 
 
     //scaling
-    traj_state_guess = ocp().x_scaling_vec.transpose()*traj_state_guess;
-    traj_control_guess = ocp().u_scaling_vec.transpose()*traj_state_guess;
+    traj_state_guess = ocp().x_scaling_vec.asDiagonal() * traj_state_guess;
+    traj_control_guess = ocp().u_scaling_vec.asDiagonal() * traj_control_guess;
 
     p_guess(p0);
 

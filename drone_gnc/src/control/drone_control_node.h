@@ -88,15 +88,12 @@ private:
     ros::Timer fsm_update_thread;
 
     //guidance trajectory variables
-    //TODO find values automatically
-    static const int GUIDANCE_POLY_ORDER = 7;
-    static const int GUIDANCE_NUM_SEG = 2;
-    static const int GUIDANCE_NUM_NODE = GUIDANCE_POLY_ORDER * GUIDANCE_NUM_SEG + 1;
-    //TODO swap automatically between the two
-//    static const int GUIDANCE_NUM_NODE = 800;
-    Eigen::Matrix<double, Drone::NX, GUIDANCE_NUM_NODE> guidance_state_trajectory;
-    Eigen::Matrix<double, Drone::NU, GUIDANCE_NUM_NODE> guidance_control_trajectory;
-    Eigen::Matrix<double, GUIDANCE_POLY_ORDER + 1, GUIDANCE_POLY_ORDER + 1> m_basis;
+    int GUIDANCE_POLY_ORDER;
+    int GUIDANCE_NUM_SEG;
+    int GUIDANCE_NUM_NODE;
+    MatrixXd guidance_state_trajectory;
+    MatrixXd guidance_control_trajectory;
+    MatrixXd m_basis;
     bool received_trajectory = false;
     double guidance_t0;
     double guidance_tf;
@@ -106,7 +103,7 @@ private:
 //    std::mutex target_mutex;
 //    std::mutex state_mutex;
 
-    double sgm_length;
+    double SEG_LENGTH;
 
     DroneBackupController backup_controller;
 
