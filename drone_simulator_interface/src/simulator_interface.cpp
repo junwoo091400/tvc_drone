@@ -8,6 +8,8 @@
 #include <std_msgs/String.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <random>
+#include <chrono>
 #include "drone_model.hpp"
 
 using namespace Eigen;
@@ -29,23 +31,46 @@ bool first_command = true;
 double thrust_scaling, torque_scaling, servo1_offset, servo2_offset;
 Drone *drone;
 
+unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+std::default_random_engine generator(seed);
+
+std::normal_distribution<double> servo_noise(0.0, 0.0);
+std::normal_distribution<double> torque_noise(0.0, 0.0);
+
+double last_control_time;
+bool use_servo_model;
+
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
+    double time_now = ros::Time::now().toSec();
+    double delta_t = time_now - last_control_time;
+    delta_t = 0.02;
+    last_control_time = time_now;
 
     double thrust = thrust_scaling * drone->getThrust((drone_control->bottom + drone_control->top) * 0.5);
     double torque = torque_scaling * drone->getTorque(drone_control->top - drone_control->bottom);
 
-    // ss model for fixed ts//TODO use integrator time step instead
-    x_servo1 = sysA * x_servo1 + sysB * ((double) drone_control->servo1);
-    double servo1 = sysC * x_servo1;
+    double servo1_cmd = drone_control->servo1;
+    double servo2_cmd = drone_control->servo2;
 
-    x_servo2 = sysA * x_servo2 + sysB * ((double) drone_control->servo2);
-    double servo2 = sysC * x_servo2;
+    // ss model, euler discretization
+    x_servo1 += (sysA * x_servo1 + sysB * servo1_cmd) * delta_t;
+    x_servo2 += (sysA * x_servo2 + sysB * servo2_cmd) * delta_t;
+
+    double servo1, servo2;
+    if(use_servo_model){
+        servo1 = sysC * x_servo1;
+        servo2 = sysC * x_servo2;
+    }
+    else{
+        servo1 = servo1_cmd;
+        servo2 = servo2_cmd;
+    }
 
     //quaternion representing the rotation of the servos around the Y-axis followed by the rotation around the X-axis
     Eigen::Quaterniond
             thrust_rotation(
-            AngleAxisd(drone_control->servo1 + servo1_offset, Vector3d::UnitX()) *
-            AngleAxisd(drone_control->servo2 + servo2_offset, Vector3d::UnitY())
+            AngleAxisd(servo1 + servo1_offset + servo_noise(generator), Vector3d::UnitX()) *
+            AngleAxisd(servo2 + servo2_offset + servo_noise(generator), Vector3d::UnitY())
     );
 
     //rotated thrust vector, in body frame
@@ -58,9 +83,11 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
     real_time_simulator::Control converted_control;
 
 
-    converted_control.torque.x = thrust_vector.y() * CM_to_thrust_distance + propeller_torque.x();
+    converted_control.torque.x =
+            thrust_vector.y() * CM_to_thrust_distance + propeller_torque.x() + torque_noise(generator);
     converted_control.torque.y =
-            -thrust_vector.x() * CM_to_thrust_distance + propeller_torque.y() - CM_OFFSET_X * thrust_vector.z();
+            -thrust_vector.x() * CM_to_thrust_distance + propeller_torque.y() - CM_OFFSET_X * thrust_vector.z() +
+            torque_noise(generator);
     converted_control.torque.z = torque + propeller_torque.z() + CM_OFFSET_X * thrust_vector.y();
 
     converted_control.force.x = thrust_vector.x();
@@ -126,7 +153,10 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     pixhawk_state_pub.publish(converted_state);
 
     geometry_msgs::PoseStamped pose_msg;
-    pose_msg.pose = converted_state.pose;
+    pose_msg.pose.orientation = converted_state.pose.orientation;
+    pose_msg.pose.position.x = -converted_state.pose.position.x;
+    pose_msg.pose.position.y = -converted_state.pose.position.y;
+    pose_msg.pose.position.z = converted_state.pose.position.z;
     pose_msg.header.stamp = now;
 
     geometry_msgs::TwistStamped twist_msg_local;
@@ -147,15 +177,15 @@ int main(int argc, char **argv) {
     //init state system (discrete ss model for ts = 0.03s)
     x_servo1 << 0, 0;
     x_servo2 << 0, 0;
-    sysA << 1.359, -0.5178,
-            1, 0;
-    sysB << 0.5,
+    sysA << -21.94, - 15.34,
+            16, 0;
+    sysB << 4,
             0;
-    sysC << 0.1758, 0.141;
+    sysC << 0, 3.823;
 
     // Init ROS time keeper node
-    ros::init(argc, argv, "drone_interface");
-    ros::NodeHandle nh("control_interface");
+    ros::init(argc, argv, "simulator_interface");
+    ros::NodeHandle nh("simulator_interface");
 
     Drone drone_obj(nh);
     drone = &drone_obj;
@@ -164,6 +194,8 @@ int main(int argc, char **argv) {
     nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
     nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset, 0);
     nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset, 0);
+
+    nh.param<bool>("use_servo_model", use_servo_model, false);
 
     //TODO check if exists
     nh.getParam("/rocket/CM_to_thrust_distance", CM_to_thrust_distance);

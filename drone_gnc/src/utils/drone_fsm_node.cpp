@@ -70,13 +70,13 @@ int main(int argc, char **argv) {
 
     ros::Publisher target_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
 
-    if(land_after_apogee){
-        std::vector<double> initial_target_apogee;
-        nh.getParam("/guidance/target_apogee", initial_target_apogee);
+    std::vector<double> initial_target_apogee;
+    if(nh.getParam("/guidance/target_apogee", initial_target_apogee) || nh.getParam("/control/target_apogee", initial_target_apogee)){
         target_apogee.x = initial_target_apogee.at(0);
         target_apogee.y = initial_target_apogee.at(1);
         target_apogee.z = initial_target_apogee.at(2);
     }
+
 
     // Subscribe to commands
     ros::Subscriber state_sub = nh.subscribe("/drone_state", 1, stateCallback);
@@ -84,6 +84,7 @@ int main(int argc, char **argv) {
     timer_pub.publish(current_fsm);
 
     nh.getParam("/environment/rail_length", rail_length);
+
 
     ros::Timer FSM_thread = nh.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent &) {
         // Update FSM
