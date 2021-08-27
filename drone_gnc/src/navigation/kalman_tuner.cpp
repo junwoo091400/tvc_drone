@@ -99,6 +99,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
         }
         if (m.getTopic() == "/mavros/local_position/velocity_local") {
             pixhawk_twist_local = *m.instantiate<geometry_msgs::TwistStamped>();
+            received_pixhawk = true;
         }
 
         if (m.getTopic() == "/mavros/local_position/velocity_body") {

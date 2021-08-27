@@ -52,4 +52,4 @@ estimated:
   thrust_scaling: 1
   torque_scaling: 1
   servo1_offset: 0
-  servo2_offset: 0
+  servo2_offset: -0.07
