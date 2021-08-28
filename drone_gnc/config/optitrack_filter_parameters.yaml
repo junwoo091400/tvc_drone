@@ -8,9 +8,9 @@ predict_vars:
 
   thrust_scaling: 0.1
   torque_scaling: 1
-  servo_offset: 0
-  disturbance_force: 3
-  disturbance_force_z: 0
+  servo_offset: 1.0e-6
+  disturbance_force: 0.1
+  disturbance_force_z: 1.0e-6
   disturbance_torque: 5
   disturbance_torque_z: 0.5
 

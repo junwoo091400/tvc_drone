@@ -2,7 +2,7 @@
 state_costs:
   x: 3
   dx: 0.1
-  z: 20
+  z: 15
   dz: 10
   att: 0.5
   datt: 1
