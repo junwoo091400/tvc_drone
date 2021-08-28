@@ -10,11 +10,13 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <random>
 #include <chrono>
+#include <nav_msgs/Odometry.h>
 #include "drone_model.hpp"
 
 using namespace Eigen;
 
-ros::Publisher rocket_control_pub, drone_state_pub, pixhawk_state_pub, command_pub, fake_optitrack_pub, fake_pixhawk_pose_pub, fake_pixhawk_twist_local_pub, fake_pixhawk_twist_body_pub;
+ros::Publisher rocket_control_pub, drone_state_pub, pixhawk_state_pub, command_pub, fake_optitrack_pub,
+        fake_pixhawk_pose_pub, fake_pixhawk_twist_local_pub, fake_pixhawk_twist_body_pub, fake_gps_pub;
 
 double CM_to_thrust_distance;
 
@@ -57,11 +59,10 @@ void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_cont
     x_servo2 += (sysA * x_servo2 + sysB * servo2_cmd) * delta_t;
 
     double servo1, servo2;
-    if(use_servo_model){
+    if (use_servo_model) {
         servo1 = sysC * x_servo1;
         servo2 = sysC * x_servo2;
-    }
-    else{
+    } else {
         servo1 = servo1_cmd;
         servo2 = servo2_cmd;
     }
@@ -167,17 +168,26 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     twist_msg_body.twist.angular = converted_state.twist.angular;
     twist_msg_body.header.stamp = now;
 
+    nav_msgs::Odometry gps_msg;
+    gps_msg.pose.pose = converted_state.pose;
+    gps_msg.twist.twist.angular = converted_state.twist.angular;
+    gps_msg.twist.twist.linear.x = converted_state.twist.linear.x;
+    gps_msg.twist.twist.linear.y = converted_state.twist.linear.y;
+    gps_msg.twist.twist.linear.z = -converted_state.twist.linear.z;
+    gps_msg.header.stamp = now;
+
     fake_optitrack_pub.publish(pose_msg);
     fake_pixhawk_pose_pub.publish(pose_msg);
     fake_pixhawk_twist_local_pub.publish(twist_msg_local);
     fake_pixhawk_twist_body_pub.publish(twist_msg_body);
+    fake_gps_pub.publish(gps_msg);
 }
 
 int main(int argc, char **argv) {
     //init state system (discrete ss model for ts = 0.03s)
     x_servo1 << 0, 0;
     x_servo2 << 0, 0;
-    sysA << -21.94, - 15.34,
+    sysA << -21.94, -15.34,
             16, 0;
     sysB << 4,
             0;
@@ -212,6 +222,8 @@ int main(int argc, char **argv) {
     fake_pixhawk_twist_local_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_local",
                                                                              10);
     fake_pixhawk_twist_body_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_body", 10);
+
+    fake_gps_pub = nh.advertise<nav_msgs::Odometry>("/mavros/global_position/local", 10);
 
 
     // Subscribe to rocket state
