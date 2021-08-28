@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from geometry_msgs.msg import PoseStamped
+from collections import OrderedDict
 
 rad2deg = 180/np.pi
 
@@ -100,7 +101,6 @@ def read_horizon_history(bag, topic, t_init, t_end):
 NP = 10
 NX = 12
 NU = 4
-from collections import OrderedDict
 
 state_indexes = OrderedDict([
     ("x", 1),
@@ -135,7 +135,7 @@ param_indexes = OrderedDict([
     ("my", 21),
     ("mz", 22),
 ])
-var_indexes = OrderedDict(OrderedDict([("t", 0)]).items() + state_indexes.items() + control_indexes.items() + param_indexes.items())
+var_indexes = OrderedDict(OrderedDict([("t", 0)]).items() | state_indexes.items() | control_indexes.items() | param_indexes.items())
 
 
 state_titles_latex = OrderedDict([
@@ -172,7 +172,7 @@ param_titles_latex = OrderedDict([
     ("my", r"$\boldsymbol{M_y}$ [Nm]"),
     ("mz", r"$\boldsymbol{M_z}$ [Nm]"),
 ])
-var_titles_latex = OrderedDict(OrderedDict([("t", r"$\boldsymbol{t}$ [s]")]).items() + state_titles_latex.items() + control_titles_latex.items() + param_titles_latex.items())
+var_titles_latex = OrderedDict(OrderedDict([("t", r"$\boldsymbol{t}$ [s]")]).items() | state_titles_latex.items() | control_titles_latex.items() | param_titles_latex.items())
 
 
 state_titles = OrderedDict([
@@ -209,7 +209,7 @@ param_titles = OrderedDict([
     ("my", r"M_y [Nm]"),
     ("mz", r"M_z [Nm]"),
 ])
-var_titles = OrderedDict(OrderedDict([("t", r"t [s]")]).items() + state_titles.items() + control_titles.items() + param_titles.items())
+var_titles = OrderedDict(OrderedDict([("t", r"t [s]")]).items() | state_titles.items() | control_titles.items() | param_titles.items())
 
 
 def plot_history(history, plot_indexes, axe, name, *plt_args):

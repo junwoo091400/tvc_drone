@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import rospkg
@@ -22,7 +22,7 @@ from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX,
     read_state_history, read_control_history, read_horizon_history, set_plot_ranges
 
 rospack = rospkg.RosPack()
-bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log6.bag')
+bag = rosbag.Bag(rospack.get_path('drone_utils') + '/log/log.bag')
 
 
 time_init = 0
@@ -111,7 +111,8 @@ plot_ranges = {
 fig, axe = plt.subplots(5, 3, figsize=(15, 10))
 # fig, axe = plt.subplots(2, 3, figsize=(15, 10))
 fig.subplots_adjust(wspace=0.4, hspace=0.5)
-set_plot_ranges(axe, plot_ranges, state_plot_indexes.items() + control_plot_indexes.items(), USE_LATEX)
+set_plot_ranges(axe, plot_ranges, state_plot_indexes.items(), USE_LATEX)
+set_plot_ranges(axe, plot_ranges, control_plot_indexes.items(), USE_LATEX)
 
 plot_history(kalman_state_history, state_plot_indexes, axe, "state")
 

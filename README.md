@@ -14,13 +14,87 @@ Each package contains its own readme file with more information.
 
 ## Getting Started
 
-### Dependencies
+### Dependencies installation
 
-* See the real_time_simulator installation instructions
+* Install ROS
+```
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+sudo apt install curl
+curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+sudo apt install ros-melodic-desktop-full
+echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
+sudo apt install python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential
+sudo rosdep init
+rosdep update
+```
 
-### Installing
+* Install Eigen
+```
+cd ~ && git clone https://gitlab.com/libeigen/eigen
+cd eigen && mkdir build && cd build
+cmake ..
+sudo make install
+```
 
-* Clone the content of the repo into your src folder (e. g. ~/drone_ws/src)
+* Install Osqp
+```
+cd ~ && git clone --recursive https://github.com/oxfordcontrol/osqp
+cd osqp && mkdir build && cd build
+cmake -G "Unix Makefiles" ..
+sudo cmake --build . --target install
+```
+
+* Install Osqp-Eigen
+```
+cd ~ && git clone https://github.com/robotology/osqp-eigen.git
+cd osqp-eigen && mkdir build && cd build
+cmake ..
+make
+sudo make install
+export OsqpEigen_DIR=/usr/local/include/OsqpEigen
+```
+
+* Install the latest cmake version and select it automatically in the path
+```
+sudo snap install cmake --classic
+echo "export PATH=/snap/bin:$PATH" >> ~/.bashrc
+```
+
+* Install VRPN (for optitrack)
+```
+sudo apt-get install ros-melodic-vrpn-client-ros
+```
+
+* Install MAVROS (for pixhawk)
+```
+sudo apt-get install ros-melodic-mavros ros-melodic-mavros-extras
+wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
+sudo bash ./install_geographiclib_datasets.sh
+```
+
+* Install python dependencies
+```
+sudo apt install python3-pip
+pip3 install rospkg matplotlib pyqtgraph scipy dataclasses pycryptodomex gnupg seaborn
+sudo apt install python-pip
+pip install pyqtgraph
+```
+
+### Setup and first build
+
+* Clone the content of the repository into ~/drone_ws/src
+
+* Build the project
+```
+source ~/.bashrc
+cd ~/drone_ws
+catkin_make
+```
+
+* Setup automatic sourcing of the project for new shell instances 
+```
+echo "source ~/drone_ws/devel/setup.bash" >> ~/.bashrc
+```
 
 ### Launching the program
 
