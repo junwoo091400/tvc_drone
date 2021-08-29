@@ -30,7 +30,7 @@ rosdep update
 
 * Install Eigen
 ```
-cd ~ && git clone https://gitlab.com/libeigen/eigen
+cd ~ && git clone --single-branch --branch 3.4-rc1 https://gitlab.com/libeigen/eigen
 cd eigen && mkdir build && cd build
 cmake ..
 sudo make install

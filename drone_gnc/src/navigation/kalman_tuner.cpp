@@ -16,11 +16,15 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <vector> // for vectors
+#include <nav_msgs/Odometry.h>
 
 using namespace std;
 using namespace Eigen;
 
 DroneEKFPixhawk *kalman;
+
+//TODO
+bool use_gps = true;
 
 double period;
 std::string log_file_path;
@@ -46,20 +50,21 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
     topics.push_back(std::string("/mavros/local_position/velocity_body"));
     topics.push_back(std::string("/mavros/local_position/velocity_local"));
     topics.push_back(std::string("/drone_control"));
+    topics.push_back(std::string("/mavros/global_position/local"));
+    topics.push_back(std::string("/gnc_fsm_pub"));
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
     drone_gnc::DroneControl current_control, previous_control;
     Vector3d origin;
-    double last_predict_time;
+    double last_predict_time = 0;
 
-    geometry_msgs::PoseStamped optitrack_pose;
-    geometry_msgs::PoseStamped pixhawk_pose;
-    geometry_msgs::TwistStamped pixhawk_twist_local;
-    geometry_msgs::TwistStamped pixhawk_twist_body;
     bool received_pixhawk = false;
     bool initialized_orientation = false;
+    bool started = false;
     Quaterniond initial_orientation;
+
+    Drone::state measured_drone_state;
 
     double t0 = 0;
     double current_time = 0;
@@ -71,54 +76,62 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
             kalman->received_control = true;
         }
 
-        if (m.getTopic() == "/optitrack_client/Drone/optitrack_pose") {
-            geometry_msgs::PoseStamped optitrack_pose_raw = *m.instantiate<geometry_msgs::PoseStamped>();
+        if (m.getTopic() == "/optitrack_client/Drone/optitrack_pose" && !use_gps) {
+            geometry_msgs::PoseStamped::ConstPtr pose = m.instantiate<geometry_msgs::PoseStamped>();
             if (received_pixhawk) {
                 if (!initialized_orientation) {
-                    initial_orientation.coeffs() << pixhawk_pose.pose.orientation.x, pixhawk_pose.pose.orientation.y, pixhawk_pose.pose.orientation.z, pixhawk_pose.pose.orientation.w;
-                            initialized_orientation = true;
+                    initial_orientation.coeffs() << measured_drone_state.segment(6, 4);
+                    initialized_orientation = true;
                 }
 
                 Vector<double, 3> raw_position;
-                raw_position << -optitrack_pose_raw.pose.position.x, -optitrack_pose_raw.pose.position.y, 0;
+                raw_position << -pose->pose.position.x, -pose->pose.position.y, 0;
 
                 Vector<double, 3> absolute_position = initial_orientation._transformVector(raw_position);
 
-                optitrack_pose.pose.position.x = absolute_position(0);
-                optitrack_pose.pose.position.y = absolute_position(1);
-                optitrack_pose.pose.position.z = optitrack_pose_raw.pose.position.z;
+                measured_drone_state.head(3) << absolute_position(0), absolute_position(1), pose->pose.position.z;
             }
         }
-        if (m.getTopic() == "/mavros/local_position/pose") {
-            pixhawk_pose = *m.instantiate<geometry_msgs::PoseStamped>();
-            current_time = pixhawk_pose.header.stamp.toSec();
+        else if (m.getTopic() == "/mavros/local_position/pose" && !use_gps) {
+            geometry_msgs::PoseStamped::ConstPtr pose = m.instantiate<geometry_msgs::PoseStamped>();
+            measured_drone_state.segment(6, 4)
+                    << pose->pose.orientation.x, pose->pose.orientation.y, pose->pose.orientation.z, pose->pose.orientation.w;
+
+        }
+        else if (m.getTopic() == "/mavros/local_position/velocity_local" && !use_gps) {
+            geometry_msgs::TwistStamped::ConstPtr twist = m.instantiate<geometry_msgs::TwistStamped>();
+            measured_drone_state.segment(3, 3) << twist->twist.linear.x, twist->twist.linear.y, twist->twist.linear.z;
+        }
+        else if (m.getTopic() == "/mavros/global_position/local" && use_gps) {
+            nav_msgs::Odometry::ConstPtr state = m.instantiate<nav_msgs::Odometry>();
+            measured_drone_state.head(10)
+                    << state->pose.pose.position.x, state->pose.pose.position.y, state->pose.pose.position.z,
+                    state->twist.twist.linear.x, state->twist.twist.linear.y, -state->twist.twist.linear.z,
+                    state->pose.pose.orientation.x, state->pose.pose.orientation.y, state->pose.pose.orientation.z, state->pose.pose.orientation.w;
+        }
+        else if (m.getTopic() == "/mavros/local_position/velocity_body") {
+            geometry_msgs::TwistStamped::ConstPtr twist = m.instantiate<geometry_msgs::TwistStamped>();
+            measured_drone_state.segment(10, 3) << twist->twist.angular.x, twist->twist.angular.y, twist->twist.angular.z;
+
+            current_time = twist->header.stamp.toSec();
+            received_pixhawk = true;
             if (t0 == 0) {
                 t0 = current_time;
                 last_predict_time = current_time;
             }
         }
-        if (m.getTopic() == "/mavros/local_position/velocity_local") {
-            pixhawk_twist_local = *m.instantiate<geometry_msgs::TwistStamped>();
-            received_pixhawk = true;
+        else if (!started && m.getTopic() == "/gnc_fsm_pub") {
+            drone_gnc::FSM::ConstPtr fsm = m.instantiate<drone_gnc::FSM>();
+            if (fsm->state_machine == "Launch") started = true;
         }
 
-        if (m.getTopic() == "/mavros/local_position/velocity_body") {
-            pixhawk_twist_body = *m.instantiate<geometry_msgs::TwistStamped>();
-        }
-
-        if (!initialized_origin) {
-            origin << pixhawk_pose.pose.orientation.x, pixhawk_pose.pose.orientation.y, pixhawk_pose.pose.orientation.z;
-            initialized_origin = true;
+        if (!started) {
+            origin = measured_drone_state.segment(0, 3);
         }
 
 //        ROS_ERROR_STREAM(current_time - t0);
         if (current_time - last_predict_time > period) {
-            DroneEKFPixhawk::sensor_data new_data;
-            new_data
-                    << optitrack_pose.pose.position.x, optitrack_pose.pose.position.y, optitrack_pose.pose.position.z,
-                    pixhawk_twist_local.twist.linear.x, pixhawk_twist_local.twist.linear.y, pixhawk_twist_local.twist.linear.z,
-                    pixhawk_pose.pose.orientation.x, pixhawk_pose.pose.orientation.y, pixhawk_pose.pose.orientation.z, pixhawk_pose.pose.orientation.w,
-                    pixhawk_twist_body.twist.angular.x, pixhawk_twist_body.twist.angular.y, pixhawk_twist_body.twist.angular.z;
+            DroneEKFPixhawk::sensor_data new_data = measured_drone_state;
             new_data.segment(0, 3) -= origin;
 
             Drone::control u;
