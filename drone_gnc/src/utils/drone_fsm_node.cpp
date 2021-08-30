@@ -97,16 +97,9 @@ int main(int argc, char **argv) {
                 current_fsm.state_machine = "Launch";
 
             } else if (current_fsm.state_machine == "Launch") {
-                if (abs(current_state.pose.position.z - target_apogee.z) < 1 && land_after_apogee && target_apogee.z != 0){
-                    geometry_msgs::Vector3 new_apogee;
-                    new_apogee.x = 0;
-                    new_apogee.y = 0;
-                    new_apogee.z = 0;
-                    target_pub.publish(new_apogee);
+                if (abs(current_state.pose.position.z - target_apogee.z) < 0.5 && land_after_apogee && target_apogee.z != 0){
+                    current_fsm.state_machine = "Descent";
                 }
-
-            } else if (current_fsm.state_machine.compare("Coast") == 0) {
-                // Do nothing for now
             }
 
             // Publish time + state machine

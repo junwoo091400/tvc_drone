@@ -87,7 +87,7 @@ void DroneControlNode::run() {
             if (current_fsm.state_machine == "Idle") {
                 start_time = ros::Time::now().toSec();
             }
-            else if (current_fsm.state_machine == "Launch") {
+            else if (current_fsm.state_machine == "Launch" || current_fsm.state_machine == "Descent") {
                 publishFeedforwardControl();
             }
 //        if (current_fsm.state_machine.compare("Launch") == 0) {

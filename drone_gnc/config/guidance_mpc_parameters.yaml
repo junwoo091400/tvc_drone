@@ -6,12 +6,12 @@
 #  dz: 0.5
 
 input_costs:
-  thrust: 0.01
-#    servo: 50
+  thrust: 1
+  lateral_force: 0.001
 
 # constraints (+ used for scaling)
 min_z: 0
-min_dz: -2
+min_dz: -1.5
 
 max_dx: 10
 max_dz: 20
@@ -20,12 +20,12 @@ max_dz: 20
 scaling_x: 10
 scaling_z: 30
 
-max_fx: 3
+max_fx: 10
 
 max_horizon_length: 30.0
 
-max_sqp_iter: 3
-max_qp_iter: 30000
+max_sqp_iter: 1
+max_qp_iter: 3000
 max_line_search_iter: 5
 
 weight_scaling: 1

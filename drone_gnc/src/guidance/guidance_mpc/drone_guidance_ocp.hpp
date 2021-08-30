@@ -37,6 +37,8 @@ class DroneGuidanceOCP : public ContinuousOCP<DroneGuidanceOCP, Approximation, S
 public:
     ~DroneGuidanceOCP() = default;
 
+    Matrix<scalar_t, NU, 1> R;
+
     Matrix<scalar_t, NX, 1> xs;
     Matrix<scalar_t, NU, 1> us;
 
@@ -59,7 +61,7 @@ public:
 
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
-        scalar_t thrust_cost;
+        scalar_t thrust_cost, lateral_force;
         scalar_t weight_scaling;
         if (nh.getParam("mpc/min_z", min_z) &&
             nh.getParam("mpc/min_dz", min_dz) &&
@@ -69,7 +71,8 @@ public:
             nh.getParam("mpc/scaling_z", scaling_z) &&
             nh.getParam("mpc/weight_scaling", weight_scaling) &&
             nh.getParam("mpc/max_fx", max_fx) &&
-            nh.getParam("mpc/input_costs/thrust", thrust_cost)) {
+            nh.getParam("mpc/input_costs/thrust", thrust_cost) &&
+            nh.getParam("mpc/input_costs/lateral_force", lateral_force)) {
 
             x_unscaling_vec << scaling_x, scaling_x, scaling_z,
                     max_dx, max_dx, max_dz;
@@ -78,6 +81,8 @@ public:
             u_unscaling_vec << max_fx, max_fx,
                     drone->max_propeller_speed;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
+
+            R << thrust_cost, lateral_force, lateral_force;
 
             u_unscaling_vec.setOnes();
             u_scaling_vec.setOnes();
@@ -172,14 +177,14 @@ public:
                                    const Ref<const parameter_t <T>> p,
                                    const Ref<const static_parameter_t> d,
                                    const scalar_t &t, T &lagrange) noexcept {
-        lagrange = (T) 0;
+        lagrange = p(0)*(u.dot(R.template cast<T>().cwiseProduct(u)));
     }
 
     template<typename T>
     inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        mayer = p(0);
+        mayer = (T) 0;
     }
 };
 

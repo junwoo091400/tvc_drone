@@ -56,7 +56,7 @@ void DroneNavigationNodePixhawk::initTopics(ros::NodeHandle &nh) {
 
 void DroneNavigationNodePixhawk::kalmanStep() {
     if (received_pixhawk) {
-        if ((received_optitrack || use_gps) && current_fsm.state_machine != "Launch") {
+        if ((received_optitrack || use_gps) && current_fsm.state_machine == "Idle") {
             origin = measured_drone_state.segment(0, 3);
         }
 

@@ -43,6 +43,12 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
 void DroneGuidanceNode::run() {
     double loop_start_time = ros::Time::now().toSec();
     if (received_state) {
+        if(current_fsm.state_machine == "Descent" && !started_descent){
+            drone_mpc.setTarget(drone_mpc.target_land, target_control);
+            drone_mpc.warmStartDescent();
+            started_descent = true;
+        }
+
         computeTrajectory();
         double p_sol = drone_mpc.solution_p()(0);
         if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
@@ -87,8 +93,6 @@ void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
 }
 
 void DroneGuidanceNode::computeTrajectory() {
-
-    Drone::state x0;
     x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
             current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
             current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,

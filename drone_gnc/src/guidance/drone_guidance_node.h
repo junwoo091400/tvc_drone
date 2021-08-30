@@ -59,6 +59,7 @@ private:
     Drone::state target_state;
     Drone::control target_control;
     Drone::state x0;
+    bool started_descent = false;
 
     // Subscribers
     ros::Subscriber rocket_state_sub;
@@ -75,8 +76,4 @@ private:
     ros::Publisher computation_time_pub;
     // Variables to track performance over whole simulation
     ros::Time time_compute_start;
-
-    // Services
-    ros::ServiceClient client_fsm;
-    drone_gnc::GetFSM srv_fsm;
 };

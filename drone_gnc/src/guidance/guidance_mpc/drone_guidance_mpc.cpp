@@ -4,12 +4,13 @@
 DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone(drone_ptr) {
     ocp().init(nh, drone);
     int max_sqp_iter, max_qp_iter, max_line_search_iter;
-    std::vector<double> initial_target_apogee;
+    std::vector<double> target_apogee_vec, target_land_vec;
     if (nh.getParam("mpc/max_sqp_iter", max_sqp_iter) &&
         nh.getParam("mpc/max_line_search_iter", max_line_search_iter) &&
         nh.getParam("mpc/max_qp_iter", max_qp_iter) &&
         nh.getParam("mpc/max_horizon_length", max_horizon_length) &&
-        nh.getParam("target_apogee", initial_target_apogee)) {
+        nh.getParam("target_apogee", target_apogee_vec) &&
+        nh.getParam("target_land", target_land_vec)) {
     } else {
         ROS_ERROR("Failed to get Guidance MPC parameter");
     }
@@ -45,15 +46,20 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
             0, 0, 0, 1,
             0, 0, 0;
 
-    Drone::state target_state;
-    target_state << initial_target_apogee.at(0), initial_target_apogee.at(1), initial_target_apogee.at(2),
+    target_apogee << target_apogee_vec[0], target_apogee_vec[1], target_apogee_vec[2],
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
 
-    setTarget(target_state, target_control);
-    initGuess(x0, target_state);
+    target_land << target_land_vec[0], target_land_vec[1], target_land_vec[2],
+            0, 0, 0,
+            0, 0, 0, 1,
+            0, 0, 0;
 
+    precomputeDescent();
+
+    setTarget(target_apogee, target_control);
+    initGuess(x0, target_apogee);
 }
 
 void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
@@ -71,11 +77,10 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
     if (true) {
         // initial guess assuming full thrust for first part, then minimum thrust for second part
         double speed1, speed2;
-        if(z_target - z0 > 0){
+        if (z_target - z0 > 0) {
             speed1 = drone->max_propeller_speed;
             speed2 = drone->min_propeller_speed;
-        }
-        else{
+        } else {
             speed1 = drone->min_propeller_speed;
             speed2 = drone->max_propeller_speed;
         }
@@ -116,21 +121,19 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
         //hack to make it fine if dz is small
         t_end = std::max(2.0, t_end);
 
-        double dx = (target_state(0) - x0(0)) / t_end;
-        double dy = (target_state(1) - x0(1)) / t_end;
         double delta_x = target_state(0) - x0(0);
         double delta_y = target_state(1) - x0(1);
         VectorXd time_grid_2 = time_grid.cwiseProduct(time_grid);
         VectorXd time_grid_3 = time_grid.cwiseProduct(time_grid_2);
 
-        ArrayXd dx_guess = 6*delta_x/t_end*(time_grid - time_grid_2);
-        ArrayXd dy_guess = 6*delta_y/t_end*(time_grid - time_grid_2);
+        ArrayXd dx_guess = 6 * delta_x / t_end * (time_grid - time_grid_2);
+        ArrayXd dy_guess = 6 * delta_y / t_end * (time_grid - time_grid_2);
 
-        RowVectorXd x_guess = x0(0) + (delta_x*(3*time_grid_2 - 2*time_grid_3)).array();
-        RowVectorXd y_guess = x0(1) + (delta_y*(3*time_grid_2 - 2*time_grid_3)).array();
+        RowVectorXd x_guess = x0(0) + (delta_x * (3 * time_grid_2 - 2 * time_grid_3)).array();
+        RowVectorXd y_guess = x0(1) + (delta_y * (3 * time_grid_2 - 2 * time_grid_3)).array();
 
-        RowVectorXd fx_guess = 6*delta_x*(1-2*time_grid.array());
-        RowVectorXd fy_guess = 6*delta_y*(1-2*time_grid.array());
+        RowVectorXd fx_guess = 6 * delta_x * (1 - 2 * time_grid.array());
+        RowVectorXd fy_guess = 6 * delta_y * (1 - 2 * time_grid.array());
 
         traj_state_guess.row(0) = x_guess.reverse();
         traj_state_guess.row(1) = y_guess.reverse();
@@ -245,4 +248,28 @@ void DroneGuidanceMPC::solve(Drone::state &x0_full) {
     MPC::solve();
 
     last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
+}
+
+void DroneGuidanceMPC::precomputeDescent() {
+    Drone::control target_control;
+    target_control << 0, 0, drone->getHoverSpeedAverage(), 0;
+
+    setTarget(target_land, target_control);
+    initGuess(target_apogee, target_land);
+
+    for (int i = 0; i < 4; i++) {
+        solve(target_apogee);
+    }
+
+    descent_control_sol = solution_u();
+    descent_state_sol = solution_x();
+    descent_dual_sol = solution_dual();
+    descent_p_sol = solution_p();
+}
+
+void DroneGuidanceMPC::warmStartDescent() {
+    u_guess(descent_control_sol);
+    x_guess(descent_state_sol);
+    lam_guess(descent_dual_sol);
+    p_guess(descent_p_sol);
 }

@@ -15,6 +15,9 @@ public:
     using ocp_control = control_t;
     using ocp_constraint = constraint_t;
 
+    Drone::state target_apogee;
+    Drone::state target_land;
+
     DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
 
     void solve(Drone::state &x0);
@@ -29,12 +32,21 @@ public:
 
     double node_time(int i);
 
+    void precomputeDescent();
+
+    void warmStartDescent();
+
     std::shared_ptr<Drone> drone;
     double last_computation_time = 0;
     double max_horizon_length;
 
 private:
     void warmStart();
+
+    traj_control_t descent_control_sol;
+    traj_state_t descent_state_sol;
+    dual_var_t descent_dual_sol;
+    parameter_t descent_p_sol;
 };
 
 
