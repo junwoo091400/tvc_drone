@@ -94,7 +94,7 @@ void DroneNavigationNodePixhawk::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm
 void DroneNavigationNodePixhawk::pixhawkEKFCallback(const nav_msgs::Odometry::ConstPtr &state) {
     measured_drone_state.head(10)
             << state->pose.pose.position.x, state->pose.pose.position.y, state->pose.pose.position.z,
-            state->twist.twist.linear.x, state->twist.twist.linear.y, -state->twist.twist.linear.z,
+            state->twist.twist.linear.x, state->twist.twist.linear.y, state->twist.twist.linear.z,
             state->pose.pose.orientation.x, state->pose.pose.orientation.y, state->pose.pose.orientation.z, state->pose.pose.orientation.w;
     received_pixhawk = true;
 }

@@ -128,18 +128,16 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
     if (!received_trajectory) {
         GUIDANCE_NUM_SEG = target->num_segment;
         GUIDANCE_NUM_NODE = target->num_node;
-        GUIDANCE_POLY_ORDER = GUIDANCE_NUM_NODE / GUIDANCE_NUM_SEG;
-        SEG_LENGTH = 1.0 / GUIDANCE_NUM_SEG;
-
-        guidance_t0 = target->trajectory.at(0).header.stamp.toSec();
-        guidance_tf = target->trajectory.at(GUIDANCE_NUM_NODE - 1).header.stamp.toSec();
 
         guidance_state_trajectory = Eigen::MatrixXd(Drone::NX, GUIDANCE_NUM_NODE);
         guidance_control_trajectory = Eigen::MatrixXd(Drone::NU, GUIDANCE_NUM_NODE);
-        if (fixed_guidance) {
 
-        } else {
+        if(GUIDANCE_NUM_SEG != 0){
+            GUIDANCE_POLY_ORDER = GUIDANCE_NUM_NODE / GUIDANCE_NUM_SEG;
+            SEG_LENGTH = 1.0 / GUIDANCE_NUM_SEG;
             // init lagrange basis
+            guidance_t0 = target->trajectory.at(0).header.stamp.toSec();
+            guidance_tf = target->trajectory.at(GUIDANCE_NUM_NODE - 1).header.stamp.toSec();
             double traj_length = guidance_tf - guidance_t0;
             VectorXd time_grid(GUIDANCE_POLY_ORDER + 1, 1);
             for (int i = 0; i < GUIDANCE_POLY_ORDER + 1; i++) {
@@ -147,6 +145,11 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
             }
             m_basis = Eigen::MatrixXd(GUIDANCE_POLY_ORDER + 1, GUIDANCE_POLY_ORDER + 1);
             polympc::LagrangeSpline::compute_lagrange_basis(time_grid, m_basis);
+        }
+        else{
+            //fixed guidance
+            GUIDANCE_POLY_ORDER = 0;
+            SEG_LENGTH = 0;
         }
         received_trajectory = true;
     }
@@ -203,9 +206,11 @@ void
 DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
                                                Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj) {
     double time_now = ros::Time::now().toSec();
+    //first value is to make startup work, second value is used in general
+    double time_delta = std::min(time_now - start_time, time_now - guidance_t0);
 
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
-        double t = time_now + drone_mpc.time_grid(i) - guidance_t0;
+        double t = time_delta + drone_mpc.time_grid(i);
         //TODO remove constants
         double idx = t * GUIDANCE_NUM_NODE / (guidance_tf - guidance_t0);
 
@@ -222,8 +227,8 @@ DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMP
 
         Drone::state state = l_state + (u_state - l_state) * (idx - l_idx);
         Drone::control control = l_control + (u_control - l_control) * (idx - l_idx);
-        mpc_target_state_traj.col(i) = state.cwiseProduct(drone_mpc.ocp().x_drone_scaling_vec);
-        mpc_target_control_traj.col(i) = control.cwiseProduct(drone_mpc.ocp().u_drone_scaling_vec);
+        mpc_target_state_traj.col(i) = state;
+        mpc_target_control_traj.col(i) = control;
     }
 }
 
@@ -363,7 +368,7 @@ void DroneControlNode::fetchNewTarget() {
             mpc_target_state_traj.col(i) = target_state;
             mpc_target_control_traj.col(i) = target_control;
         }
-    } else if (fixed_guidance) {
+    } else if (GUIDANCE_NUM_SEG == 0) {
         sampleTargetTrajectoryLinear(mpc_target_state_traj, mpc_target_control_traj);
     } else {
         sampleTargetTrajectory(mpc_target_state_traj, mpc_target_control_traj);

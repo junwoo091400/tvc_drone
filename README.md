@@ -96,7 +96,20 @@ catkin_make
 echo "source ~/drone_ws/devel/setup.bash" >> ~/.bashrc
 ```
 
-### Launching the program
+### Raspberry Pi setup
+Setup passwordless login
+```
+ssh-keygen -t rsa
+cat .ssh/id_rsa.pub | ssh drone@ert.local 'cat >> .ssh/authorized_keys'
+```
+
+Add Raspberry Pi to known hosts
+```
+ssh-keyscan -H ert.local >> ~/.ssh/known_hosts
+```
+
+
+## Launching the code
 
 * Build
 ```
@@ -114,6 +127,7 @@ roslaunch drone_utils simu_drone.launch
 roscd drone_utils/bash_scripts
 ./remote_drone_launch.sh
 ```
+
 
 ## Authors
 

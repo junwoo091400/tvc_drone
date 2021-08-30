@@ -16,8 +16,9 @@
     </group>
 
 <!--   <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">-->
+<!--       <rosparam param="speed">0.5</rosparam>-->
+<!--       <rosparam param="scaling">1</rosparam>-->
 <!--   </node>-->
-    <rosparam param="fixed_guidance">false</rosparam>
 
     <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen" launch-prefix="taskset -c 1">
         <rosparam param="target_apogee">[1, 0, 10]</rosparam>
@@ -26,12 +27,12 @@
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" output="screen" launch-prefix="taskset -c 3">
         <rosparam param="target_apogee">[0,0,1.5]</rosparam>
-        <rosparam param="track_guidance">true</rosparam>
+        <rosparam param="track_guidance">false</rosparam>
     </node>
 
     <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" output="screen" cwd="node">
         <rosparam param="initial_state">"Idle"</rosparam>
-        <rosparam param="land_after_apogee">true</rosparam>
+        <rosparam param="land_after_apogee">false</rosparam>
     </node> 
 
     <node name="navigation" pkg="drone_gnc" type="drone_navigation_pixhawk" machine="gnc_machine"

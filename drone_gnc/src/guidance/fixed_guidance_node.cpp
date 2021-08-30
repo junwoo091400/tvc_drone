@@ -37,13 +37,16 @@ public:
 
     double scaling = 1;
 
-    constexpr static double seg_lengths[] = {0.5, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3,
+    constexpr static double seg_lengths[] = {0.5, 1, 0, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3,
                                              2.97/*ellipse*/ };
     double total_length;
     double total_duration;
     bool published = false;
 
     DroneFixedGuidanceNode(ros::NodeHandle &nh) : speed(0.35) {
+        nh.getParam("speed", speed);
+        nh.getParam("scaling", scaling);
+
         total_length = 0;
         for (double seg_length:seg_lengths) {
             total_length += seg_length;
@@ -221,6 +224,10 @@ public:
             speed_vec *= speed / speed_vec.norm();
         }
 
+        if(t>=total_duration){
+            speed_vec.setZero();
+        }
+
         state_msg.pose.position.x = point.x();
         state_msg.pose.position.y = point.y();
         state_msg.pose.position.z = point.z();
@@ -246,7 +253,7 @@ public:
 
         int NUM_POINTS = 800;
         ros::Time time_compute_start = ros::Time::now();
-        for (int i = 0; i < NUM_POINTS + 1; i++) {
+        for (int i = 0; i < NUM_POINTS; i++) {
             double t = i * total_duration / NUM_POINTS;
 
             drone_gnc::DroneState state_msg;
@@ -274,6 +281,7 @@ public:
 
             trajectory_msg.trajectory.push_back(point);
         }
+        horizon_msg.num_node = NUM_POINTS;
         horizon_viz_pub.publish(trajectory_msg);
         horizon_pub.publish(horizon_msg);
     }
