@@ -2,25 +2,23 @@
 
 
 DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone(drone_ptr) {
-    // Initialize rocket class with useful parameters
     ocp().init(nh, drone);
     int max_sqp_iter, max_qp_iter, max_line_search_iter;
-    nh.getParam("mpc/max_sqp_iter", max_sqp_iter);
-    nh.getParam("mpc/max_line_search_iter", max_line_search_iter);
-    nh.getParam("mpc/mpc_period", mpc_period);
-    nh.getParam("mpc/feedforward_period", feedforward_period);
-    nh.getParam("mpc/max_qp_iter", max_qp_iter);
+    std::vector<double> initial_target_apogee;
+    if (nh.getParam("mpc/max_sqp_iter", max_sqp_iter) &&
+        nh.getParam("mpc/max_line_search_iter", max_line_search_iter) &&
+        nh.getParam("mpc/max_qp_iter", max_qp_iter) &&
+        nh.getParam("mpc/max_horizon_length", max_horizon_length) &&
+        nh.getParam("target_apogee", initial_target_apogee)) {
+    } else {
+        ROS_ERROR("Failed to get Guidance MPC parameter");
+    }
 
     settings().max_iter = max_sqp_iter;
     settings().line_search_max_iter = max_line_search_iter;
     qp_settings().max_iter = max_qp_iter;
 
-    nh.getParam("mpc/horizon_length", horizon_length);
-    if (ocp().minimal_time) {
-        set_time_limits(0, 1);
-    } else {
-        set_time_limits(0, horizon_length);
-    }
+    set_time_limits(0, 1);
 
     // Setup constraints
     ocp_state lbx, ubx;
@@ -34,13 +32,8 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     //minimal time setup
     parameter_t lbp;
     parameter_t ubp;
-    if (ocp().minimal_time) {
-        lbp << 0.1;
-        ubp << horizon_length;
-    } else {
-        lbp << 1.0;
-        ubp << 1.0;
-    }
+    lbp << 0.1;
+    ubp << max_horizon_length;
     parameters_bounds(lbp, ubp);
 
 
@@ -52,8 +45,6 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
             0, 0, 0, 1,
             0, 0, 0;
 
-    std::vector<double> initial_target_apogee;
-    nh.getParam("target_apogee", initial_target_apogee);
     Drone::state target_state;
     target_state << initial_target_apogee.at(0), initial_target_apogee.at(1), initial_target_apogee.at(2),
             0, 0, 0,
@@ -63,7 +54,6 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     setTarget(target_state, target_control);
     initGuess(x0, target_state);
 
-    fixed_computation_time = mpc_period * 0.93;
 }
 
 void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
@@ -78,7 +68,7 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
     u0 << 0, 0, drone->max_propeller_speed;
     Eigen::MatrixXd traj_control_guess = u0.replicate(1, ocp().NUM_NODES);
     double t_end;
-    if (ocp().minimal_time) {
+    if (true) {
         // initial guess assuming full thrust for first part, then minimum thrust for second part
         double speed1, speed2;
         if(z_target - z0 > 0){
@@ -185,7 +175,7 @@ void DroneGuidanceMPC::warmStart() {
 //    traj_control_t u_guess;
 //    int NX = ocp().NX;
 //    int NU = ocp().NU;
-//    int NUM_NODES = ocp().NUM_NODES;
+//    int NUM _NODES = ocp().NUM_NODES;
 //    state x_interp;
 //    control u_interp;
 //    double previous_interp_time = 0;
@@ -212,26 +202,18 @@ void DroneGuidanceMPC::warmStart() {
 //    u_guess(u_guess);
 }
 
-Drone::state DroneGuidanceMPC::solution_x_at(const double t) {
-    Drone::state sol;
-    sol << MPC::solution_x_at(t).cwiseProduct(ocp().x_unscaling_vec),
-            0, 0, 0, 1,
-            0, 0, 0;
-    return sol;
-}
-
-Drone::control DroneGuidanceMPC::solution_u_at(const double t) {
-    Drone::control sol;
-    sol << MPC::solution_u_at(t).cwiseProduct(ocp().u_unscaling_vec), 0;
-    return sol;
-}
-
 Drone::state DroneGuidanceMPC::solution_x_at(const int t) {
-    Drone::state sol;
-    sol << MPC::solution_x_at(t).cwiseProduct(ocp().x_unscaling_vec),
-            0, 0, 0, 1,
+    Drone::state state_sol;
+    ocp_state sol = MPC::solution_x_at(t).cwiseProduct(ocp().x_unscaling_vec);
+    Vector<double, 3> tangent = sol.segment(3, 3);
+    if (tangent(2) < 0) tangent = -tangent;
+    Vector<double, 3> unit_z;
+    unit_z << 0, 0, 1;
+    Quaterniond tangent_orientation = Quaterniond::FromTwoVectors(unit_z, tangent);
+    state_sol << sol,
+            tangent_orientation.coeffs(),
             0, 0, 0;
-    return sol;
+    return state_sol;
 }
 
 Drone::control DroneGuidanceMPC::solution_u_at(const int t) {
@@ -250,14 +232,12 @@ void DroneGuidanceMPC::solve(Drone::state &x0_full) {
     ocp_state x0 = x0_full.head(6);
     initial_conditions(x0);
 
-//    warmStart();
+    //final state bound
     double eps = 0.001;
     ocp_state lbx_f, ubx_f;
     ocp().get_state_bounds(lbx_f, ubx_f);
-    if (ocp().minimal_time) {
-        lbx_f = ocp().xs.array() - eps;
-        ubx_f = ocp().xs.array() + eps;
-    }
+    lbx_f = ocp().xs.array() - eps;
+    ubx_f = ocp().xs.array() + eps;
     final_state_bounds(lbx_f, ubx_f);
 
     double time_now = ros::Time::now().toSec();

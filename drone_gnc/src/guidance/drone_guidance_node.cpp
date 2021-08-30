@@ -46,7 +46,7 @@ void DroneGuidanceNode::run() {
         computeTrajectory();
         double p_sol = drone_mpc.solution_p()(0);
         if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
-            ROS_INFO_STREAM("Guidance MPC computation failed");
+            ROS_ERROR_STREAM("Guidance MPC computation failed");
             drone_mpc.initGuess(x0, target_state);
         }
         else{

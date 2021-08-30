@@ -53,8 +53,6 @@ public:
 
     void targetTrajectoryCallback(const drone_gnc::DroneTrajectory::ConstPtr &target);
 
-    Drone::state sampleTargetTrajectory(double t);
-
     void sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
                                 Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj);
 

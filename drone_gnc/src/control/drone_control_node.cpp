@@ -170,18 +170,6 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
     }
 }
 
-Drone::state DroneControlNode::sampleTargetTrajectory(double t) {
-    Eigen::Index idx = (Eigen::Index) std::floor(t / SEG_LENGTH);
-    idx = std::max(Eigen::Index(0),
-                   std::min(idx, (Eigen::Index) GUIDANCE_NUM_SEG - 1)); // clip idx to stay within the spline bounds
-
-    Drone::state state = polympc::LagrangeSpline::eval(t - idx * SEG_LENGTH,
-                                                       guidance_state_trajectory.block(
-                                                               0, idx * GUIDANCE_POLY_ORDER, Drone::NX,
-                                                               GUIDANCE_POLY_ORDER + 1), m_basis);
-    return state;
-}
-
 void DroneControlNode::sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
                                               Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj) {
     double time_now = ros::Time::now().toSec();
@@ -207,7 +195,6 @@ void DroneControlNode::sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC
                                                                               GUIDANCE_POLY_ORDER + 1);
         mpc_target_control_traj.col(i) = polympc::LagrangeSpline::eval(t - idx * SEG_LENGTH, control_guidance_segment,
                                                                        m_basis);
-
     }
 }
 

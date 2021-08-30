@@ -23,10 +23,6 @@ public:
 
     void setTarget(Drone::state &target_state, Drone::control &target_control);
 
-    Drone::state solution_x_at(const double t);
-
-    Drone::control solution_u_at(const double t);
-
     Drone::state solution_x_at(const int t);
 
     Drone::control solution_u_at(const int t);
@@ -34,11 +30,8 @@ public:
     double node_time(int i);
 
     std::shared_ptr<Drone> drone;
-    double mpc_period;
-    double feedforward_period;
-    double fixed_computation_time;
     double last_computation_time = 0;
-    double horizon_length;
+    double max_horizon_length;
 
 private:
     void warmStart();
