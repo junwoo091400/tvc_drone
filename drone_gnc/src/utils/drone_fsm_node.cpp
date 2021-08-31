@@ -101,6 +101,11 @@ int main(int argc, char **argv) {
                     current_fsm.state_machine = "Descent";
                 }
             }
+            else if (current_fsm.state_machine == "Descent") {
+                if (current_state.pose.position.z < 0){
+//                    current_fsm.state_machine = "Stop";
+                }
+            }
 
             // Publish time + state machine
             timer_pub.publish(current_fsm);

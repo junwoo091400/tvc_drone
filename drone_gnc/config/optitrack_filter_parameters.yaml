@@ -18,4 +18,4 @@ update_vars:
   optitrack_x: 0.001
   pixhawk: 0.001
 
-period: 0.008
+period: 0.002

@@ -40,7 +40,8 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
 
 void DroneControlNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
-    rocket_state_sub = nh.subscribe("/drone_state", 1, &DroneControlNode::stateCallback, this);
+    drone_state_sub = nh.subscribe("/drone_state", 1, &DroneControlNode::stateCallback, this,
+                                   ros::TransportHints().tcpNoDelay());
     target_sub = nh.subscribe("/target_apogee", 1, &DroneControlNode::targetCallback, this);
     target_traj_sub = nh.subscribe("/guidance/horizon", 1, &DroneControlNode::targetTrajectoryCallback, this);
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneControlNode::fsmCallback, this);
@@ -90,14 +91,20 @@ void DroneControlNode::run() {
             else if (current_fsm.state_machine == "Launch" || current_fsm.state_machine == "Descent") {
                 publishFeedforwardControl();
             }
+            else if (current_fsm.state_machine == "Stop") {
+                drone_gnc::DroneControl drone_control;
+                drone_control.bottom = 0;
+                drone_control.top = 0;
+                drone_control.servo1 = 0;
+                drone_control.servo2 = 0;
+                drone_control_pub.publish(drone_control);
+            }
 //        if (current_fsm.state_machine.compare("Launch") == 0) {
 //            low_level_control_thread.stop();
 //            publishFeedforwardControl();
 //            ff_index = 0;
 //            low_level_control_thread.start();
 //        }
-        }
-        else{
         }
         if (stall_time > 0) computation_time = (ros::Time::now().toSec() - loop_start_time - stall_time) * 1000;
         else computation_time = (ros::Time::now().toSec() - loop_start_time) * 1000;
@@ -166,9 +173,8 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
                 waypoint.state.twist.angular.x, waypoint.state.twist.angular.y, waypoint.state.twist.angular.z;
 
         guidance_control_trajectory.col(i)
-                << waypoint.control.servo1, waypoint.control.servo2,
-                0.5 * (waypoint.control.bottom + waypoint.control.top),
-                waypoint.control.top - waypoint.control.bottom;
+                << 0, 0,
+                0.5 * (waypoint.control.bottom + waypoint.control.top), 0;
         i++;
     }
 }

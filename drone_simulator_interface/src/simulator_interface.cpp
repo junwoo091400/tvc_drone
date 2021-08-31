@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
 
     // Create drone state publisher
     drone_state_pub = nh.advertise<drone_gnc::DroneState>("/simu_drone_state", 10);
-    pixhawk_state_pub = nh.advertise<drone_gnc::DroneState>("/pixhawk_drone_state", 10);
+//    pixhawk_state_pub = nh.advertise<drone_gnc::DroneState>("/pixhawk_drone_state", 10);
 
     command_pub = nh.advertise<std_msgs::String>("/commands", 10);
     // Automatic callback of service and publisher from here

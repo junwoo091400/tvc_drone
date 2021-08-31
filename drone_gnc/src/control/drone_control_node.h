@@ -105,7 +105,7 @@ private:
 
     DroneBackupController backup_controller;
 
-    ros::Subscriber rocket_state_sub;
+    ros::Subscriber drone_state_sub;
     ros::Subscriber target_sub;
     ros::Subscriber target_traj_sub;
 

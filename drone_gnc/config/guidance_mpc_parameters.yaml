@@ -11,7 +11,7 @@ input_costs:
 
 # constraints (+ used for scaling)
 min_z: 0
-min_dz: -1.5
+min_dz: -1
 
 max_dx: 10
 max_dz: 20

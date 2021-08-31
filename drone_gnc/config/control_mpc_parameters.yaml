@@ -16,20 +16,20 @@ input_costs:
 #state_costs:
 #  x: 5
 #  dx: 0.1
-#  z: 20
-#  dz: 50
+#  z: 2
+#  dz: 100
 #  att: 0.5
 #  datt: 1
 #  droll: 5
 #
 #input_costs:
 #  servo: 5
-#  thrust: 0.01
+#  thrust: 1
 #  torque: 0.001
 
 # constraints (+ used for scaling)
 min_z: 0
-min_dz: -1.5
+min_dz: -1
 
 max_dx: 1.2
 max_dz: 20

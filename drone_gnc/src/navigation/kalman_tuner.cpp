@@ -68,6 +68,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
 
     double t0 = 0;
     double current_time = 0;
+    bool update_trigger = false;
     for (rosbag::MessageInstance const m: view) {
 
         drone_gnc::DroneControl::ConstPtr current_control_ptr = m.instantiate<drone_gnc::DroneControl>();
@@ -119,6 +120,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
                 t0 = current_time;
                 last_predict_time = current_time;
             }
+            update_trigger = true;
         }
         else if (!started && m.getTopic() == "/gnc_fsm_pub") {
             drone_gnc::FSM::ConstPtr fsm = m.instantiate<drone_gnc::FSM>();
@@ -141,6 +143,11 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
             previous_control = current_control;
 
             kalman->predictStep(current_time - last_predict_time, u);
+
+            if (update_trigger) {
+                kalman->updateStep(new_data);
+                update_trigger = false;
+            }
             kalman->updateStep(new_data);
             last_predict_time = current_time;
 
