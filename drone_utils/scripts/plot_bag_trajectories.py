@@ -5,7 +5,7 @@ import rospkg
 import numpy as np
 import matplotlib.pyplot as plt
 
-USE_LATEX = True
+USE_LATEX = False
 
 if USE_LATEX:
     plt.rc('font', family='serif', serif='cm10')
@@ -39,29 +39,6 @@ state_horizon_history, control_horizon_history = read_horizon_history(bag, '/con
 control_history = read_control_history(bag, '/drone_control', time_init, t_end)
 guidance_state_horizon_history, guidance_control_horizon_history = read_horizon_history(bag, '/guidance/horizon', time_init, t_end)
 
-state_plot_indexes = {
-    (0, 0): [("t", "z")],
-    (0, 1): [("t", "y")],
-    (0, 2): [("t", "z")],
-
-    (1, 0): [("t", "dx")],
-    (1, 1): [("t", "dy")],
-    (1, 2): [("t", "dz")],
-
-    (2, 0): [("t", "yaw (x)")],
-    (2, 1): [("t", "pitch (y)")],
-    (2, 2): [("t", "roll (z)")],
-
-    (3, 0): [("t", "dyaw (x)")],
-    (3, 1): [("t", "dpitch (y)")],
-    (3, 2): [("t", "droll (z)")],
-}
-control_plot_indexes = {
-    (4, 0): [("t", "bottom"), ("t", "top")],
-    (4, 1): [("t", "servo1")],
-    (4, 2): [("t", "servo2")],
-}
-
 
 plot_ranges = {
     "t": [0, t_end - time_init],
@@ -87,7 +64,7 @@ plot_ranges = {
     "torque_scaling": [0, 1.5],
     "servo1_offset": [-3, 3],
     "servo2_offset": [-3, 3],
-    "fx": [-1, 1],
+    "fx": [-6, 6],
     "fy": [-1, 1],
     "fz": [-1, 1],
     "mx": [-1, 1],
@@ -95,6 +72,28 @@ plot_ranges = {
     "mz": [-1, 1],
 }
 
+state_plot_indexes = {
+    (0, 0): [("t", "z")],
+    (0, 1): [("t", "y")],
+    (0, 2): [("t", "z")],
+
+    (1, 0): [("t", "dx")],
+    (1, 1): [("t", "dy")],
+    (1, 2): [("t", "dz")],
+
+    (2, 0): [("t", "yaw (x)")],
+    (2, 1): [("t", "pitch (y)")],
+    (2, 2): [("t", "roll (z)")],
+
+    (3, 0): [("t", "dyaw (x)")],
+    (3, 1): [("t", "dpitch (y)")],
+    (3, 2): [("t", "droll (z)")],
+}
+control_plot_indexes = {
+    (4, 0): [("t", "bottom"), ("t", "top")],
+    (4, 1): [("t", "servo1")],
+    (4, 2): [("t", "servo2")],
+}
 
 fig, axe = plt.subplots(5, 3, figsize=(15, 10))
 
@@ -105,12 +104,22 @@ fig, axe = plt.subplots(5, 3, figsize=(15, 10))
 # fig, axe = plt.subplots(1, 1, figsize=(5, 2.5))
 # axe = np.array([[axe]])
 # axe[0,0].axis('scaled')
+
+# state_plot_indexes = {
+#     (0, 0): [("t", "x")],
+#     (1, 0): [("t", "fx")],
+#     (2, 0): [("t", "my")],
+# }
+# control_plot_indexes = {}
+# fig, axe = plt.subplots(3, 1, figsize=(10, 5))
+# axe = np.array([[plot] for plot in axe])
+
 fig.subplots_adjust(wspace=0.4, hspace=0.5)
 set_plot_ranges(axe, plot_ranges, state_plot_indexes.items(), USE_LATEX)
 set_plot_ranges(axe, plot_ranges, control_plot_indexes.items(), USE_LATEX)
 
 
-plot_history(kalman_state_history, state_plot_indexes, axe, r"state")
+plot_history(kalman_state_history, state_plot_indexes, axe, r"EKF estimated state")
 
 plot_history(control_history, control_plot_indexes, axe, "control")
 
