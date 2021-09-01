@@ -33,7 +33,7 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     //minimal time setup
     parameter_t lbp;
     parameter_t ubp;
-    lbp << 0.1;
+    lbp << 1e-3;
     ubp << max_horizon_length;
     parameters_bounds(lbp, ubp);
 
@@ -232,6 +232,8 @@ double DroneGuidanceMPC::node_time(int i) {
 void DroneGuidanceMPC::solve(Drone::state &x0_full) {
     double computation_start_time = ros::Time::now().toSec();
 
+    const double inf = std::numeric_limits<double>::infinity();
+
     ocp_state x0 = x0_full.head(6);
     initial_conditions(x0);
 
@@ -239,8 +241,12 @@ void DroneGuidanceMPC::solve(Drone::state &x0_full) {
     double eps = 0.001;
     ocp_state lbx_f, ubx_f;
     ocp().get_state_bounds(lbx_f, ubx_f);
-    lbx_f = ocp().xs.array() - eps;
-    ubx_f = ocp().xs.array() + eps;
+    lbx_f = ocp().xs.array();
+    ubx_f = ocp().xs.array();
+    lbx_f(0) = -inf;
+    lbx_f(1) = -inf;
+    ubx_f(0) = inf;
+    ubx_f(1) = inf;
     final_state_bounds(lbx_f, ubx_f);
 
     double time_now = ros::Time::now().toSec();
@@ -257,7 +263,7 @@ void DroneGuidanceMPC::precomputeDescent() {
     setTarget(target_land, target_control);
     initGuess(target_apogee, target_land);
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 10; i++) {
         solve(target_apogee);
     }
 
@@ -272,4 +278,19 @@ void DroneGuidanceMPC::warmStartDescent() {
     x_guess(descent_state_sol);
     lam_guess(descent_dual_sol);
     p_guess(descent_p_sol);
+}
+
+void DroneGuidanceMPC::setDescentConstraints(){
+    ocp_control lbu, ubu;
+    lbu << -ocp().max_fx, -ocp().max_fx,
+           60; // lower bound on control
+    ubu << ocp().max_fx, ocp().max_fx,
+            drone->max_propeller_speed; // upper bound on control
+    control_bounds(lbu, ubu);
+
+    lbu << 0, 0,
+            60; // lower bound on control
+    ubu << 0, 0,
+            drone->max_propeller_speed; // upper bound on control
+    final_control_bounds(lbu, ubu);
 }

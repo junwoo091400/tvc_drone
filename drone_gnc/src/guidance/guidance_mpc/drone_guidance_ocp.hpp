@@ -57,7 +57,8 @@ public:
     Matrix<scalar_t, NX, 1> x_scaling_vec;
     Matrix<scalar_t, NU, 1> u_scaling_vec;
 
-    double max_fx;
+    scalar_t max_fx;
+    scalar_t horizontal_slack;
 
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
@@ -72,7 +73,8 @@ public:
             nh.getParam("mpc/weight_scaling", weight_scaling) &&
             nh.getParam("mpc/max_fx", max_fx) &&
             nh.getParam("mpc/input_costs/thrust", thrust_cost) &&
-            nh.getParam("mpc/input_costs/lateral_force", lateral_force)) {
+            nh.getParam("mpc/input_costs/lateral_force", lateral_force) &&
+            nh.getParam("mpc/horizontal_slack", horizontal_slack)) {
 
             x_unscaling_vec << scaling_x, scaling_x, scaling_z,
                     max_dx, max_dx, max_dz;
@@ -138,9 +140,7 @@ public:
         T fy = u_unscaled(1);
         T prop_av = u_unscaled(2);
 
-        //TODO use thrust scaling?
-        T thrust = drone->getThrust(prop_av);
-
+        T thrust = drone->getThrust(prop_av) * drone->thrust_scaling;
 
         Eigen::Matrix<T, 3, 1> thrust_vector;
         thrust_vector << fx, fy, thrust;
@@ -184,7 +184,7 @@ public:
     inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        mayer = (T) 0;
+        mayer = horizontal_slack*((x(0) - xs(0))*(x(0) - xs(0)) + (x(1) - xs(1))*(x(1) - xs(1)) );
     }
 };
 

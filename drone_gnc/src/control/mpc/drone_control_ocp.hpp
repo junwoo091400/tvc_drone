@@ -67,6 +67,8 @@ public:
     Matrix<scalar_t, Drone::NX, 1> x_drone_scaling_vec;
     Matrix<scalar_t, Drone::NU, 1> u_drone_scaling_vec;
 
+    scalar_t horizon_length;
+
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
         scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
@@ -91,7 +93,9 @@ public:
             nh.getParam("mpc/input_costs/thrust", thrust_cost) &&
             nh.getParam("mpc/input_costs/torque", torque_cost) &&
 
-            nh.getParam("mpc/max_attitude_angle", max_attitude_angle_degree)) {
+            nh.getParam("mpc/max_attitude_angle", max_attitude_angle_degree) &&
+
+            nh.getParam("mpc/horizon_length", horizon_length)) {
 
             Q << x_cost, x_cost, z_cost,
                     dx_cost, dx_cost, dz_cost,
@@ -226,6 +230,8 @@ public:
         //unscale
         xdot = xdot.cwiseProduct(x_scaling_vec.template cast<T>());
 
+        xdot *= (T) horizon_length;
+
     }
 
     template<typename T>
@@ -265,8 +271,8 @@ public:
         Matrix<T, NU, 1> u_error = u_drone - target_control_trajectory.col(k).template cast<T>();
 
 
-        lagrange = x_error2.dot(Q.template cast<T>().cwiseProduct(x_error2)) +
-                   u_error.dot(R.template cast<T>().cwiseProduct(u_error));
+        lagrange = (x_error2.dot(Q.template cast<T>().cwiseProduct(x_error2)) +
+                   u_error.dot(R.template cast<T>().cwiseProduct(u_error)))*horizon_length;
 
         k--;
     }

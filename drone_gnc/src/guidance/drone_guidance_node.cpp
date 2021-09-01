@@ -42,11 +42,15 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
 
 void DroneGuidanceNode::run() {
     double loop_start_time = ros::Time::now().toSec();
+    time_compute_start = ros::Time::now();
     if (received_state) {
         if(current_fsm.state_machine == "Descent" && !started_descent){
             drone_mpc.setTarget(drone_mpc.target_land, target_control);
             drone_mpc.warmStartDescent();
+            drone_mpc.setDescentConstraints();
             started_descent = true;
+//            computeTrajectory();
+//            publishTrajectory();
         }
 
         computeTrajectory();
@@ -113,7 +117,6 @@ void DroneGuidanceNode::publishTrajectory() {
     drone_gnc::DroneTrajectory horizon_msg;
 
     double traj_length = drone_mpc.solution_p()(0);
-    time_compute_start = ros::Time::now();
 
     for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
         Drone::state state_val = drone_mpc.solution_x_at(i);

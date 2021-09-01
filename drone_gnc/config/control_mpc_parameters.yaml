@@ -14,17 +14,17 @@ input_costs:
   torque: 0.001
 
 #state_costs:
-#  x: 5
+#  x: 20
 #  dx: 0.1
-#  z: 2
-#  dz: 100
-#  att: 0.5
-#  datt: 1
-#  droll: 5
+#  z: 40
+#  dz: 40
+#  att: 20000
+#  datt: 2
+#  droll: 1
 #
 #input_costs:
-#  servo: 5
-#  thrust: 1
+#  servo: 3
+#  thrust: 0.1
 #  torque: 0.001
 
 # constraints (+ used for scaling)
@@ -42,7 +42,7 @@ scaling_z: 4
 
 
 # speed/performance
-horizon_length: 1.0
+horizon_length: 1.5
 
 max_sqp_iter: 1
 max_qp_iter: 25

@@ -30,6 +30,8 @@ public:
 
     Drone::control solution_u_at(const int t);
 
+    void setDescentConstraints();
+
     double node_time(int i);
 
     void precomputeDescent();

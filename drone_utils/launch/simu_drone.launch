@@ -4,17 +4,21 @@
     <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
     <include file="$(find drone_utils)/launch/gui.launch"/>
     <rosparam param="/is_simu">true</rosparam>
-<!--    <rosparam param="/use_sim_time">true</rosparam>-->
+    <!--    <rosparam param="/use_sim_time">true</rosparam>-->
 
     <!-- transform drone_kalman to rocket state for visualization-->
     <node name="drone_to_rocket_state" pkg="topic_tools" type="transform" args="/drone_state /kalman_rocket_state real_time_simulator/State
-              'real_time_simulator.msg.State(twist=m.twist, pose=m.pose, propeller_mass=0)'
-              --import real_time_simulator drone_gnc"/>
+                  'real_time_simulator.msg.State(twist=m.twist, pose=m.pose, propeller_mass=0)'
+                  --import real_time_simulator drone_gnc"/>
+
+    <!--    <node name="quaternion_tests" pkg="topic_tools" type="transform" args="/kalman_rocket_state /quat geometry_msgs/Vector3-->
+    <!--              'geometry_msgs.msg.Vector3(m.pose.orientation.w*m.pose.orientation.x - m.pose.orientation.y*m.pose.orientation.z, m.pose.orientation.w*m.pose.orientation.y + m.pose.orientation.x*m.pose.orientation.z, 0)'-->
+    <!--              &#45;&#45;import real_time_simulator geometry_msgs"/>-->
 
     <node pkg="rosbag" type="record" name="recorder" args="record -a -O $(find drone_utils)/log/log.bag"/>
 
 
-<!--    <node name ="benchmark" pkg="drone_utils" type="send_command_apogees.py" output="screen"/>-->
+    <!--    <node name ="benchmark" pkg="drone_utils" type="send_command_apogees.py" output="screen"/>-->
 </launch>
 
 

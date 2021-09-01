@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     nh.getParam("/environment/rail_length", rail_length);
 
 
-    ros::Timer FSM_thread = nh.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent &) {
+    ros::Timer FSM_thread = nh.createTimer(ros::Duration(0.002), [&](const ros::TimerEvent &) {
         // Update FSM
         if (current_fsm.state_machine == "Idle") {
         } else {
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
                 current_fsm.state_machine = "Launch";
 
             } else if (current_fsm.state_machine == "Launch") {
-                if (abs(current_state.pose.position.z - target_apogee.z) < 0.5 && land_after_apogee && target_apogee.z != 0){
+                if ((abs(current_state.pose.position.z - target_apogee.z) < 0.1 || current_state.twist.linear.z < 0) && land_after_apogee && target_apogee.z != 0){
                     current_fsm.state_machine = "Descent";
                 }
             }

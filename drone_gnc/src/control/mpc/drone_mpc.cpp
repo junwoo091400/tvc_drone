@@ -16,7 +16,7 @@ DroneMPC::DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : solu
     qp_settings().max_iter = max_qp_iter;
 
     nh.getParam("mpc/horizon_length", horizon_length);
-    set_time_limits(0, horizon_length);
+    set_time_limits(0, 1);
 
     // Setup constraints
     ocp_state lbx, ubx;
@@ -182,4 +182,3 @@ void DroneMPC::integrateX0(const Drone::state x0, Drone::state &new_x0) {
     Drone::control interpolated_control = solution_u_at(feedforward_period * i);
     drone->stepRK4(x0, interpolated_control, mpc_period, new_x0);
 }
-

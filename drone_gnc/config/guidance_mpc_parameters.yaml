@@ -7,11 +7,13 @@
 
 input_costs:
   thrust: 1
-  lateral_force: 0.001
+  lateral_force: 0.1
+
+horizontal_slack: 50
 
 # constraints (+ used for scaling)
 min_z: 0
-min_dz: -1
+min_dz: -3
 
 max_dx: 10
 max_dz: 20
@@ -20,7 +22,7 @@ max_dz: 20
 scaling_x: 10
 scaling_z: 30
 
-max_fx: 10
+max_fx: 3
 
 max_horizon_length: 30.0
 
