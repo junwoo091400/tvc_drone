@@ -125,8 +125,8 @@ public:
     }
 
     void optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
-        optitrack_pose.pose.position.x = pose->pose.position.x;
-        optitrack_pose.pose.position.y = pose->pose.position.y;
+        optitrack_pose.pose.position.x = -pose->pose.position.x;
+        optitrack_pose.pose.position.y = -pose->pose.position.y;
         optitrack_pose.pose.position.z = pose->pose.position.z;
         optitrack_pose.pose.orientation = pose->pose.orientation;
         optitrack_pose.header.stamp = pose->header.stamp;

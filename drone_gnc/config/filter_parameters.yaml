@@ -1,16 +1,22 @@
-# MPC parameters
+# Kalman filter parameters
 predict_vars:
-  x: 1000
-  z: 1000
-  dx: 100
-  dz: 100
-  att: 1000
-  datt: 1000
-  ddx: 1000
-  thrust_scaling: 0
-  disturbance_torque: 0
+  x: 0.01
+  att: 4
+
+  dx: 5
+  datt: 2000
+
+  thrust_scaling: 0.3
+  torque_scaling: 1
+  servo_offset: 1.0e-6
+  disturbance_force: 10
+  disturbance_force_z: 1.0e-6
+  disturbance_torque: 10
+  disturbance_torque_z: 0.5
 
 update_vars:
-  gyro: 0
-  accel: 0
-  baro: 0
+  optitrack_x: 0.001
+  optitrack_att: 0.001
+  pixhawk: 0.001
+
+period: 0.002

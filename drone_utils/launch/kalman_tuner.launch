@@ -6,7 +6,7 @@
     </group>
 
     <group ns="navigation">
-        <rosparam file="$(find drone_gnc)/config/optitrack_filter_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/filter_parameters.yaml"/>
     </group>
 
     <node name="navigation" pkg="drone_gnc" type="kalman_tuner" cwd="node" output="screen">
