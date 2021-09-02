@@ -23,7 +23,7 @@ DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone>
 
 void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
-    rocket_state_sub = nh.subscribe("/simu_drone_state", 1, &DroneGuidanceNode::stateCallback, this);
+    rocket_state_sub = nh.subscribe("/drone_state", 1, &DroneGuidanceNode::stateCallback, this);
     bool control_track_guidance;
     nh.param<bool>("/control/track_guidance", control_track_guidance, false);
     if (control_track_guidance) {

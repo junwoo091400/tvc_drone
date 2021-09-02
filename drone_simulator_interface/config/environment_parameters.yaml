@@ -5,5 +5,5 @@ longitude: 8.07575
 temperature: 300
 humidity: 0.5
 pressure: 84972.484
-wind_speed: 1
+wind_speed: 2
 wind_direction: 180 # angle of wind from north, clockwise

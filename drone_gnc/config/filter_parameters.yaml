@@ -6,12 +6,12 @@ predict_vars:
   dx: 5
   datt: 2000
 
-  thrust_scaling: 0.3
-  torque_scaling: 1
+  thrust_scaling: 0.1
+  torque_scaling: 0
   servo_offset: 1.0e-6
-  disturbance_force: 10
+  disturbance_force: 0.1
   disturbance_force_z: 1.0e-6
-  disturbance_torque: 10
+  disturbance_torque: 0.01
   disturbance_torque_z: 0.5
 
 update_vars:

@@ -38,8 +38,8 @@ Drone *drone;
 unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 std::default_random_engine generator(seed);
 
-std::normal_distribution<double> servo_noise(0.0, 0.0);
-std::normal_distribution<double> torque_noise(0.0, 0.0);
+std::normal_distribution<double> servo_noise(0.0, 0.01);
+std::normal_distribution<double> torque_noise(0.0, 0.1);
 
 double last_control_time;
 bool use_servo_model;

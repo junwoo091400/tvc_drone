@@ -19,6 +19,11 @@ bag = rosbag.Bag(rospack.get_path('drone_utils') +"/"+ rospy.get_param('/log_fil
 
 time_init = 0
 t_end = 0
+for topic, msg, t in bag.read_messages(topics=['/drone_control']):
+    time_init = msg.header.stamp.to_sec()
+    break
+
+
 for topic, msg, t in bag.read_messages(topics=['/drone_state']):
     if time_init == 0:
         time_init = msg.header.stamp.to_sec()
