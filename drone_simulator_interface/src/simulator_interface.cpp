@@ -11,6 +11,8 @@
 #include <random>
 #include <chrono>
 #include <nav_msgs/Odometry.h>
+#include <drone_gnc/FSM.h>
+#include <real_time_simulator/FSM.h>
 #include "drone_model.hpp"
 
 using namespace Eigen;
@@ -181,6 +183,21 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     fake_pixhawk_twist_local_pub.publish(twist_msg_local);
     fake_pixhawk_twist_body_pub.publish(twist_msg_body);
     fake_gps_pub.publish(gps_msg);
+
+
+    if (converted_state.pose.position.z <= -0.0001) {
+        std_msgs::String command;
+        command.data = "Stop";
+        command_pub.publish(command);
+    }
+}
+
+void fsmCallback(drone_gnc::FSM::ConstPtr fsm) {
+//    if (fsm->state_machine == drone_gnc::FSM::STOP) {
+//        std_msgs::String command;
+//        command.data = "Idle";
+//        command_pub.publish(command);
+//    }
 }
 
 int main(int argc, char **argv) {
@@ -225,6 +242,7 @@ int main(int argc, char **argv) {
 
     fake_gps_pub = nh.advertise<nav_msgs::Odometry>("/mavros/global_position/local", 10);
 
+    ros::Subscriber fsm_sub = nh.subscribe("/gnc_fsm_pub", 10, fsmCallback);
 
     // Subscribe to rocket state
     ros::Subscriber rocket_state_sub = nh.subscribe("/rocket_state", 10, publishConvertedState);

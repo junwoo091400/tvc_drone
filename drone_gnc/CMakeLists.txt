@@ -17,7 +17,6 @@ else ()
     set(CMAKE_BUILD_TYPE "Debug")
 endif ()
 
-
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
@@ -88,7 +87,7 @@ add_message_files(
 add_service_files(
         FILES
         GetFSM.srv
-        GetWaypoint.srv
+        SetFSM.srv
         InterpolateControlSpline.srv
         KalmanSimu.srv
 )
@@ -98,6 +97,7 @@ add_service_files(
 #   Action1.action
 #   Action2.action
 # )
+
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(

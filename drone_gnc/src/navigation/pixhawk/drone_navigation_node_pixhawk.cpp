@@ -10,7 +10,7 @@ DroneNavigationNodePixhawk::DroneNavigationNodePixhawk(ros::NodeHandle &nh) : ka
 
     // Initialize fsm
     current_fsm.time_now = 0;
-    current_fsm.state_machine = "Idle";
+    current_fsm.state_machine = drone_gnc::FSM::IDLE;
 
     nh.getParam("period", period);
 
@@ -57,7 +57,7 @@ void DroneNavigationNodePixhawk::initTopics(ros::NodeHandle &nh) {
 
 void DroneNavigationNodePixhawk::kalmanStep() {
     if (received_pixhawk) {
-        if ((received_optitrack || use_gps) && current_fsm.state_machine == "Idle") {
+        if ((received_optitrack || use_gps) && current_fsm.state_machine == drone_gnc::FSM::IDLE) {
             origin = measured_drone_state.segment(0, 3);
         }
 

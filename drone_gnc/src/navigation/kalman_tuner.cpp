@@ -124,7 +124,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
         }
         else if (!started && m.getTopic() == "/gnc_fsm_pub") {
             drone_gnc::FSM::ConstPtr fsm = m.instantiate<drone_gnc::FSM>();
-            if (fsm->state_machine == "Launch") started = true;
+            if (fsm->state_machine == drone_gnc::FSM::ASCENT) started = true;
         }
 
         if (!started) {

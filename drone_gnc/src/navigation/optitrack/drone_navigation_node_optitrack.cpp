@@ -39,7 +39,7 @@ public:
 
         // Initialize fsm
         current_fsm.time_now = 0;
-        current_fsm.state_machine = "Idle";
+        current_fsm.state_machine = drone_gnc::FSM::IDLE;
 
         nh.getParam("period", period);
 

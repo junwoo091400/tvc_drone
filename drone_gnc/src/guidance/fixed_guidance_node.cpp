@@ -58,7 +58,7 @@ public:
     }
 
     void run() {
-        if (current_fsm.state_machine == "Launch" && !published) {
+        if (current_fsm.state_machine == drone_gnc::FSM::ASCENT && !published) {
             publishTrajectory();
             published = true;
         }

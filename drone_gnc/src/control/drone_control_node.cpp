@@ -35,7 +35,7 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
 
     // Initialize fsm
     current_fsm.time_now = 0;
-    current_fsm.state_machine = "Idle";
+    current_fsm.state_machine = drone_gnc::FSM::IDLE;
 }
 
 void DroneControlNode::initTopics(ros::NodeHandle &nh) {
@@ -43,7 +43,8 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
     drone_state_sub = nh.subscribe("/drone_state", 1, &DroneControlNode::stateCallback, this,
                                    ros::TransportHints().tcpNoDelay());
     target_sub = nh.subscribe("/target_apogee", 1, &DroneControlNode::targetCallback, this);
-    target_traj_sub = nh.subscribe("/guidance/horizon", 1, &DroneControlNode::targetTrajectoryCallback, this);
+    target_traj_sub = nh.subscribe("/guidance/horizon", 1, &DroneControlNode::targetTrajectoryCallback, this,
+                                   ros::TransportHints().tcpNoDelay());
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneControlNode::fsmCallback, this);
 
     // Publishers
@@ -86,13 +87,13 @@ void DroneControlNode::run() {
             stall_time = loop_start_time + period * 0.93 - ros::Time::now().toSec();
             if (stall_time > 0) ros::Duration(stall_time).sleep();
 
-            if (current_fsm.state_machine == "Idle") {
+            if (current_fsm.state_machine == drone_gnc::FSM::IDLE) {
                 start_time = ros::Time::now().toSec();
             }
-            else if (current_fsm.state_machine == "Launch" || current_fsm.state_machine == "Descent") {
+            else if (current_fsm.state_machine == drone_gnc::FSM::ASCENT || current_fsm.state_machine == drone_gnc::FSM::DESCENT) {
                 publishFeedforwardControl();
             }
-            else if (current_fsm.state_machine == "Stop") {
+            else if (current_fsm.state_machine == drone_gnc::FSM::STOP) {
                 drone_gnc::DroneControl drone_control;
                 drone_control.bottom = 0;
                 drone_control.top = 0;

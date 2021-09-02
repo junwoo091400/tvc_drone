@@ -1,10 +1,11 @@
+#include <drone_gnc/SetFSM.h>
 #include "drone_guidance_node.h"
 
 DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
                                                                                               drone(drone_ptr) {
     // Initialize fsm
     current_fsm.time_now = 0;
-    current_fsm.state_machine = "Idle";
+    current_fsm.state_machine = drone_gnc::FSM::IDLE;
 
     nh.getParam("mpc/mpc_period", period);
 
@@ -25,10 +26,12 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     rocket_state_sub = nh.subscribe("/simu_drone_state", 1, &DroneGuidanceNode::stateCallback, this);
     bool control_track_guidance;
     nh.param<bool>("/control/track_guidance", control_track_guidance, false);
-    if (control_track_guidance){
+    if (control_track_guidance) {
         target_sub = nh.subscribe("/target_apogee", 1, &DroneGuidanceNode::targetCallback, this);
     }
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneGuidanceNode::fsmCallback, this);
+
+    set_fsm_client = nh.serviceClient<drone_gnc::SetFSM>("/drone_fsm/set_fsm");
 
     // Publishers
     horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/target_trajectory", 10);
@@ -43,27 +46,38 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
 void DroneGuidanceNode::run() {
     double loop_start_time = ros::Time::now().toSec();
     time_compute_start = ros::Time::now();
-    if (received_state) {
-        if(current_fsm.state_machine == "Descent" && !started_descent){
-            drone_mpc.setTarget(drone_mpc.target_land, target_control);
-            drone_mpc.warmStartDescent();
-            drone_mpc.setDescentConstraints();
-            started_descent = true;
-//            computeTrajectory();
-//            publishTrajectory();
-        }
+    if (received_state && current_fsm.state_machine != drone_gnc::FSM::STOP) {
+//        if (current_fsm.state_machine == "Descent" && !started_descent) {
+//            drone_mpc.setTarget(drone_mpc.target_land, target_control);
+//            drone_mpc.warmStartDescent();
+//            drone_mpc.setDescentConstraints();
+//            started_descent = true;
+////            computeTrajectory();
+////            publishTrajectory();
+//        }
 
         computeTrajectory();
         double p_sol = drone_mpc.solution_p()(0);
         if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
             ROS_ERROR_STREAM("Guidance MPC computation failed");
             drone_mpc.initGuess(x0, target_state);
-        }
-        else{
+        } else if (p_sol < 0.3) {
+            if (current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
+                drone_mpc.setTarget(drone_mpc.target_land, target_control);
+                drone_mpc.warmStartDescent();
+                drone_mpc.setDescentConstraints();
+                started_descent = true;
+                computeTrajectory();
+                publishTrajectory();
+                drone_gnc::SetFSM srv;
+                srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
+                set_fsm_client.call(srv);
+            }
+        } else {
             publishTrajectory();
         }
-        publishDebugInfo();
     }
+    publishDebugInfo();
 }
 
 void DroneGuidanceNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
@@ -86,7 +100,7 @@ void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
     drone_mpc.setTarget(new_target_state, target_control);
 
     // recompute a new guess if sudden target change
-    if((target_state.head(3) - new_target_state.head(3)).norm() > 1){
+    if ((target_state.head(3) - new_target_state.head(3)).norm() > 1) {
         x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
                 current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
                 current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
@@ -192,7 +206,7 @@ int main(int argc, char **argv) {
     DroneGuidanceNode droneGuidanceNode(nh, drone);
 
 //    // Thread to compute control. Duration defines interval time in seconds
-    while (ros::ok()){
+    while (ros::ok()) {
         ros::spinOnce();
         droneGuidanceNode.run();
     }

@@ -7,6 +7,7 @@
 #include <string>
 
 #include "drone_gnc/GetFSM.h"
+#include "drone_gnc/SetFSM.h"
 #include "std_msgs/String.h"
 
 // global variable with time and state machine
@@ -29,18 +30,19 @@ void targetCallback(const geometry_msgs::Vector3::ConstPtr &target) {
 
 
 void processCommand(const std_msgs::String &command) {
-    if (command.data == "Coast") {
-        current_fsm.state_machine = "Coast";
-    } else {
-        if(command.data == "stop" || command.data == "Stop"){
-            current_fsm.state_machine = "Idle";
-        }
-        else{
-            //received launch command
-            time_zero = ros::Time::now().toSec();
-            current_fsm.state_machine = "Launch";
-        }
+    if (command.data == "stop" || command.data == "Stop") {
+        current_fsm.state_machine = drone_gnc::FSM::STOP;
+    } else if(current_fsm.state_machine == drone_gnc::FSM::IDLE) {
+        //received launch command
+        time_zero = ros::Time::now().toSec();
+        current_fsm.state_machine = drone_gnc::FSM::ASCENT;
     }
+}
+
+bool set_fsm(drone_gnc::SetFSM::Request &req,
+             drone_gnc::SetFSM::Response &res) {
+    current_fsm.state_machine = req.fsm.state_machine;
+    return true;
 }
 
 float rail_length = 0;
@@ -55,7 +57,8 @@ int main(int argc, char **argv) {
     current_fsm.time_now = 0;
     std::string initial_state;
     nh.param<std::string>("initial_state", initial_state, "Idle");
-    current_fsm.state_machine = initial_state;
+    if(initial_state == "Idle") current_fsm.state_machine = drone_gnc::FSM::IDLE;
+    else if(initial_state == "Ascent") current_fsm.state_machine = drone_gnc::FSM::ASCENT;
     bool land_after_apogee;
     nh.param<bool>("land_after_apogee", land_after_apogee, false);
 
@@ -70,8 +73,11 @@ int main(int argc, char **argv) {
 
     ros::Publisher target_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
 
+    ros::ServiceServer service = nh.advertiseService("set_fsm", set_fsm);
+
     std::vector<double> initial_target_apogee;
-    if(nh.getParam("/guidance/target_apogee", initial_target_apogee) || nh.getParam("/control/target_apogee", initial_target_apogee)){
+    if (nh.getParam("/guidance/target_apogee", initial_target_apogee) ||
+        nh.getParam("/control/target_apogee", initial_target_apogee)) {
         target_apogee.x = initial_target_apogee.at(0);
         target_apogee.y = initial_target_apogee.at(1);
         target_apogee.z = initial_target_apogee.at(2);
@@ -88,23 +94,19 @@ int main(int argc, char **argv) {
 
     ros::Timer FSM_thread = nh.createTimer(ros::Duration(0.002), [&](const ros::TimerEvent &) {
         // Update FSM
-        if (current_fsm.state_machine == "Idle") {
+        if (current_fsm.state_machine == drone_gnc::FSM::IDLE) {
         } else {
             // Update current time
             current_fsm.time_now = ros::Time::now().toSec() - time_zero;
 
-            if (current_fsm.state_machine == "Rail") {
-                current_fsm.state_machine = "Launch";
-
-            } else if (current_fsm.state_machine == "Launch") {
-                if ((abs(current_state.pose.position.z - target_apogee.z) < 0.1 || current_state.twist.linear.z < 0) && land_after_apogee && target_apogee.z != 0){
-                    current_fsm.state_machine = "Descent";
-                }
-            }
-            else if (current_fsm.state_machine == "Descent") {
-                if (current_state.pose.position.z < 0){
-//                    current_fsm.state_machine = "Stop";
-                }
+            if (current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
+//                if ((abs(current_state.pose.position.z - target_apogee.z) < 0.1 || current_state.twist.linear.z < 0) && land_after_apogee && target_apogee.z != 0){
+//                    current_fsm.state_machine = "Descent";
+//                }
+            } else if (current_fsm.state_machine == drone_gnc::FSM::DESCENT) {
+//                if (current_state.pose.position.z < 0){
+////                    current_fsm.state_machine = "Stop";
+//                }
             }
 
             // Publish time + state machine

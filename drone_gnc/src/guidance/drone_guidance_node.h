@@ -25,6 +25,7 @@
 class DroneGuidanceNode {
 public:
     double period;
+    bool stopped = false;
 
     DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
 
@@ -74,6 +75,8 @@ private:
     ros::Publisher qp_iter_pub;
     ros::Publisher horizon_pub;
     ros::Publisher computation_time_pub;
+
+    ros::ServiceClient set_fsm_client;
     // Variables to track performance over whole simulation
     ros::Time time_compute_start;
 };
