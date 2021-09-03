@@ -42,10 +42,13 @@ public:
     double total_length;
     double total_duration;
     bool published = false;
+    double rotation_angle;
 
     DroneFixedGuidanceNode(ros::NodeHandle &nh) : speed(0.35) {
         nh.getParam("speed", speed);
         nh.getParam("scaling", scaling);
+
+        nh.param<double>("rotation_angle", rotation_angle, 0.0);
 
         total_length = 0;
         for (double seg_length:seg_lengths) {
@@ -58,9 +61,8 @@ public:
     }
 
     void run() {
-        if (current_fsm.state_machine == drone_gnc::FSM::ASCENT && !published) {
+        if (current_fsm.state_machine != drone_gnc::FSM::ASCENT) {
             publishTrajectory();
-            published = true;
         }
     }
 
@@ -76,7 +78,7 @@ public:
         current_fsm = *fsm;
     }
 
-    Vector3d sample_path(double s) {
+    Vector3d samplePathRaw(double s) {
         Vector3d seg_point;
         Vector3d seg_start;
         seg_start << 0, 0, 0;
@@ -211,15 +213,19 @@ public:
         return seg_start;
     }
 
-    void sample_traj(double t, drone_gnc::DroneState &state_msg) {
-        Vector3d point = sample_path(t * speed) * scaling;
-//        Vector3d point;
+    Vector3d samplePath(double t) {
+        Vector3d point = samplePathRaw(t * speed) * scaling;
+        AngleAxisd rot(rotation_angle*180/M_PI, Vector3d(0,0,1));
+        point = rot._transformVector(point);
+        return point;
+    }
 
-//        point << point2(1), point2(0), point2(2);
+    void sample_traj(double t, drone_gnc::DroneState &state_msg) {
+        Vector3d point = samplePath(t);
 
         double eps = 1e-10;
         //finite difference to get speed
-        Vector3d speed_vec = (point - sample_path(t * speed - eps)) / eps;
+        Vector3d speed_vec = (samplePath(t + eps) - point) / eps;
         if (speed_vec.norm() > 1e-5) {
             speed_vec *= speed / speed_vec.norm();
         }
@@ -254,7 +260,7 @@ public:
         int NUM_POINTS = 800;
         ros::Time time_compute_start = ros::Time::now();
         for (int i = 0; i < NUM_POINTS; i++) {
-            double t = i * total_duration / NUM_POINTS;
+            double t = i * total_duration / (NUM_POINTS-1);
 
             drone_gnc::DroneState state_msg;
             sample_traj(t, state_msg);

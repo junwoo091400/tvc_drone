@@ -86,7 +86,7 @@ public:
     }
 
     void startParamEstimation(){
-        P = Q;
+        P = 5*Q;
         received_control = true;
     }
 

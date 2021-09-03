@@ -1,9 +1,9 @@
 # MPC parameters
 state_costs:
-  x: 3
+  x: 20
   dx: 0.1
-  z: 15
-  dz: 10
+  z: 20
+  dz: 30
   att: 0.5
   datt: 1
   droll: 1
@@ -18,7 +18,7 @@ min_z: 0
 min_dz: -3
 
 max_dx: 1.2
-max_dz: 20
+max_dz: 60
 max_datt: 0.6
 max_attitude_angle: 90
 
@@ -28,10 +28,10 @@ scaling_z: 4
 
 
 # speed/performance
-horizon_length: 1
+horizon_length: 1.5
 
 max_sqp_iter: 1
-max_qp_iter: 25
+max_qp_iter: 20
 max_line_search_iter: 4
 mpc_period: 0.02
 feedforward_period: 0.02
