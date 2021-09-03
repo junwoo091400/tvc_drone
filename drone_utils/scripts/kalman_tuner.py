@@ -116,6 +116,10 @@ R_names = ['optitrack_x', 'optitrack_x', 'optitrack_x',
 fig_kalman, axe_kalman = plt.subplots(6, 4, figsize=(20, 10))
 set_plot_ranges(axe_kalman, plot_ranges, kalman_plot_indexes.items())
 
+
+# pixhawk_twist_history = read_state_history(bag, '/mavros/local_position/velocity_body', time_init, t_end)
+# plot_history(pixhawk_twist_history, kalman_plot_indexes, axe_kalman, "")
+
 try:
     from drone_gnc.srv import KalmanSimu
     from drone_gnc.msg import DroneTrajectory

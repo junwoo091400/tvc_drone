@@ -14,14 +14,14 @@ from shutil import move
 rad2deg = 180/np.pi
 
 def convert_state_to_array(state):
-    q = [state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w]
-    if np.isnan(q).any():
-        q = [0, 0, 0, 1]
-    r = R.from_quat(q)
-    attitude_euler = r.as_euler("xyz", degrees=True)
     message_type = str(state._type)
     state_array = None
     if message_type == "geometry_msgs/PoseStamped":
+        q = [state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w]
+        if np.isnan(q).any():
+            q = [0, 0, 0, 1]
+        r = R.from_quat(q)
+        attitude_euler = r.as_euler("xyz", degrees=True)
         state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
                                 0, 0, 0,
                                 attitude_euler[0], attitude_euler[1], attitude_euler[2],
@@ -32,7 +32,23 @@ def convert_state_to_array(state):
                                 0, 0, 0,
                                 0, 0, 0,
                                 ])
+    elif message_type == "geometry_msgs/TwistStamped":
+        state_array = np.array([0, 0, 0,
+                                state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
+                                0, 0, 0,
+                                state.twist.angular.x*rad2deg, state.twist.angular.y*rad2deg, state.twist.angular.z*rad2deg,
+                                0,
+                                0,
+                                0, 0,
+                                0, 0, 0,
+                                0, 0, 0,
+                                ])
     elif message_type == "drone_gnc/DroneState":
+        q = [state.pose.orientation.x, state.pose.orientation.y, state.pose.orientation.z, state.pose.orientation.w]
+        if np.isnan(q).any():
+            q = [0, 0, 0, 1]
+        r = R.from_quat(q)
+        attitude_euler = r.as_euler("xyz", degrees=True)
         state_array = np.array([state.pose.position.x, state.pose.position.y, state.pose.position.z,
                                 state.twist.linear.x, state.twist.linear.y, state.twist.linear.z,
                                 attitude_euler[0], attitude_euler[1], attitude_euler[2],
