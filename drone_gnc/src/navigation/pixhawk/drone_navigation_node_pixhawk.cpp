@@ -67,8 +67,8 @@ void DroneNavigationNodePixhawk::kalmanStep() {
         new_data.segment(0, 3) -= origin;
 
         Drone::control u;
-        u << current_control.servo1, current_control.servo2, (current_control.bottom + current_control.top) / 2,
-                current_control.top - current_control.bottom;
+        u << previous_control.servo1, previous_control.servo2, (previous_control.bottom + previous_control.top) / 2,
+                previous_control.top - previous_control.bottom;
         previous_control = current_control;
 
 //            double time_now = optitrack_pose.header.stamp.toSec();
@@ -147,7 +147,9 @@ void DroneNavigationNodePixhawk::optitrackCallback(const geometry_msgs::PoseStam
 
 void DroneNavigationNodePixhawk::controlCallback(const drone_gnc::DroneControl::ConstPtr &control) {
     current_control = *control;
-    kalman.received_control = true;
+    if(!kalman.received_control){
+        kalman.startParamEstimation();
+    }
 }
 
 void DroneNavigationNodePixhawk::publishDroneState() {

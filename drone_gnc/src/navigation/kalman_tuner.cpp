@@ -23,8 +23,7 @@ using namespace Eigen;
 
 DroneEKFPixhawk *kalman;
 
-//TODO
-bool use_gps = true;
+bool use_gps ;
 
 double period;
 std::string log_file_path;
@@ -45,6 +44,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
     bag.open(ros::package::getPath("drone_utils") + "/" + log_file_path, rosbag::bagmode::Read);
 
     std::vector<std::string> topics;
+    topics.push_back(std::string("/drone_state"));
     topics.push_back(std::string("/optitrack_client/Drone/optitrack_pose"));
     topics.push_back(std::string("/mavros/local_position/pose"));
     topics.push_back(std::string("/mavros/local_position/velocity_body"));
@@ -68,13 +68,16 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
 
     double t0 = 0;
     double current_time = 0;
+    double last_drone_state = 0;
     bool update_trigger = false;
     for (rosbag::MessageInstance const m: view) {
 
         drone_gnc::DroneControl::ConstPtr current_control_ptr = m.instantiate<drone_gnc::DroneControl>();
         if (current_control_ptr != NULL) {
             current_control = *current_control_ptr;
-            kalman->received_control = true;
+            if(!kalman->received_control){
+                kalman->startParamEstimation();
+            }
         }
 
         if (m.getTopic() == "/optitrack_client/Drone/optitrack_pose" && !use_gps) {
@@ -112,19 +115,26 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
         }
         else if (m.getTopic() == "/mavros/local_position/velocity_body") {
             geometry_msgs::TwistStamped::ConstPtr twist = m.instantiate<geometry_msgs::TwistStamped>();
-            measured_drone_state.segment(10, 3) << twist->twist.angular.x, twist->twist.angular.y, twist->twist.angular.z;
-
             current_time = twist->header.stamp.toSec();
-            received_pixhawk = true;
             if (t0 == 0) {
                 t0 = current_time;
                 last_predict_time = current_time;
             }
+            measured_drone_state.segment(10, 3) << twist->twist.angular.x, twist->twist.angular.y, twist->twist.angular.z;
+            received_pixhawk = true;
             update_trigger = true;
         }
         else if (!started && m.getTopic() == "/gnc_fsm_pub") {
             drone_gnc::FSM::ConstPtr fsm = m.instantiate<drone_gnc::FSM>();
             if (fsm->state_machine == drone_gnc::FSM::ASCENT) started = true;
+        }
+        else if (m.getTopic() == "/drone_state") {
+            drone_gnc::DroneState::ConstPtr state = m.instantiate<drone_gnc::DroneState>();
+            current_time = state->header.stamp.toSec();
+            if (t0 == 0) {
+                t0 = current_time;
+                last_predict_time = current_time;
+            }
         }
 
         if (!started) {
@@ -132,7 +142,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
         }
 
 //        ROS_ERROR_STREAM(current_time - t0);
-        if (current_time - last_predict_time > period) {
+        if (current_time - last_predict_time >= period*0.95) {
             DroneEKFPixhawk::sensor_data new_data = measured_drone_state;
             new_data.segment(0, 3) -= origin;
 
@@ -143,13 +153,12 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
             previous_control = current_control;
 
             kalman->predictStep(current_time - last_predict_time, u);
+            last_predict_time = current_time;
 
             if (update_trigger) {
                 kalman->updateStep(new_data);
                 update_trigger = false;
             }
-            kalman->updateStep(new_data);
-            last_predict_time = current_time;
 
             drone_gnc::DroneState kalman_state;
 
@@ -204,6 +213,7 @@ int main(int argc, char **argv) {
     nh.getParam("/log_file", log_file_path);
 
     nh.getParam("period", period);
+    nh.param("use_gps", use_gps, false);
 
     ros::ServiceServer service = nh.advertiseService("/kalman_simu", kalmanSimu);
     ros::spin();

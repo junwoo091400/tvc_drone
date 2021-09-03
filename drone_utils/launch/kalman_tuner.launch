@@ -11,8 +11,9 @@
 
     <node name="navigation" pkg="drone_gnc" type="kalman_tuner" cwd="node" output="screen">
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
-        <rosparam param="init_estimated_params">false</rosparam>
+        <rosparam param="init_estimated_params">true</rosparam>
         <rosparam param="estimate_params">true</rosparam>
+        <rosparam param="use_gps">true</rosparam>
     </node>
 
     <!-- <rosparam param="log_file">"replay_analysis/best_data/20_percent/log1.bag"</rosparam> -->

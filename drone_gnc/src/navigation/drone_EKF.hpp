@@ -85,6 +85,10 @@ public:
         received_control = false;
     }
 
+    void startParamEstimation(){
+        P = Q;
+        received_control = true;
+    }
 
     void setQdiagonal(const state &Qdiag) {
         Q.diagonal() << Qdiag;

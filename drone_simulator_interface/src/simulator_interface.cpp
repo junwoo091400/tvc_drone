@@ -185,7 +185,7 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     fake_gps_pub.publish(gps_msg);
 
 
-    if (converted_state.pose.position.z <= -0.0001) {
+    if (converted_state.pose.position.z <= -0.1) {
         std_msgs::String command;
         command.data = "Stop";
         command_pub.publish(command);

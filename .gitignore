@@ -8,3 +8,5 @@ drone_utils/log/log.bag
 venv/
 
 *.pyc
+
+drone_utils/log/log.orig.bag

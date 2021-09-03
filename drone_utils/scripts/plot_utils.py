@@ -4,6 +4,12 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from geometry_msgs.msg import PoseStamped
 from collections import OrderedDict
+import rosbag
+import time
+import rospy
+import os
+from shutil import move
+
 
 rad2deg = 180/np.pi
 
@@ -239,3 +245,20 @@ def set_plot_ranges(axe, plot_ranges, plot_indexes, use_latex=False):
             else:
                 axe[plot_idx].set_xlabel(var_titles[x_name])
                 axe[plot_idx].set_ylabel(var_titles[y_name])
+
+def reorder_bag(bagfile):
+    orig = os.path.splitext(bagfile)[0] + ".orig.bag"
+    move(bagfile, orig)
+    with rosbag.Bag(bagfile, 'w') as outbag:
+        last_time = time.clock()
+        buffer = []
+        for topic, msg, t in rosbag.Bag(orig).read_messages():
+            if msg._has_header:
+                t = msg.header.stamp
+            buffer.append((msg, topic, t))
+            if len(buffer) > 50:
+                msg_tuple = min(buffer, key=lambda m: m[2].to_sec())
+                buffer.remove(msg_tuple)
+                msg, topic, t = msg_tuple
+                outbag.write(topic, msg, t)
+    print("done reordering")

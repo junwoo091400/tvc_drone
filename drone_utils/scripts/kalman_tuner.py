@@ -12,22 +12,23 @@ import seaborn as sns
 
 sns.set()
 
-from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, set_plot_ranges, var_indexes, plot_history, read_state_history
+from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, set_plot_ranges, var_indexes,\
+    plot_history, read_state_history, reorder_bag
 
 rospack = rospkg.RosPack()
-bag = rosbag.Bag(rospack.get_path('drone_utils') +"/"+ rospy.get_param('/log_file'))
+bag_name = rospack.get_path('drone_utils') +"/"+ rospy.get_param('/log_file')
+bag = rosbag.Bag(bag_name)
 
 time_init = 0
 t_end = 0
-for topic, msg, t in bag.read_messages(topics=['/drone_control']):
-    time_init = msg.header.stamp.to_sec()
-    break
-
 
 for topic, msg, t in bag.read_messages(topics=['/drone_state']):
     if time_init == 0:
         time_init = msg.header.stamp.to_sec()
     t_end = msg.header.stamp.to_sec()
+
+reorder_bag(bag_name)
+
 
 kalman_state_history = read_state_history(bag, '/drone_state', time_init, t_end)
 
@@ -38,8 +39,8 @@ kalman_state_history = read_state_history(bag, '/drone_state', time_init, t_end)
 
 plot_ranges = {
     "t": [0, t_end - time_init],
-    "x": [-3, 3],
-    "y": [-3, 3],
+    "x": [-1, 1],
+    "y": [-1, 1],
     "z": [-1, 3],
     "dx": [-1.5, 1.5],
     "dy": [-1.5, 1.5],
@@ -58,11 +59,11 @@ plot_ranges = {
 
     "thrust_scaling": [0, 1.5],
     "torque_scaling": [0, 1.5],
-    "servo1_offset": [-3, 3],
-    "servo2_offset": [-3, 3],
-    "fx": [-2, 2],
-    "fy": [-2, 2],
-    "fz": [-2, 2],
+    "servo1_offset": [-15, 15],
+    "servo2_offset": [-15, 15],
+    "fx": [-5, 5],
+    "fy": [-5, 5],
+    "fz": [-5, 5],
     "mx": [-1, 1],
     "my": [-1, 1],
     "mz": [-1, 1],
@@ -71,30 +72,30 @@ kalman_plot_indexes = {
     (0, 0): [("t", "x")],
     (0, 1): [("t", "y")],
     (0, 2): [("t", "z")],
+    (0, 3): [("t", "thrust_scaling")],
 
     (1, 0): [("t", "yaw (x)")],
     (1, 1): [("t", "pitch (y)")],
     (1, 2): [("t", "roll (z)")],
+    (1, 3): [("t", "torque_scaling")],
 
     (2, 0): [("t", "dx")],
     (2, 1): [("t", "dy")],
     (2, 2): [("t", "dz")],
+    (2, 3): [("t", "servo1_offset")],
 
     (3, 0): [("t", "dyaw (x)")],
     (3, 1): [("t", "dpitch (y)")],
     (3, 2): [("t", "droll (z)")],
+    (3, 3): [("t", "servo2_offset")],
 
-    (4, 0): [("t", "thrust_scaling")],
-    (4, 1): [("t", "torque_scaling")],
-    (4, 2): [("t", "servo1_offset")],
+    (4, 0): [("t", "fx")],
+    (4, 1): [("t", "fy")],
+    (4, 2): [("t", "fz")],
 
     (5, 0): [("t", "mx")],
     (5, 1): [("t", "my")],
     (5, 2): [("t", "mz")],
-
-    (6, 0): [("t", "fx")],
-    (6, 1): [("t", "fy")],
-    (6, 2): [("t", "fz")],
 }
 
 Q_names = ['x', 'x', 'x',
@@ -112,7 +113,7 @@ R_names = ['optitrack_x', 'optitrack_x', 'optitrack_x',
            'pixhawk', 'pixhawk', 'pixhawk',
            'pixhawk', 'pixhawk', 'pixhawk']
 
-fig_kalman, axe_kalman = plt.subplots(7, 3, figsize=(20, 10))
+fig_kalman, axe_kalman = plt.subplots(6, 4, figsize=(20, 10))
 set_plot_ranges(axe_kalman, plot_ranges, kalman_plot_indexes.items())
 
 try:
@@ -129,14 +130,14 @@ try:
     plot_history(simu_state_history, kalman_plot_indexes, axe_kalman, "simu")
 
     # plot "ground truth"
-    Q = [1, 1, 1, 2000, 2000, 2000, 1, 1, 1, 1, 4000, 4000, 4000] + [0 for i in range(NP)]
-    R = [0.001] * 13
-    resp = kalman_simu(Q, R, False)
-    ground_truth_state_history = np.empty((0, NX + NP + 1))
-    for waypoint in resp.trajectory.trajectory:
-        state_array = np.append(waypoint.state.header.stamp.to_sec() - time_init, convert_state_to_array(waypoint.state))
-        ground_truth_state_history = np.vstack((ground_truth_state_history, state_array))
-    plot_history(ground_truth_state_history, kalman_plot_indexes, axe_kalman, "ground_truth", 'r')
+    # Q = [1, 1, 1, 2000, 2000, 2000, 1, 1, 1, 1, 4000, 4000, 4000] + [0 for i in range(NP)]
+    # R = [0.001] * 13
+    # resp = kalman_simu(Q, R, False)
+    # ground_truth_state_history = np.empty((0, NX + NP + 1))
+    # for waypoint in resp.trajectory.trajectory:
+    #     state_array = np.append(waypoint.state.header.stamp.to_sec() - time_init, convert_state_to_array(waypoint.state))
+    #     ground_truth_state_history = np.vstack((ground_truth_state_history, state_array))
+    # plot_history(ground_truth_state_history, kalman_plot_indexes, axe_kalman, "ground_truth", 'r')
 
     # create sliders figure
     plt.figure(figsize=(9, 6))
