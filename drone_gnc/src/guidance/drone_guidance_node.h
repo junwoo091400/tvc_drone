@@ -47,7 +47,7 @@ public:
 
     void publishDebugInfo();
 
-
+    void startDescent();
 
 
 private:

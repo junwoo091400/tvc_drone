@@ -44,6 +44,8 @@ std::normal_distribution<double> torque_noise(0.0, 0.1);
 double last_control_time;
 bool use_servo_model;
 
+double min_z;
+
 void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
     double time_now = ros::Time::now().toSec();
     double delta_t = time_now - last_control_time;
@@ -157,8 +159,8 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
 
     geometry_msgs::PoseStamped pose_msg;
     pose_msg.pose.orientation = converted_state.pose.orientation;
-    pose_msg.pose.position.x = -converted_state.pose.position.x;
-    pose_msg.pose.position.y = -converted_state.pose.position.y;
+    pose_msg.pose.position.x = converted_state.pose.position.x;
+    pose_msg.pose.position.y = converted_state.pose.position.y;
     pose_msg.pose.position.z = converted_state.pose.position.z;
     pose_msg.header.stamp = now;
 
@@ -185,7 +187,7 @@ void publishConvertedState(const real_time_simulator::State::ConstPtr &rocket_st
     fake_gps_pub.publish(gps_msg);
 
 
-    if (converted_state.pose.position.z <= -0.1) {
+    if (converted_state.pose.position.z <= min_z) {
         std_msgs::String command;
         command.data = "Stop";
         command_pub.publish(command);
@@ -217,13 +219,17 @@ int main(int argc, char **argv) {
     Drone drone_obj(nh);
     drone = &drone_obj;
 
+    double servo1_offset_degree, servo2_offset_degree;
     nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
     nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
-    nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset, 0);
-    nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset, 0);
+    nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset_degree, 0);
+    nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset_degree, 0);
+    servo1_offset = servo1_offset_degree*M_PI/180;
+    servo2_offset = servo2_offset_degree*M_PI/180;
 
     nh.param<bool>("use_servo_model", use_servo_model, false);
 
+    nh.param<double>("min_z", min_z, -0.1);
     //TODO check if exists
     nh.getParam("/rocket/CM_to_thrust_distance", CM_to_thrust_distance);
     nh.getParam("/rocket/CM_offset_x", CM_OFFSET_X);

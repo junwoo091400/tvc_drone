@@ -1,9 +1,9 @@
 # MPC parameters
 state_costs:
-  x: 20
+  x: 3 # 20
   dx: 0.1
-  z: 20
-  dz: 30
+  z: 15 #20
+  dz: 10 #30
   att: 0.5
   datt: 1
   droll: 1
@@ -28,10 +28,10 @@ scaling_z: 4
 
 
 # speed/performance
-horizon_length: 1.5
+horizon_length: 1 # 1.5
 
 max_sqp_iter: 1
-max_qp_iter: 20
+max_qp_iter: 25
 max_line_search_iter: 4
 mpc_period: 0.02
 feedforward_period: 0.02

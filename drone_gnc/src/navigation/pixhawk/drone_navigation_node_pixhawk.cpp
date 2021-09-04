@@ -134,7 +134,7 @@ void DroneNavigationNodePixhawk::optitrackCallback(const geometry_msgs::PoseStam
         }
 
         Vector<double, 3> raw_position;
-        raw_position << -pose->pose.position.x, -pose->pose.position.y, 0;
+        raw_position << pose->pose.position.x, pose->pose.position.y, 0;
 
         Vector<double, 3> absolute_position = initial_orientation._transformVector(raw_position);
 

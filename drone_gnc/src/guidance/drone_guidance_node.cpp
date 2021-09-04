@@ -56,28 +56,39 @@ void DroneGuidanceNode::run() {
 ////            publishTrajectory();
 //        }
 
-        computeTrajectory();
-        double p_sol = drone_mpc.solution_p()(0);
-        if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
-            ROS_ERROR_STREAM("Guidance MPC computation failed");
-            drone_mpc.initGuess(x0, target_state);
-        } else if (p_sol < 0.3) {
-            if (current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
-                drone_mpc.setTarget(drone_mpc.target_land, target_control);
-                drone_mpc.warmStartDescent();
-                drone_mpc.setDescentConstraints();
-                started_descent = true;
-                computeTrajectory();
+        if(current_state.pose.position.z >= drone_mpc.target_apogee.z() && current_fsm.state_machine == drone_gnc::FSM::ASCENT){
+            startDescent();
+
+        }
+        else
+        {
+            computeTrajectory();
+            double p_sol = drone_mpc.solution_p()(0);
+            if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
+                ROS_ERROR_STREAM("Guidance MPC computation failed");
+                drone_mpc.initGuess(x0, target_state);
+            } else if (p_sol < 0.3) {
+                if (current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
+                    startDescent();
+                }
+            } else {
                 publishTrajectory();
-                drone_gnc::SetFSM srv;
-                srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
-                set_fsm_client.call(srv);
             }
-        } else {
-            publishTrajectory();
         }
     }
     publishDebugInfo();
+}
+
+void DroneGuidanceNode::startDescent(){
+    drone_mpc.setTarget(drone_mpc.target_land, target_control);
+    drone_mpc.warmStartDescent();
+    drone_mpc.setDescentConstraints();
+    started_descent = true;
+    computeTrajectory();
+    publishTrajectory();
+    drone_gnc::SetFSM srv;
+    srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
+    set_fsm_client.call(srv);
 }
 
 void DroneGuidanceNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {

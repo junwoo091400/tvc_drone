@@ -49,13 +49,13 @@ public:
         nh.param("init_estimated_params", init_estimated_params, false);
 
         if (init_estimated_params) {
-            double thrust_scaling, torque_scaling, servo1_offset, servo2_offset;
+            double thrust_scaling, torque_scaling, servo1_offset_degree, servo2_offset_degree;
             nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
             nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
-            nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset, 0);
-            nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset, 0);
+            nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset_degree, 0);
+            nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset_degree, 0);
 
-            X0 << drone_X0, thrust_scaling, torque_scaling, servo1_offset, servo2_offset, 0, 0, 0, 0, 0, 0;
+            X0 << drone_X0, thrust_scaling, torque_scaling, servo1_offset_degree*M_PI/180, servo2_offset_degree*M_PI/180, 0, 0, 0, 0, 0, 0;
         } else {
             X0 << drone_X0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
         }
@@ -86,7 +86,9 @@ public:
     }
 
     void startParamEstimation(){
-        P = 5*Q;
+        state Pdiag = P.diagonal();
+        P.setIdentity();
+        P.diagonal().head(Drone::NX) << Pdiag.head(Drone::NX);
         received_control = true;
     }
 

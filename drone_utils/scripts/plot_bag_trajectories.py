@@ -17,6 +17,7 @@ import rosbag
 import seaborn as sns
 
 sns.set()
+# sns.set_style("whitegrid")
 
 from plot_utils import convert_state_to_array, convert_control_to_array, NP, NX, NU, var_indexes, plot_history,\
     read_state_history, read_control_history, read_horizon_history, set_plot_ranges

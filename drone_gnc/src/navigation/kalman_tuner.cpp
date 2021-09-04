@@ -70,7 +70,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
     double current_time = 0;
     double last_drone_state = 0;
     bool update_trigger = false;
-    for (rosbag::MessageInstance const m: view) {
+    for (rosbag::MessageInstance const &m: view) {
 
         drone_gnc::DroneControl::ConstPtr current_control_ptr = m.instantiate<drone_gnc::DroneControl>();
         if (current_control_ptr != NULL) {

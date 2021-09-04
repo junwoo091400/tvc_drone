@@ -38,10 +38,11 @@ void processCommand(const std_msgs::String &command) {
         current_fsm.state_machine = drone_gnc::FSM::ASCENT;
     }
 }
-
+ros::Publisher timer_pub;
 bool set_fsm(drone_gnc::SetFSM::Request &req,
              drone_gnc::SetFSM::Response &res) {
     current_fsm.state_machine = req.fsm.state_machine;
+    timer_pub.publish(current_fsm);
     return true;
 }
 
@@ -63,7 +64,7 @@ int main(int argc, char **argv) {
     nh.param<bool>("land_after_apogee", land_after_apogee, false);
 
     // Create timer publisher and associated thread (100Hz)
-    ros::Publisher timer_pub = nh.advertise<drone_gnc::FSM>("/gnc_fsm_pub", 10);
+    timer_pub = nh.advertise<drone_gnc::FSM>("/gnc_fsm_pub", 10);
 
     // Subscribe to commands
     ros::Subscriber command_sub = nh.subscribe("/commands", 10, processCommand);
@@ -92,7 +93,7 @@ int main(int argc, char **argv) {
     nh.getParam("/environment/rail_length", rail_length);
 
 
-    ros::Timer FSM_thread = nh.createTimer(ros::Duration(0.002), [&](const ros::TimerEvent &) {
+    ros::Timer FSM_thread = nh.createTimer(ros::Duration(0.02), [&](const ros::TimerEvent &) {
         // Update FSM
         if (current_fsm.state_machine == drone_gnc::FSM::IDLE) {
         } else {
