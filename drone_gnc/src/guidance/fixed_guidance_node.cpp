@@ -37,7 +37,7 @@ public:
 
     double scaling = 1;
 
-    constexpr static double seg_lengths[] = {0.5, 1, 0, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3,
+    constexpr static double seg_lengths[] = {0.5, 1, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3,
                                              2.97/*ellipse*/ };
     double total_length;
     double total_duration;
@@ -93,6 +93,15 @@ public:
         s -= seg_lengths[i];
         i++;
         seg_start += Vector3d(0, 0, 0.5);
+
+
+        if (s <= seg_lengths[i]) {
+            s /= seg_lengths[i];
+            seg_point << 0, 0, 0;
+            return seg_start + seg_point;
+        }
+        s -= seg_lengths[i];
+        i++;
 
         if (s <= seg_lengths[i]) {
             s /= seg_lengths[i];
@@ -215,7 +224,7 @@ public:
 
     Vector3d samplePath(double t) {
         Vector3d point = samplePathRaw(t * speed) * scaling;
-        AngleAxisd rot(rotation_angle*180/M_PI, Vector3d(0,0,1));
+        AngleAxisd rot(rotation_angle*M_PI/180, Vector3d(0,0,1));
         point = rot._transformVector(point);
         return point;
     }

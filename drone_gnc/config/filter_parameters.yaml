@@ -3,20 +3,21 @@ predict_vars:
   x: 0.1
   att: 0.2
 
-  dx: 5
+  dx: 50
   datt: 5
 
-  thrust_scaling: 0.05
-  torque_scaling: 0.05
-  servo_offset: 1.0e-4
+  thrust_scaling: 0
+  torque_scaling: 0.0001
+  servo_offset: 0
   disturbance_force: 30
-  disturbance_force_z: 1.0e-4
+  disturbance_force_z: 0
   disturbance_torque: 0.01
-  disturbance_torque_z: 0.1
+  disturbance_torque_z: 0.001
 
 update_vars:
   optitrack_x: 0.01
   optitrack_att: 0.01
+  pixhawk_vel: 100
   pixhawk: 0.01
 
-period: 0.002
+period: 0.008

@@ -19,6 +19,8 @@ DroneNavigationNodePixhawk::DroneNavigationNodePixhawk(ros::NodeHandle &nh) : ka
 
     origin.setZero();
 
+    init_time = ros::Time::now().toSec();
+
     last_predict_time = ros::Time::now().toSec();
 
 }
@@ -45,8 +47,8 @@ void DroneNavigationNodePixhawk::initTopics(ros::NodeHandle &nh) {
     } else {
         pixhawk_pose_sub = nh.subscribe("/mavros/local_position/pose", 1,
                                         &DroneNavigationNodePixhawk::pixhawkPoseCallback, this);
-        pixhawk_twist_local_sub = nh.subscribe("/mavros/local_position/velocity_local", 1,
-                                               &DroneNavigationNodePixhawk::pixhawkTwistLocalCallback, this);
+//        pixhawk_twist_local_sub = nh.subscribe("/mavros/local_position/velocity_local", 1,
+//                                               &DroneNavigationNodePixhawk::pixhawkTwistLocalCallback, this);
         pixhawk_twist_body_sub = nh.subscribe("/mavros/local_position/velocity_body", 1,
                                               &DroneNavigationNodePixhawk::pixhawkTwistBodyCallback, this);
         optitrack_sub = nh.subscribe("/optitrack_client/Drone/optitrack_pose", 1,
@@ -56,7 +58,7 @@ void DroneNavigationNodePixhawk::initTopics(ros::NodeHandle &nh) {
 }
 
 void DroneNavigationNodePixhawk::kalmanStep() {
-    if (received_pixhawk) {
+    if (received_pixhawk && initialized_orientation) {
         if ((received_optitrack || use_gps) && current_fsm.state_machine == drone_gnc::FSM::IDLE) {
             origin = measured_drone_state.segment(0, 3);
         }
@@ -108,9 +110,19 @@ void DroneNavigationNodePixhawk::pixhawkEKFCallback(const nav_msgs::Odometry::Co
 
 // Callback function to store last received state
 void DroneNavigationNodePixhawk::pixhawkPoseCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
-    measured_drone_state.segment(6, 4)
-            << pose->pose.orientation.x, pose->pose.orientation.y, pose->pose.orientation.z, pose->pose.orientation.w;
+    if (!initialized_orientation && (ros::Time::now().toSec() - init_time) > 3) {
+        initial_orientation.coeffs()
+                << pose->pose.orientation.x, pose->pose.orientation.y, pose->pose.orientation.z, pose->pose.orientation.w;
+        initialized_orientation = true;
+    }
+    if(initialized_orientation){
+        Quaterniond orientation;
+        orientation.coeffs()
+                << pose->pose.orientation.x, pose->pose.orientation.y, pose->pose.orientation.z, pose->pose.orientation.w;
 
+        measured_drone_state.segment(6, 4) = (initial_orientation.inverse()*orientation).coeffs();
+    }
+//    measured_drone_state.segment(6, 4) = orientation.coeffs();
     received_pixhawk = true;
 }
 
@@ -122,32 +134,23 @@ void DroneNavigationNodePixhawk::pixhawkTwistBodyCallback(const geometry_msgs::T
 
 // Callback function to store last received state
 void DroneNavigationNodePixhawk::pixhawkTwistLocalCallback(const geometry_msgs::TwistStamped::ConstPtr &twist) {
-    measured_drone_state.segment(3, 3) << twist->twist.linear.x, twist->twist.linear.y, twist->twist.linear.z;
+    if (initialized_orientation) {
+        Vector3d raw_velocity;
+        raw_velocity << twist->twist.linear.x, twist->twist.linear.y, twist->twist.linear.z;
+        Vector3d velocity = initial_orientation.inverse()._transformVector(raw_velocity);
+        measured_drone_state.segment(3, 3) = velocity;
+    }
 }
 
 // Callback function to store last received state
 void DroneNavigationNodePixhawk::optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose) {
-    if (received_pixhawk) {
-        if (!initialized_orientation) {
-            initial_orientation.coeffs() << measured_drone_state.segment(6, 4);
-            initialized_orientation = true;
-        }
-
-        Vector<double, 3> raw_position;
-        raw_position << pose->pose.position.x, pose->pose.position.y, 0;
-
-        Vector<double, 3> absolute_position = initial_orientation._transformVector(raw_position);
-
-        measured_drone_state.head(3) << absolute_position(0), absolute_position(1), pose->pose.position.z;
-
-        received_optitrack = true;
-    }
-
+    measured_drone_state.head(3) << -pose->pose.position.x, -pose->pose.position.y, pose->pose.position.z;
+    received_optitrack = true;
 }
 
 void DroneNavigationNodePixhawk::controlCallback(const drone_gnc::DroneControl::ConstPtr &control) {
     current_control = *control;
-    if(!kalman.received_control){
+    if (!kalman.received_control) {
         kalman.startParamEstimation();
     }
 }

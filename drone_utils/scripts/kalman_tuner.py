@@ -27,7 +27,7 @@ for topic, msg, t in bag.read_messages(topics=['/drone_state']):
         time_init = msg.header.stamp.to_sec()
     t_end = msg.header.stamp.to_sec()
 
-reorder_bag(bag_name)
+# reorder_bag(bag_name)
 
 
 kalman_state_history = read_state_history(bag, '/drone_state', time_init, t_end)

@@ -33,6 +33,7 @@ private:
     Eigen::Quaterniond initial_orientation;
     bool use_gps;
     bool update_trigger = false;
+    double init_time;
 
     ros::Publisher kalman_pub;
     ros::Publisher computation_time_pub;
