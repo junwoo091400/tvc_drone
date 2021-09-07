@@ -194,8 +194,14 @@ add_subdirectory(src/guidance)
 add_subdirectory(src/models)
 add_subdirectory(src/navigation)
 add_subdirectory(src/utils/drone_dome)
+
 add_subdirectory(submodule/polympc)
 
+set_source_files_properties(
+        submodule/polympc
+        PROPERTIES
+        COMPILE_FLAGS "-w"
+)
 
 #############
 ## Install ##

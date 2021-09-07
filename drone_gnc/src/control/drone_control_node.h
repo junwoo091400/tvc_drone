@@ -14,7 +14,6 @@
 #include "std_msgs/Float64.h"
 
 #include "drone_gnc/GetFSM.h"
-#include "drone_gnc/GetWaypoint.h"
 #include "backup_controller.hpp"
 
 #include <mutex>
@@ -72,7 +71,6 @@ private:
     bool received_state = false;
     drone_gnc::DroneState current_state;
     geometry_msgs::Vector3 target_apogee;
-    drone_gnc::GetWaypoint srv_waypoint;
     bool fixed_guidance;
     bool track_guidance;
 

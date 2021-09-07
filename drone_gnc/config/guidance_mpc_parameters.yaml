@@ -16,7 +16,7 @@ min_z: 0
 min_dz: -1
 
 max_dx: 10
-max_dz: 1
+max_dz: 10
 
 # scaling
 scaling_x: 10

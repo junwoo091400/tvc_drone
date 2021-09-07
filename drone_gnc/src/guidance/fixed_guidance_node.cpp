@@ -14,7 +14,6 @@
 #include "std_msgs/Float64.h"
 
 #include "drone_gnc/GetFSM.h"
-#include "drone_gnc/GetWaypoint.h"
 
 #include <time.h>
 
