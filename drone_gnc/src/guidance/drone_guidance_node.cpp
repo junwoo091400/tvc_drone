@@ -141,9 +141,7 @@ void DroneGuidanceNode::publishTrajectory() {
     drone_gnc::Trajectory trajectory_msg;
     drone_gnc::DroneTrajectory horizon_msg;
 
-    double traj_length = drone_mpc.solution_p()(0);
-
-    for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
+    for (int i = 0; i < DroneGuidanceMPC::num_nodes; i++) {
         Drone::state state_val = drone_mpc.solution_x_at(i);
 
         drone_gnc::Waypoint point;
@@ -181,12 +179,12 @@ void DroneGuidanceNode::publishTrajectory() {
         drone_gnc::DroneWaypointStamped state_msg_stamped;
         state_msg_stamped.state = state_msg;
         state_msg_stamped.control = control_msg;
-        state_msg_stamped.header.stamp = time_compute_start + ros::Duration(drone_mpc.node_time(i) * traj_length);
+        state_msg_stamped.header.stamp = time_compute_start + ros::Duration(drone_mpc.node_time(i));
         state_msg_stamped.header.frame_id = ' ';
 
         horizon_msg.trajectory.push_back(state_msg_stamped);
     }
-    horizon_msg.num_node = drone_mpc.ocp().NUM_NODES;
+    horizon_msg.num_node = DroneGuidanceMPC::num_nodes;
     horizon_msg.num_segment = NUM_SEG;
 
     horizon_viz_pub.publish(trajectory_msg);

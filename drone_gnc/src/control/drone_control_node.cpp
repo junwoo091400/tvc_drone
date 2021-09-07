@@ -189,7 +189,7 @@ void DroneControlNode::sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC
 
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
         //scaled time;
-        double t = (time_delta + drone_mpc.time_grid(i)*drone_mpc.ocp().horizon_length + drone_mpc.mpc_period) / (guidance_tf - guidance_t0);
+        double t = (time_delta + drone_mpc.node_time(i) + drone_mpc.mpc_period) / (guidance_tf - guidance_t0);
 
         //Clip between 0 and 1;
         t = max(min(t, 1.0), 0.0);
@@ -218,7 +218,7 @@ DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMP
     double time_delta = std::min(time_now - start_time, time_now - guidance_t0);
 
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
-        double t = time_delta + drone_mpc.time_grid(i)*drone_mpc.ocp().horizon_length;
+        double t = time_delta + drone_mpc.node_time(i);
         //TODO remove constants
         double idx = t * GUIDANCE_NUM_NODE / (guidance_tf - guidance_t0);
 
@@ -270,21 +270,8 @@ void DroneControlNode::computeControl() {
 
     //TODO
     if (isnan(drone_mpc.solution_x_at(0)(0))) {
-
+        drone_mpc.reset();
         ROS_ERROR("MPC ISSUE\n");
-        DroneMPC::ocp_state x0;
-        x0 << 0, 0, 0,
-                0, 0, 0,
-                0, 0, 0, 1,
-                0, 0, 0;
-        drone_mpc.x_guess(x0.cwiseProduct(drone_mpc.ocp().x_scaling_vec).replicate(drone_mpc.ocp().NUM_NODES, 1));
-        DroneMPC::ocp_control u0;
-        u0 << 0, 0, drone->getHoverSpeedAverage(), 0;
-        drone_mpc.u_guess(u0.cwiseProduct(drone_mpc.ocp().u_scaling_vec).replicate(drone_mpc.ocp().NUM_NODES, 1));
-
-        DroneMPC::dual_var_t dual;
-        dual.setZero();
-        drone_mpc.lam_guess(dual);
     }
 
 }
@@ -302,10 +289,10 @@ void DroneControlNode::publishFeedforwardControl() {
 
 void DroneControlNode::publishTrajectory() {
 
-    // Send optimal trajectory computed by control. Send only position for now
+    // Send optimal trajectory computed by control. Send onlys position for now
     drone_gnc::Trajectory trajectory_msg;
     drone_gnc::DroneTrajectory horizon_msg;
-    for (int i = 0; i < drone_mpc.ocp().NUM_NODES; i++) {
+    for (int i = 0; i < DroneMPC::num_nodes; i++) {
         Drone::state state_val = drone_mpc.solution_x_at(i);
 //            Drone::state state_val = drone_mpc.ocp().targetTrajectory.col(i);
 
@@ -384,13 +371,11 @@ void DroneControlNode::fetchNewTarget() {
         for (int i = 0; i < DroneMPC::num_nodes; i++) {
             mpc_target_control_traj.col(i) = target_control;
         }
-        drone_mpc.ocp().horizon_length = max(1e-3, min(guidance_tf-ros::Time::now().toSec()-drone_mpc.mpc_period, drone_mpc.horizon_length));
+        drone_mpc.setHorizonLength(guidance_tf-ros::Time::now().toSec()-drone_mpc.mpc_period);
     }
 
-    //assign while scaling
-    drone_mpc.ocp().target_state_trajectory = drone_mpc.ocp().x_drone_scaling_vec.asDiagonal() * mpc_target_state_traj;
-    drone_mpc.ocp().target_control_trajectory =
-            drone_mpc.ocp().u_drone_scaling_vec.asDiagonal() * mpc_target_control_traj;
+    drone_mpc.setTargetStateTrajectory(mpc_target_state_traj);
+    drone_mpc.setTargetControlTrajectory(mpc_target_control_traj);
 }
 
 void DroneControlNode::saveDebugInfo() {

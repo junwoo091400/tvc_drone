@@ -8,12 +8,14 @@
 
 #include "polympc_redef.hpp"
 
-class DroneMPC : public MPC<DroneControlOCP, Solver> {
+class DroneMPC : private MPC<DroneControlOCP, Solver> {
 
 public:
     using ocp_state = state_t;
     using ocp_control = control_t;
     using ocp_constraint = constraint_t;
+
+    using MPC::num_nodes;
 
     DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
 
@@ -29,9 +31,19 @@ public:
 
     Drone::control solution_u_at(const int t);
 
+    void setHorizonLength(double horizon_length);
+
     double node_time(int i);
 
+    using MPC::info;
+
+    void reset();
+
     void integrateX0(const Drone::state x0, Drone::state &new_x0);
+
+    void setTargetStateTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> target_state_trajectory);
+    void setTargetControlTrajectory(Matrix<double, Drone::NU, DroneMPC::num_nodes> target_control_trajectory);
+
 
     std::shared_ptr<Drone> drone;
     double mpc_period;
@@ -39,7 +51,7 @@ public:
     double fixed_computation_time;
     double last_computation_time = 0;
     double init_time;
-    double horizon_length;
+    double max_horizon_length;
 
 private:
     void warmStart();

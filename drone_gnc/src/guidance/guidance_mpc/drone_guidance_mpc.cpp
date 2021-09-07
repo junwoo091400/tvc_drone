@@ -226,7 +226,7 @@ Drone::control DroneGuidanceMPC::solution_u_at(const int t) {
 }
 
 double DroneGuidanceMPC::node_time(int i) {
-    return time_grid(i);
+    return time_grid(i) * solution_p()(0);
 }
 
 void DroneGuidanceMPC::solve(Drone::state &x0_full) {

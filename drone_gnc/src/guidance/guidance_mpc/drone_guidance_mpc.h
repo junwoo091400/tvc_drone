@@ -8,7 +8,7 @@
 
 #include "guidance_polympc_redef.hpp"
 
-class DroneGuidanceMPC : public MPC<DroneGuidanceOCP, Solver> {
+class DroneGuidanceMPC : private MPC<DroneGuidanceOCP, Solver> {
 
 public:
     using ocp_state = state_t;
@@ -17,6 +17,8 @@ public:
 
     Drone::state target_apogee;
     Drone::state target_land;
+
+    using MPC::num_nodes;
 
     DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
 
@@ -30,6 +32,8 @@ public:
 
     Drone::control solution_u_at(const int t);
 
+    using MPC::solution_p;
+
     void setDescentConstraints();
 
     double node_time(int i);
@@ -37,6 +41,8 @@ public:
     void precomputeDescent();
 
     void warmStartDescent();
+
+    using MPC::info;
 
     std::shared_ptr<Drone> drone;
     double last_computation_time = 0;
