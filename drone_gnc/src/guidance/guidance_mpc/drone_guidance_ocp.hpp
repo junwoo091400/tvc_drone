@@ -84,7 +84,7 @@ public:
                     drone->max_propeller_speed;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
-            R << thrust_cost, lateral_force, lateral_force;
+            R << lateral_force, lateral_force, thrust_cost;
 
             u_unscaling_vec.setOnes();
             u_scaling_vec.setOnes();

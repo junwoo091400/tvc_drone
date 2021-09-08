@@ -72,7 +72,12 @@ void DroneGuidanceNode::run() {
                     startDescent();
                 }
             } else {
-                publishTrajectory();
+                if(current_fsm.state_machine == drone_gnc::FSM::DESCENT && current_state.twist.linear.z > 0){
+
+                }
+                else{
+                    publishTrajectory();
+                }
             }
         }
     }

@@ -221,7 +221,7 @@ Drone::state DroneGuidanceMPC::solution_x_at(const int t) {
 
 Drone::control DroneGuidanceMPC::solution_u_at(const int t) {
     Drone::control sol;
-    sol << MPC::solution_u_at(t).cwiseProduct(ocp().u_unscaling_vec), 0;
+    sol << 0, 0, MPC::solution_u_at(t)(2), 0;
     return sol;
 }
 
@@ -281,16 +281,16 @@ void DroneGuidanceMPC::warmStartDescent() {
 }
 
 void DroneGuidanceMPC::setDescentConstraints(){
-//    ocp_control lbu, ubu;
-//    lbu << -ocp().max_fx, -ocp().max_fx,
-//           60; // lower bound on control
-//    ubu << ocp().max_fx, ocp().max_fx,
-//            drone->max_propeller_speed; // upper bound on control
-//    control_bounds(lbu, ubu);
-//
-//    lbu << 0, 0,
-//            60; // lower bound on control
-//    ubu << 0, 0,
-//            drone->max_propeller_speed; // upper bound on control
-//    final_control_bounds(lbu, ubu);
+    ocp_control lbu, ubu;
+    lbu << -ocp().max_fx, -ocp().max_fx,
+           60; // lower bound on control
+    ubu << ocp().max_fx, ocp().max_fx,
+            drone->max_propeller_speed; // upper bound on control
+    control_bounds(lbu, ubu);
+
+    lbu << 0, 0,
+            60; // lower bound on control
+    ubu << 0, 0,
+            drone->max_propeller_speed; // upper bound on control
+    final_control_bounds(lbu, ubu);
 }

@@ -60,7 +60,7 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
 
 void DroneControlNode::run() {
     bool emergency_stop_enabled = false;
-    if (emergency_stop && emergency_stop_enabled) {
+    if ((emergency_stop && emergency_stop_enabled)) {
         drone_gnc::DroneControl drone_control;
         drone_control.top = 0;
         drone_control.bottom = 0;

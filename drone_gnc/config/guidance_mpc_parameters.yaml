@@ -9,25 +9,25 @@ input_costs:
   thrust: 1
   lateral_force: 0.1
 
-horizontal_slack: 50
+horizontal_slack: 5
 
 # constraints (+ used for scaling)
 min_z: 0
-min_dz: -1
+min_dz: -10
 
 max_dx: 10
-max_dz: 10
+max_dz: 20
 
 # scaling
 scaling_x: 10
 scaling_z: 30
 
-max_fx: 3
+max_fx: 30
 
 max_horizon_length: 30.0
 
 max_sqp_iter: 1
-max_qp_iter: 500
+max_qp_iter: 3000
 max_line_search_iter: 5
 
 weight_scaling: 1
