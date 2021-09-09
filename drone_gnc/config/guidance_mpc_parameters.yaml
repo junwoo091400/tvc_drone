@@ -13,7 +13,7 @@ horizontal_slack: 5
 
 # constraints (+ used for scaling)
 min_z: 0
-min_dz: -10
+min_dz: -2
 
 max_dx: 10
 max_dz: 20
@@ -27,7 +27,7 @@ max_fx: 30
 max_horizon_length: 30.0
 
 max_sqp_iter: 1
-max_qp_iter: 3000
+max_qp_iter: 500
 max_line_search_iter: 5
 
 weight_scaling: 1
