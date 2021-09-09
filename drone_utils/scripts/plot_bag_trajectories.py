@@ -5,7 +5,7 @@ import rospkg
 import numpy as np
 import matplotlib.pyplot as plt
 
-USE_LATEX = False
+USE_LATEX = True
 
 if USE_LATEX:
     plt.rc('font', family='serif', serif='cm10')
@@ -73,38 +73,38 @@ plot_ranges = {
     "mz": [-1, 1],
 }
 
-state_plot_indexes = {
-    (0, 0): [("t", "z")],
-    (0, 1): [("t", "y")],
-    (0, 2): [("t", "z")],
-
-    (1, 0): [("t", "dx")],
-    (1, 1): [("t", "dy")],
-    (1, 2): [("t", "dz")],
-
-    (2, 0): [("t", "yaw (x)")],
-    (2, 1): [("t", "pitch (y)")],
-    (2, 2): [("t", "roll (z)")],
-
-    (3, 0): [("t", "dyaw (x)")],
-    (3, 1): [("t", "dpitch (y)")],
-    (3, 2): [("t", "droll (z)")],
-}
-control_plot_indexes = {
-    (4, 0): [("t", "bottom"), ("t", "top")],
-    (4, 1): [("t", "servo1")],
-    (4, 2): [("t", "servo2")],
-}
-
-fig, axe = plt.subplots(5, 3, figsize=(15, 10))
-
 # state_plot_indexes = {
-#     (0, 0): [("y", "z")],
+#     (0, 0): [("t", "z")],
+#     (0, 1): [("t", "y")],
+#     (0, 2): [("t", "z")],
+#
+#     (1, 0): [("t", "dx")],
+#     (1, 1): [("t", "dy")],
+#     (1, 2): [("t", "dz")],
+#
+#     (2, 0): [("t", "yaw (x)")],
+#     (2, 1): [("t", "pitch (y)")],
+#     (2, 2): [("t", "roll (z)")],
+#
+#     (3, 0): [("t", "dyaw (x)")],
+#     (3, 1): [("t", "dpitch (y)")],
+#     (3, 2): [("t", "droll (z)")],
 # }
-# control_plot_indexes = {}
-# fig, axe = plt.subplots(1, 1, figsize=(5, 2.5))
-# axe = np.array([[axe]])
-# axe[0,0].axis('scaled')
+# control_plot_indexes = {
+#     (4, 0): [("t", "bottom"), ("t", "top")],
+#     (4, 1): [("t", "servo1")],
+#     (4, 2): [("t", "servo2")],
+# }
+#
+# fig, axe = plt.subplots(5, 3, figsize=(15, 10))
+
+state_plot_indexes = {
+    (0, 0): [("x", "z")],
+}
+control_plot_indexes = {}
+fig, axe = plt.subplots(1, 1, figsize=(5, 2.5))
+axe = np.array([[axe]])
+axe[0,0].axis('scaled')
 
 # state_plot_indexes = {
 #     (0, 0): [("t", "x")],
@@ -124,6 +124,13 @@ plot_history(kalman_state_history, state_plot_indexes, axe, r"EKF estimated stat
 
 plot_history(control_history, control_plot_indexes, axe, "control")
 
+from numpy.polynomial import Chebyshev
+deg = 6
+horizon_length = 1.5
+t_chebyshev = [(1-np.cos(i*np.pi/deg))/2*horizon_length for i in range(deg+1)]
+def resample_chebyshev(x, n_points=50):
+    p = Chebyshev.fit(t_chebyshev, x, deg=deg)
+    return p(np.linspace(0, horizon_length, n_points))
 
 def plot_horizon_segment(t):
     time_val = t
@@ -138,7 +145,7 @@ def plot_horizon_segment(t):
                 x_data = state_history[:, var_indexes[x_name]]
                 y_data = state_history[:, var_indexes[y_name]]
                 axe[plot_idx].scatter([x_data[0]], [y_data[0]], s=15, marker='x', alpha=0.2, c='k')
-                axe[plot_idx].plot(x_data, y_data, 'g-', label='_nolegend_')
+                axe[plot_idx].plot(resample_chebyshev(x_data), resample_chebyshev(y_data), 'g-', label='_nolegend_')
 
 
 PLOT_HORIZON_SEGMENTS = True

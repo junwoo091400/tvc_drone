@@ -18,16 +18,18 @@ PERIODIC_SEQUENCE = False
 RESET_ROLL = False
 
 # TIME_SEQUENCE = [2, 2]
-SERVO1_SEQUENCE = []
-SERVO2_SEQUENCE = []
+SERVO1_SEQUENCE = [0]
+SERVO2_SEQUENCE = [5]
 
 TOP_SEQUENCE = []
 BOTTOM_SEQUENCE = []
 TOP_SEQUENCE = [0, 5]
 BOTTOM_SEQUENCE = [0, 5]
 
-TOP_SEQUENCE = [0, 0] + list(range(30, 71, 5))
-BOTTOM_SEQUENCE = [0, 0] + list(range(30, 71, 5))
+TOP_SEQUENCE = [0, 0] + list(range(20, 96, 5))
+BOTTOM_SEQUENCE = [0, 0] + list(range(20, 96, 5))
+TOP_SEQUENCE = [0, 0, 20, 90]
+BOTTOM_SEQUENCE = [0, 0, 20, 90]
 TIME_SEQUENCE = (len(BOTTOM_SEQUENCE))*[2]
 
 # AVERAGE_SEQ = range(30, 81, 5)
@@ -78,11 +80,6 @@ if __name__ == '__main__':
 
     rospy.Subscriber("/sensors", Sensor, sensorsCallback)
 
-    rospy.wait_for_service('/getFSM_gnc')
-    client_fsm = rospy.ServiceProxy('/getFSM_gnc', GetFSM)
-
-    coast_pub = rospy.Publisher('/commands', String, queue_size=10)
-
     info_pub = rospy.Publisher('/info_pub', String, queue_size=10)
 
     control_law = DroneControl()
@@ -101,58 +98,48 @@ if __name__ == '__main__':
 
     info_pub.publish("starting")
     while not rospy.is_shutdown():
-        resp = client_fsm()
-        current_fsm = resp.fsm
         # rospy.loginfo(current_fsm)
         control_law.servo1 = 0
         control_law.servo2 = 0
         control_law.top = 0
         control_law.bottom = 0
-        # print(seq_idx)
-        # current_fsm.state_machine = "Launch"
-        if current_fsm.state_machine == "Idle":
-            pass
-        elif current_fsm.state_machine == "Launch" and seq_idx != -10:
-            pd_control = 0
-            if seq_time_start is None:
-                seq_time_start = current_fsm.time_now
-            if current_fsm.time_now - seq_time_start > TIME_SEQUENCE[seq_idx]:
-                print("test")
-                if RESET_ROLL and abs(roll_speed) > 0.8:
-                    info_pub.publish("resetting_roll")
-                    kp = 4
-                    kd = 0
-                    # previous_roll_speed = previous_state.twist.angular.z
-                    dt = current_fsm.time_now - previous_t
-                    pd_control = -roll_speed * kp - (roll_speed - previous_roll_speed)/dt * kd
+        pd_control = 0
+        if seq_time_start is None:
+            seq_time_start = rospy.get_rostime().to_sec()
+        if rospy.get_rostime().to_sec() - seq_time_start > TIME_SEQUENCE[seq_idx]:
+            if RESET_ROLL and abs(roll_speed) > 0.8:
+                info_pub.publish("resetting_roll")
+                kp = 4
+                kd = 0
+                # previous_roll_speed = previous_state.twist.angular.z
+                dt = rospy.get_rostime().to_sec() - previous_t
+                pd_control = -roll_speed * kp - (roll_speed - previous_roll_speed)/dt * kd
 
-                    pd_control = max(min(pd_control, 35), -35)
-                    rospy.loginfo(str(pd_control))
-                    print("acc_roll", (roll_speed - previous_roll_speed)/dt)
-                else:
-                    info_pub.publish("starting")
-                    seq_idx += 1
-                    seq_time_start = current_fsm.time_now
-                    if seq_idx >= len(TIME_SEQUENCE):
-                        if PERIODIC_SEQUENCE:
-                            seq_idx = 0
-                        else:
-                            seq_idx = -10
-                            coast_command = String("Coast")
-                            coast_pub.publish(coast_command)
-                            continue
-            control_law.servo1 = (SERVO1_SEQUENCE[seq_idx] if seq_idx < len(SERVO1_SEQUENCE) else 0) * np.pi / 180
-            control_law.servo2 = (SERVO2_SEQUENCE[seq_idx] if seq_idx < len(SERVO2_SEQUENCE) else 0) * np.pi / 180
-            control_law.top = (TOP_SEQUENCE[seq_idx] if seq_idx < len(TOP_SEQUENCE) else 0)
-            control_law.bottom = (BOTTOM_SEQUENCE[seq_idx] if seq_idx < len(BOTTOM_SEQUENCE) else 0)
+                pd_control = max(min(pd_control, 35), -35)
+                rospy.loginfo(str(pd_control))
+                print("acc_roll", (roll_speed - previous_roll_speed)/dt)
+            else:
+                info_pub.publish("starting")
+                print(seq_idx)
+                seq_idx += 1
+                seq_time_start = rospy.get_rostime().to_sec()
+                if seq_idx >= len(TIME_SEQUENCE):
+                    if PERIODIC_SEQUENCE:
+                        seq_idx = 0
+                    else:
+                        seq_idx = -10
+                        coast_command = String("Coast")
+                        continue
+        control_law.servo1 = (SERVO1_SEQUENCE[seq_idx] if seq_idx < len(SERVO1_SEQUENCE) else SERVO1_SEQUENCE[0]) * np.pi / 180
+        control_law.servo2 = (SERVO2_SEQUENCE[seq_idx] if seq_idx < len(SERVO2_SEQUENCE) else SERVO2_SEQUENCE[0]) * np.pi / 180
+        control_law.top = (TOP_SEQUENCE[seq_idx] if seq_idx < len(TOP_SEQUENCE) else 0)
+        control_law.bottom = (BOTTOM_SEQUENCE[seq_idx] if seq_idx < len(BOTTOM_SEQUENCE) else 0)
+        print(control_law.bottom, control_law.top, control_law.servo1, control_law.servo2)
 
-            # TODO check orientation
-            if pd_control != 0:
-                control_law.top = AVERAGE_SEQ_REP[seq_idx] - pd_control
-                control_law.bottom = AVERAGE_SEQ_REP[seq_idx] + pd_control
+        # # TODO check orientation
+        # if pd_control != 0:
+        #     control_law.top = AVERAGE_SEQ_REP[seq_idx] - pd_control
+        #     control_law.bottom = AVERAGE_SEQ_REP[seq_idx] + pd_control
 
-            previous_t = current_fsm.time_now
-
-        elif current_fsm.state_machine == "Coast":
-            pass
+        previous_t = rospy.get_rostime().to_sec()
         drone_control_pub.publish(control_law)

@@ -20,15 +20,15 @@
     </group>
 
 <!--       <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">-->
-<!--           <rosparam param="speed">0.35</rosparam>-->
+<!--           <rosparam param="speed">0.4</rosparam>-->
 <!--           <rosparam param="scaling">1</rosparam>-->
-<!--           <rosparam param="rotation_angle">0</rosparam>-->
+<!--           <rosparam param="rotation_angle">90</rosparam>-->
 <!--       </node>-->
 
     <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen"
           launch-prefix="taskset -c 1">
-        <rosparam param="target_apogee">[0, 0, 1.5]</rosparam>
-        <rosparam param="target_land">[0, 0, 0.2]</rosparam>
+        <rosparam param="target_apogee">[0, 0, 2]</rosparam>
+        <rosparam param="target_land">[0, 0, 0.5]</rosparam>
     </node>
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" output="screen"

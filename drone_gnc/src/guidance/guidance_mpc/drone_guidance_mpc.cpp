@@ -214,7 +214,8 @@ Drone::state DroneGuidanceMPC::solution_x_at(const int t) {
     unit_z << 0, 0, 1;
     Quaterniond tangent_orientation = Quaterniond::FromTwoVectors(unit_z, tangent);
     state_sol << sol,
-            tangent_orientation.coeffs(),
+//            tangent_orientation.coeffs(),
+            0, 0, 0, 1,
             0, 0, 0;
     return state_sol;
 }
