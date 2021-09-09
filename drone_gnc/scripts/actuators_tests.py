@@ -28,8 +28,8 @@ BOTTOM_SEQUENCE = [0, 5]
 
 TOP_SEQUENCE = [0, 0] + list(range(20, 96, 5))
 BOTTOM_SEQUENCE = [0, 0] + list(range(20, 96, 5))
-TOP_SEQUENCE = [0, 0, 20, 90]
-BOTTOM_SEQUENCE = [0, 0, 20, 90]
+# TOP_SEQUENCE = [0, 0, 20, 90]
+# BOTTOM_SEQUENCE = [0, 0, 20, 90]
 TIME_SEQUENCE = (len(BOTTOM_SEQUENCE))*[2]
 
 # AVERAGE_SEQ = range(30, 81, 5)

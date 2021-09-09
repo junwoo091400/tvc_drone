@@ -105,10 +105,10 @@ public:
         Rocket::generic_rocket_dynamics(x_body, thrust_vector, propeller_torque, dist_force, dist_torque, xdot_body);
     }
 
-    //thrust 3rd order model
-    const double a = 1.4902e-04;
-    const double b = 0.0143;
-    const double c = -0.0140;
+    //thrust 2rd order model
+    const double a = -0.000035075437403;
+    const double b = 0.029719658777622;
+    const double c = -0.341510545964088;
 
     const double g = 9.81;
 

@@ -49,7 +49,7 @@ max_servo2_angle: 15
 max_servo_rate: 100
 
 estimated:
-  thrust_scaling: 1
+  thrust_scaling: 1.05 #1.05 when close to ground, else 1
   torque_scaling: 1
   servo1_offset: 0
   servo2_offset: -5
