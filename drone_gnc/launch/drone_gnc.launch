@@ -23,7 +23,7 @@
 
     <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen"
           launch-prefix="taskset -c 2">
-        <rosparam param="target_apogee">[0, 0, 2]</rosparam>
+        <rosparam param="target_apogee">[0, 0, 10]</rosparam>
         <rosparam param="target_land">[0, 0, 0.3]</rosparam>
     </node>
 

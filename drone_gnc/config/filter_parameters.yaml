@@ -9,7 +9,7 @@ predict_vars:
   thrust_scaling: 0
   torque_scaling: 0.0001
   servo_offset: 0
-  disturbance_force: 30
+  disturbance_force: 10
   disturbance_force_z: 0
   disturbance_torque: 0.01
   disturbance_torque_z: 0.001
@@ -17,7 +17,7 @@ predict_vars:
 update_vars:
   optitrack_x: 0.01
   optitrack_att: 0.01
-  pixhawk_vel: 100
+  pixhawk_vel: 200
   pixhawk: 0.01
 
 period: 0.008

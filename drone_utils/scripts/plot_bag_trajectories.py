@@ -45,7 +45,7 @@ plot_ranges = {
     "t": [0, t_end - time_init],
     "x": [-1.5, 1.5],
     "y": [-1.5, 1.5],
-    "z": [0, 2],
+    "z": [0, 5],
     "dx": [-1.5, 1.5],
     "dy": [-1.5, 1.5],
     "dz": [-1.5, 5],
@@ -73,38 +73,38 @@ plot_ranges = {
     "mz": [-1, 1],
 }
 
-# state_plot_indexes = {
-#     (0, 0): [("t", "z")],
-#     (0, 1): [("t", "y")],
-#     (0, 2): [("t", "z")],
-#
-#     (1, 0): [("t", "dx")],
-#     (1, 1): [("t", "dy")],
-#     (1, 2): [("t", "dz")],
-#
-#     (2, 0): [("t", "yaw (x)")],
-#     (2, 1): [("t", "pitch (y)")],
-#     (2, 2): [("t", "roll (z)")],
-#
-#     (3, 0): [("t", "dyaw (x)")],
-#     (3, 1): [("t", "dpitch (y)")],
-#     (3, 2): [("t", "droll (z)")],
-# }
-# control_plot_indexes = {
-#     (4, 0): [("t", "bottom"), ("t", "top")],
-#     (4, 1): [("t", "servo1")],
-#     (4, 2): [("t", "servo2")],
-# }
-#
-# fig, axe = plt.subplots(5, 3, figsize=(15, 10))
-
 state_plot_indexes = {
-    (0, 0): [("x", "z")],
+    (0, 0): [("t", "z")],
+    (0, 1): [("t", "y")],
+    (0, 2): [("t", "z")],
+
+    (1, 0): [("t", "dx")],
+    (1, 1): [("t", "dy")],
+    (1, 2): [("t", "dz")],
+
+    (2, 0): [("t", "yaw (x)")],
+    (2, 1): [("t", "pitch (y)")],
+    (2, 2): [("t", "roll (z)")],
+
+    (3, 0): [("t", "dyaw (x)")],
+    (3, 1): [("t", "dpitch (y)")],
+    (3, 2): [("t", "droll (z)")],
 }
-control_plot_indexes = {}
-fig, axe = plt.subplots(1, 1, figsize=(5, 2.5))
-axe = np.array([[axe]])
-axe[0,0].axis('scaled')
+control_plot_indexes = {
+    (4, 0): [("t", "bottom"), ("t", "top")],
+    (4, 1): [("t", "servo1")],
+    (4, 2): [("t", "servo2")],
+}
+
+fig, axe = plt.subplots(5, 3, figsize=(15, 10))
+
+# state_plot_indexes = {
+#     (0, 0): [("x", "z")],
+# }
+# control_plot_indexes = {}
+# fig, axe = plt.subplots(1, 1, figsize=(5, 2.5))
+# axe = np.array([[axe]])
+# axe[0,0].axis('scaled')
 
 # state_plot_indexes = {
 #     (0, 0): [("t", "x")],
