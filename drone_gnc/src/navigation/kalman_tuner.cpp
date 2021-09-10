@@ -181,14 +181,12 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
 
             kalman_state.thrust_scaling = kalman->X(13);
             kalman_state.torque_scaling = kalman->X(14);
-            kalman_state.servo1_offset = kalman->X(15);
-            kalman_state.servo2_offset = kalman->X(16);
-            kalman_state.disturbance_force.x = kalman->X(17);
-            kalman_state.disturbance_force.y = kalman->X(18);
-            kalman_state.disturbance_force.z = kalman->X(19);
-            kalman_state.disturbance_torque.x = kalman->X(20);
-            kalman_state.disturbance_torque.y = kalman->X(21);
-            kalman_state.disturbance_torque.z = kalman->X(22);
+            kalman_state.disturbance_force.x = kalman->X(15);
+            kalman_state.disturbance_force.y = kalman->X(16);
+            kalman_state.disturbance_force.z = kalman->X(17);
+            kalman_state.disturbance_torque.x = kalman->X(18);
+            kalman_state.disturbance_torque.y = kalman->X(19);
+            kalman_state.disturbance_torque.z = kalman->X(20);
 
             kalman_state.header.stamp = ros::Time(current_time);
 

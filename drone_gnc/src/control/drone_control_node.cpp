@@ -259,7 +259,6 @@ void DroneControlNode::computeControl() {
 
     drone_mpc.drone->setParams(current_state.thrust_scaling,
                                current_state.torque_scaling,
-                               current_state.servo1_offset, current_state.servo2_offset,
                                current_state.disturbance_force.x, current_state.disturbance_force.y,
                                current_state.disturbance_force.z,
                                current_state.disturbance_torque.x, current_state.disturbance_torque.y,

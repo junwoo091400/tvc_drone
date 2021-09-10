@@ -3,7 +3,5 @@ geometry_msgs/Twist twist
 geometry_msgs/Pose pose
 float64 thrust_scaling
 float64 torque_scaling
-float64 servo1_offset
-float64 servo2_offset
 geometry_msgs/Vector3 disturbance_force
 geometry_msgs/Vector3 disturbance_torque

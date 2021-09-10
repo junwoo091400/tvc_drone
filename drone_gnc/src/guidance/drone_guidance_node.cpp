@@ -134,7 +134,6 @@ void DroneGuidanceNode::computeTrajectory() {
 
     drone_mpc.drone->setParams(current_state.thrust_scaling,
                                current_state.torque_scaling,
-                               current_state.servo1_offset, current_state.servo2_offset,
                                0, 0, 0,
                                0, 0, 0);
 

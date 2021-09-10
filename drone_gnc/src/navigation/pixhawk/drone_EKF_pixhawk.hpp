@@ -14,7 +14,7 @@ class DroneEKFPixhawk : public DroneEKF<DroneEKFPixhawk, 13> {
 public:
     DroneEKFPixhawk(ros::NodeHandle &nh): DroneEKF(nh) {
 
-        double x_var, dx_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, servo_offset_var, disturbance_force_var, disturbance_force_z_var, disturbance_torque_var, disturbance_torque_z_var;
+        double x_var, dx_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, disturbance_force_var, disturbance_force_z_var, disturbance_torque_var, disturbance_torque_z_var;
         double x_optitrack_var, pixhawk_var, pixhawk_vel_var;
         if (nh.getParam("predict_vars/x", x_var) &&
             nh.getParam("predict_vars/dx", dx_var) &&
@@ -22,7 +22,6 @@ public:
             nh.getParam("predict_vars/datt", datt_var) &&
             nh.getParam("predict_vars/thrust_scaling", thrust_scaling_var) &&
             nh.getParam("predict_vars/torque_scaling", torque_scaling_var) &&
-            nh.getParam("predict_vars/servo_offset", servo_offset_var) &&
             nh.getParam("predict_vars/disturbance_force", disturbance_force_var) &&
             nh.getParam("predict_vars/disturbance_force_z", disturbance_force_z_var) &&
             nh.getParam("predict_vars/disturbance_torque", disturbance_torque_var) &&
@@ -38,7 +37,6 @@ public:
                     datt_var, datt_var, datt_var,
                     thrust_scaling_var,
                     torque_scaling_var,
-                    servo_offset_var, servo_offset_var,
                     disturbance_force_var, disturbance_force_var, disturbance_force_z_var,
                     disturbance_torque_var, disturbance_torque_var, disturbance_torque_z_var;
 

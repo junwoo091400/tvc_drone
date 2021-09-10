@@ -24,7 +24,7 @@ public:
     using state_t = Matrix<scalar_t, NX, 1>;
     using state = state_t<double>;
 
-    using ad_state = state_t<AutoDiffScalar<state_t<double>>>;
+    using ad_state = state_t<AutoDiffScalar<state>>;
 
     // Autodiff for sensor
     template<typename scalar_t>
@@ -39,7 +39,6 @@ public:
     ad_state ADx;
     bool estimate_params;
     bool received_control;
-
     DroneEKF(ros::NodeHandle &nh) : drone(nh) {
         std::vector<double> initial_state;
         nh.getParam("initial_state", initial_state);
@@ -49,15 +48,12 @@ public:
         nh.param("init_estimated_params", init_estimated_params, false);
 
         if (init_estimated_params) {
-            double thrust_scaling, torque_scaling, servo1_offset_degree, servo2_offset_degree;
+            double thrust_scaling, torque_scaling;
             nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
             nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
-            nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset_degree, 0);
-            nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset_degree, 0);
-
-            X0 << drone_X0, thrust_scaling, torque_scaling, servo1_offset_degree*M_PI/180, servo2_offset_degree*M_PI/180, 0, 0, 0, 0, 0, 0;
+            X0 << drone_X0, thrust_scaling, torque_scaling, 0, 0, 0, 0, 0, 0;
         } else {
-            X0 << drone_X0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
+            X0 << drone_X0, 1, 1, 0, 0, 0, 0, 0, 0;
         }
 
         nh.param("estimate_params", estimate_params, false);
@@ -126,7 +122,7 @@ public:
         }
 
         // assume parameters unchanged
-        xdot.segment(13, 10).setZero();
+        xdot.segment(Drone::NX, Drone::NP).setZero();
     }
 
     template<typename T>

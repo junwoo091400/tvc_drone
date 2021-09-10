@@ -104,7 +104,6 @@ Q_names = ['x', 'x', 'x',
            'datt', 'datt', 'datt',
            'thrust_scaling',
            'torque_scaling',
-           'servo_offset', 'servo_offset',
            'disturbance_force', 'disturbance_force', 'disturbance_force_z',
            'disturbance_torque', 'disturbance_torque', 'disturbance_torque_z']
 

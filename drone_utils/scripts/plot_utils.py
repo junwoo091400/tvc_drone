@@ -55,7 +55,7 @@ def convert_state_to_array(state):
                                 state.twist.angular.x*rad2deg, state.twist.angular.y*rad2deg, state.twist.angular.z*rad2deg,
                                 state.thrust_scaling,
                                 state.torque_scaling,
-                                state.servo1_offset*rad2deg, state.servo2_offset*rad2deg,
+                                0, 0,
                                 state.disturbance_force.x, state.disturbance_force.y, state.disturbance_force.z,
                                 state.disturbance_torque.x, state.disturbance_torque.y, state.disturbance_torque.z,
                                 ])
