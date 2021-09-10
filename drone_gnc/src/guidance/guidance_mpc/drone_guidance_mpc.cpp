@@ -115,7 +115,7 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
 
         traj_state_guess.row(2) = z_guess.reverse();
         traj_state_guess.row(5) = dz_guess.reverse();
-        traj_control_guess.row(2) = prop_av_guess.reverse();
+        traj_control_guess.row(0) = prop_av_guess.reverse();
 //        ROS_INFO_STREAM("traj guess " << traj_state_guess);
 //        ROS_INFO_STREAM("control guess " << traj_control_guess);
         //hack to make it fine if dz is small
@@ -139,8 +139,8 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
         traj_state_guess.row(1) = y_guess.reverse();
         traj_state_guess.row(3) = dx_guess.reverse();
         traj_state_guess.row(4) = dy_guess.reverse();
-        traj_control_guess.row(0) = fx_guess.reverse();
-        traj_control_guess.row(1) = fy_guess.reverse();
+        traj_control_guess.row(1).setZero();
+        traj_control_guess.row(2).setZero();
 
         p0 << t_end;
     } else {
@@ -222,7 +222,7 @@ Drone::state DroneGuidanceMPC::solution_x_at(const int t) {
 
 Drone::control DroneGuidanceMPC::solution_u_at(const int t) {
     Drone::control sol;
-    sol << 0, 0, MPC::solution_u_at(t)(2), 0;
+    sol << 0, 0, MPC::solution_u_at(t)(0), 0;
     return sol;
 }
 
@@ -264,7 +264,7 @@ void DroneGuidanceMPC::precomputeDescent() {
     setTarget(target_land, target_control);
     initGuess(target_apogee, target_land);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
         solve(target_apogee);
     }
 
@@ -282,16 +282,13 @@ void DroneGuidanceMPC::warmStartDescent() {
 }
 
 void DroneGuidanceMPC::setDescentConstraints(){
+    const double inf = std::numeric_limits<double>::infinity();
     ocp_control lbu, ubu;
-    lbu << -ocp().max_fx, -ocp().max_fx,
-           60; // lower bound on control
-    ubu << ocp().max_fx, ocp().max_fx,
-            drone->max_propeller_speed; // upper bound on control
+    lbu << 60, -inf, -ocp().max_attitude_angle; // lower bound on control
+    ubu << drone->max_propeller_speed, inf, ocp().max_attitude_angle; // upper bound on control=
     control_bounds(lbu, ubu);
 
-    lbu << 0, 0,
-            60; // lower bound on control
-    ubu << 0, 0,
-            drone->max_propeller_speed; // upper bound on control
+    lbu << 60, 0, 0; // lower bound on control
+    ubu << drone->max_propeller_speed, 0, 0; // upper bound on control=
     final_control_bounds(lbu, ubu);
 }

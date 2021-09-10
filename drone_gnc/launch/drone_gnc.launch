@@ -22,15 +22,15 @@
 <!--       </node>-->
 
     <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen"
-          launch-prefix="taskset -c 1">
-        <rosparam param="target_apogee">[0, 0, 2.5]</rosparam>
-        <rosparam param="target_land">[0, 0, 0.5]</rosparam>
+          launch-prefix="taskset -c 2">
+        <rosparam param="target_apogee">[0, 0, 2]</rosparam>
+        <rosparam param="target_land">[0, 0, 0.3]</rosparam>
     </node>
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" output="screen"
           launch-prefix="taskset -c 3">
-        <rosparam param="target_apogee">[0,0,2.5]</rosparam>
-        <rosparam param="track_guidance">false</rosparam>
+        <rosparam param="target_apogee">[0,0,2]</rosparam>
+        <rosparam param="track_guidance">true</rosparam>
     </node>
 
     <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" output="screen" cwd="node">
@@ -38,7 +38,7 @@
     </node>
 
     <node name="navigation" pkg="drone_gnc" type="drone_navigation_pixhawk" machine="gnc_machine"
-          output="screen" launch-prefix="taskset -c 2">
+          output="screen" launch-prefix="taskset -c 1">
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
         <rosparam param="estimate_params">true</rosparam>
         <rosparam param="init_estimated_params">true</rosparam>
