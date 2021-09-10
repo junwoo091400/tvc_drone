@@ -1,24 +1,24 @@
 # MPC parameters
 state_costs:
   x: 20
-  dx: 1
-  z: 10
-  dz: 1
-  att: 1000
-  datt: 1.0e-4
-  droll: 4
+  dx: 0.1
+  z: 20
+  dz: 30
+  att: 0.5
+  datt: 1
+  droll: 1
 
 input_costs:
-  servo: 0.01
+  servo: 5
   thrust: 0.001
   torque: 0.001
 
 # constraints (+ used for scaling)
 min_z: 0
-min_dz: -30
+min_dz: -3
 
 max_dx: 1.2
-max_dz: 3
+max_dz: 60
 max_datt: 0.6
 max_attitude_angle: 90
 
@@ -28,7 +28,7 @@ scaling_z: 4
 
 
 # speed/performance
-horizon_length: 2
+horizon_length: 1.5
 
 max_sqp_iter: 1
 max_qp_iter: 25
@@ -36,4 +36,4 @@ max_line_search_iter: 4
 mpc_period: 0.02
 feedforward_period: 0.02
 
-weight_scaling: 100
+weight_scaling: 64

@@ -108,8 +108,8 @@ Q_names = ['x', 'x', 'x',
            'disturbance_torque', 'disturbance_torque', 'disturbance_torque_z']
 
 R_names = ['optitrack_x', 'optitrack_x', 'optitrack_x',
+           'pixhawk_vel', 'pixhawk_vel', 'pixhawk_vel',
            'pixhawk', 'pixhawk', 'pixhawk', 'pixhawk',
-           'pixhawk', 'pixhawk', 'pixhawk',
            'pixhawk', 'pixhawk', 'pixhawk']
 
 fig_kalman, axe_kalman = plt.subplots(6, 4, figsize=(20, 10))

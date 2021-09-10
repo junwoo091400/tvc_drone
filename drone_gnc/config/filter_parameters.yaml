@@ -1,14 +1,14 @@
 # Kalman filter parameters
 predict_vars:
   x: 0.1
-  att: 0.2
+  att: 0.5
 
-  dx: 50
-  datt: 5
+  dx: 60
+  datt: 20
 
-  thrust_scaling: 0.0001
-  torque_scaling: 0.0001
-  disturbance_force: 10
+  thrust_scaling: 1.0e-8
+  torque_scaling: 1.0e-7
+  disturbance_force: 20
   disturbance_force_z: 1.0e-5
   disturbance_torque: 0.01
   disturbance_torque_z: 0.001

@@ -1,10 +1,10 @@
 # MPC parameters
 state_costs:
-  x: 50
+  x: 20
   dx: 1
-  z: 10
+  z: 2
   dz: 1
-  att: 10000
+  att: 100
   datt: 1.0e-4
   droll: 1
 
@@ -15,7 +15,7 @@ input_costs:
 
 # constraints (+ used for scaling)
 min_z: 0
-min_dz: -20
+min_dz: -1
 
 max_dx: 1.2
 max_dz: 3
@@ -31,9 +31,9 @@ scaling_z: 4
 horizon_length: 2
 
 max_sqp_iter: 1
-max_qp_iter: 15
+max_qp_iter: 25
 max_line_search_iter: 4
-mpc_period: 0.01
-feedforward_period: 0.01
+mpc_period: 0.02
+feedforward_period: 0.02
 
 weight_scaling: 100
