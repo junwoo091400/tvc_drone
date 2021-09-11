@@ -10,7 +10,7 @@ state_costs:
 
 input_costs:
   servo: 0.01
-  thrust: 0.001
+  thrust: 0.005
   torque: 0.001
 
 # constraints (+ used for scaling)
@@ -18,7 +18,7 @@ min_z: 0
 min_dz: -1
 
 max_dx: 1.2
-max_dz: 3
+max_dz: 10
 max_datt: 0.6
 max_attitude_angle: 90
 

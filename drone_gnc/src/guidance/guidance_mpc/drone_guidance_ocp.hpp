@@ -46,10 +46,7 @@ public:
 
     scalar_t min_z;
     scalar_t min_dz;
-    scalar_t max_dx;
     scalar_t max_dz;
-    scalar_t scaling_x;
-    scalar_t scaling_z;
 
     Matrix<scalar_t, NX, 1> x_unscaling_vec;
     Matrix<scalar_t, NU, 1> u_unscaling_vec;
@@ -57,36 +54,23 @@ public:
     Matrix<scalar_t, NX, 1> x_scaling_vec;
     Matrix<scalar_t, NU, 1> u_scaling_vec;
 
-    scalar_t max_fx;
-    scalar_t horizontal_slack;
-    scalar_t max_attitude_angle;
+    scalar_t horizontal_slack, max_attitude_angle, descent_min_propeller_speed;
 
     void init(ros::NodeHandle nh, shared_ptr<Drone> drone_ptr) {
         drone = drone_ptr;
-        scalar_t thrust_cost, lateral_force, max_attitude_angle_degree;
-        scalar_t weight_scaling;
+        scalar_t max_attitude_angle_degree;
         if (nh.getParam("mpc/min_z", min_z) &&
             nh.getParam("mpc/min_dz", min_dz) &&
-            nh.getParam("mpc/max_dx", max_dx) &&
             nh.getParam("mpc/max_dz", max_dz) &&
-            nh.getParam("mpc/scaling_x", scaling_x) &&
-            nh.getParam("mpc/scaling_z", scaling_z) &&
-            nh.getParam("mpc/weight_scaling", weight_scaling) &&
-            nh.getParam("mpc/max_fx", max_fx) &&
-            nh.getParam("mpc/input_costs/thrust", thrust_cost) &&
-            nh.getParam("mpc/input_costs/lateral_force", lateral_force) &&
             nh.getParam("mpc/horizontal_slack", horizontal_slack) &&
-            nh.getParam("mpc/max_attitude_angle", max_attitude_angle_degree)) {
-
-            x_unscaling_vec << scaling_x, scaling_x, scaling_z,
-                    max_dx, max_dx, max_dz;
+            nh.getParam("mpc/max_attitude_angle", max_attitude_angle_degree) &&
+            nh.getParam("mpc/descent_min_propeller_speed", descent_min_propeller_speed)) {
+            x_unscaling_vec << 1, 1, 1,
+                    1, 1, max_dz;
             x_scaling_vec = x_unscaling_vec.cwiseInverse();
 
-            u_unscaling_vec << max_fx, max_fx,
-                    drone->max_propeller_speed;
+            u_unscaling_vec << 1, 1, drone->max_propeller_speed;
             u_scaling_vec = u_unscaling_vec.cwiseInverse();
-
-            R << lateral_force, lateral_force, thrust_cost;
 
             max_attitude_angle = max_attitude_angle_degree * M_PI / 180.0;
 
@@ -94,7 +78,6 @@ public:
             u_scaling_vec.setOnes();
             x_unscaling_vec.setOnes();
             x_scaling_vec.setOnes();
-
         } else {
             ROS_ERROR("Failed to get Guidance MPC parameter");
         }
@@ -106,10 +89,10 @@ public:
         const double eps = 1e-1;
 
         lbx << -inf, -inf, 0 - eps,
-                -max_dx, -max_dx, min_dz;
+                -inf, -inf, min_dz;
 
         ubx << inf, inf, inf,
-                max_dx, max_dx, max_dz;
+                inf, inf, max_dz;
 
         lbx = lbx.cwiseProduct(x_scaling_vec);
         ubx = ubx.cwiseProduct(x_scaling_vec);
@@ -118,7 +101,7 @@ public:
 
     void get_control_bounds(control_t <scalar_t> &lbu, control_t <scalar_t> &ubu) {
         const double inf = std::numeric_limits<double>::infinity();
-        lbu << drone->min_propeller_speed, -inf, -max_attitude_angle; // lower bound on control
+        lbu << drone->min_propeller_speed, -inf, 1e-6; // lower bound on control
         ubu << drone->max_propeller_speed, inf, max_attitude_angle; // upper bound on control
 
         lbu = lbu.cwiseProduct(u_scaling_vec);
@@ -135,9 +118,6 @@ public:
     xdot)  const noexcept{
         Matrix<T, NX, 1> x_unscaled = x.cwiseProduct(x_unscaling_vec.template cast<T>());
         Matrix<T, NU, 1> u_unscaled = u.cwiseProduct(u_unscaling_vec.template cast<T>());
-
-//        Matrix<T, Drone::NP, 1> params;
-//        drone->getParams(params);
 
         T prop_av = u_unscaled(0);
         T phi = u_unscaled(1);
@@ -171,10 +151,6 @@ public:
 
     g) const noexcept
     {
-//        Matrix<T, 2, 1> u_drone = u.segment(2, 2).cwiseProduct(u_unscaling_vec.segment(2, 2).template cast<T>());;
-//
-//        g(0) = u_drone(0) + u_drone(1);
-//        g(1) = u_drone(0) - u_drone(1);
     }
 
     template<typename T>
@@ -189,7 +165,7 @@ public:
     inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
                                 const scalar_t &t, T &mayer) noexcept {
-        mayer = horizontal_slack * ((x(0) - xs(0)) * (x(0) - xs(0)) + (x(1) - xs(1)) * (x(1) - xs(1))) + u(2);
+        mayer = horizontal_slack * ((x(0) - xs(0)) * (x(0) - xs(0)) + (x(1) - xs(1)) * (x(1) - xs(1)));
     }
 };
 

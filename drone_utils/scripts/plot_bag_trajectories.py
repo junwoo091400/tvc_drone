@@ -74,7 +74,7 @@ plot_ranges = {
 }
 
 state_plot_indexes = {
-    (0, 0): [("t", "z")],
+    (0, 0): [("t", "x")],
     (0, 1): [("t", "y")],
     (0, 2): [("t", "z")],
 
@@ -154,7 +154,7 @@ if PLOT_HORIZON_SEGMENTS:
     for t in np.arange(1.4, t_end - time_init, 1.3):
         plot_horizon_segment(t)
     # for legend only
-    axe[0, 0].plot([], [], 'g-', label='mpc horizons')
+    axe[0, 0].plot([], [], 'g-', label='open loop trajectories')
 else:
     if control_horizon_history.size != 0:
         control_mpc_line_list = plot_history(control_horizon_history[:, :, 0], control_plot_indexes, axe, "mpc horizon",

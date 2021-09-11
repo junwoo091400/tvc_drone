@@ -365,12 +365,12 @@ void DroneControlNode::fetchNewTarget() {
     } else if (GUIDANCE_NUM_SEG == 0) {
         sampleTargetTrajectoryLinear(mpc_target_state_traj, mpc_target_control_traj);
     } else {
+        drone_mpc.setHorizonLength(guidance_tf-ros::Time::now().toSec()-drone_mpc.mpc_period);
         sampleTargetTrajectory(mpc_target_state_traj, mpc_target_control_traj);
         //TODO remove
         for (int i = 0; i < DroneMPC::num_nodes; i++) {
             mpc_target_control_traj.col(i) = target_control;
         }
-        drone_mpc.setHorizonLength(guidance_tf-ros::Time::now().toSec()-drone_mpc.mpc_period);
     }
 
     drone_mpc.setTargetStateTrajectory(mpc_target_state_traj);

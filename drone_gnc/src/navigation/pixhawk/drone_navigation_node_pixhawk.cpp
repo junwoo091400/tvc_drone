@@ -38,6 +38,7 @@ void DroneNavigationNodePixhawk::initTopics(ros::NodeHandle &nh) {
     computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 
     if (use_gps) {
+        initialized_orientation = true;
         // /!\ the tcpNoDelay option is apparently necessary to avoid delays for large message types such as Odometry
         pixhawk_ekf_sub = nh.subscribe("/mavros/global_position/local", 1,
                                        &DroneNavigationNodePixhawk::pixhawkEKFCallback, this,

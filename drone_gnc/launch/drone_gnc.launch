@@ -4,7 +4,7 @@
     </group>
 
     <group ns="control/mpc">
-        <rosparam file="$(find drone_gnc)/config/control_mpc_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/control_tracking_mpc_parameters.yaml"/>
     </group>
 
     <group ns="guidance/mpc">
@@ -24,12 +24,12 @@
     <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen"
           launch-prefix="taskset -c 2">
         <rosparam param="target_apogee">[0, 0, 2]</rosparam>
-        <rosparam param="target_land">[0, 0, 0.3]</rosparam>
+        <rosparam param="target_land">[0, 0, 0]</rosparam>
     </node>
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" output="screen"
           launch-prefix="taskset -c 3">
-        <rosparam param="target_apogee">[0,0,2]</rosparam>
+        <rosparam param="target_apogee">[0,0,1.5]</rosparam>
         <rosparam param="track_guidance">true</rosparam>
     </node>
 
@@ -42,7 +42,7 @@
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
         <rosparam param="estimate_params">true</rosparam>
         <rosparam param="init_estimated_params">true</rosparam>
-        <rosparam param="use_gps">false</rosparam>
+        <rosparam param="use_gps">true</rosparam>
     </node>
 </launch>
 

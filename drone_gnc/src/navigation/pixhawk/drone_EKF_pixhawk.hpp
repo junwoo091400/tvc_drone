@@ -16,6 +16,7 @@ public:
 
         double x_var, dx_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, disturbance_force_var, disturbance_force_z_var, disturbance_torque_var, disturbance_torque_z_var;
         double x_optitrack_var, pixhawk_var, pixhawk_vel_var;
+        bool use_gps;
         if (nh.getParam("predict_vars/x", x_var) &&
             nh.getParam("predict_vars/dx", dx_var) &&
             nh.getParam("predict_vars/att", att_var) &&
@@ -28,7 +29,8 @@ public:
             nh.getParam("predict_vars/disturbance_torque_z", disturbance_torque_z_var) &&
             nh.getParam("update_vars/optitrack_x", x_optitrack_var) &&
             nh.getParam("update_vars/pixhawk", pixhawk_var) &&
-            nh.getParam("update_vars/pixhawk_vel", pixhawk_vel_var)) {
+            nh.getParam("update_vars/pixhawk_vel", pixhawk_vel_var) &&
+            nh.getParam("use_gps", use_gps)) {
 
             Q.setZero();
             Q.diagonal() << x_var, x_var, x_var,
@@ -41,10 +43,18 @@ public:
                     disturbance_torque_var, disturbance_torque_var, disturbance_torque_z_var;
 
             R.setZero();
-            R.diagonal() << x_optitrack_var, x_optitrack_var, x_optitrack_var,
-                    pixhawk_vel_var, pixhawk_vel_var, pixhawk_vel_var,
-                    pixhawk_var, pixhawk_var, pixhawk_var, pixhawk_var,
-                    pixhawk_var, pixhawk_var, pixhawk_var;
+            if(use_gps){
+                R.diagonal() << pixhawk_var, pixhawk_var, pixhawk_var,
+                        pixhawk_var, pixhawk_var, pixhawk_var,
+                        pixhawk_var, pixhawk_var, pixhawk_var, pixhawk_var,
+                        pixhawk_var, pixhawk_var, pixhawk_var;
+            }
+            else{
+                R.diagonal() << x_optitrack_var, x_optitrack_var, x_optitrack_var,
+                        pixhawk_vel_var, pixhawk_vel_var, pixhawk_vel_var,
+                        pixhawk_var, pixhawk_var, pixhawk_var, pixhawk_var,
+                        pixhawk_var, pixhawk_var, pixhawk_var;
+            }
 
         } else {
             ROS_ERROR("Failed to get kalman filter parameter");

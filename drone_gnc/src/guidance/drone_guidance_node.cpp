@@ -56,12 +56,20 @@ void DroneGuidanceNode::run() {
 ////            publishTrajectory();
 //        }
 
-        if(current_state.pose.position.z >= drone_mpc.target_apogee.z() && current_fsm.state_machine == drone_gnc::FSM::ASCENT){
-            startDescent();
-
+        if (current_fsm.state_machine == drone_gnc::FSM::ASCENT && current_state.twist.linear.z <= 0  && current_state.pose.position.z > 1) {
+            drone_gnc::SetFSM srv;
+            srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
+            current_fsm.state_machine = drone_gnc::FSM::DESCENT;
+            set_fsm_client.call(srv);
+        } else if (current_fsm.state_machine == drone_gnc::FSM::DESCENT && current_state.twist.linear.z >= 0  && current_state.pose.position.z < 0.3) {
+            drone_gnc::SetFSM srv;
+            srv.request.fsm.state_machine = drone_gnc::FSM::STOP;
+            set_fsm_client.call(srv);
         }
-        else
-        {
+        if (current_state.pose.position.z >= drone_mpc.target_apogee.z() &&
+            current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
+            startDescent();
+        } else {
             computeTrajectory();
             double p_sol = drone_mpc.solution_p()(0);
             if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
@@ -71,29 +79,21 @@ void DroneGuidanceNode::run() {
                 if (current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
                     startDescent();
                 }
-            } else {
-                if(current_fsm.state_machine == drone_gnc::FSM::DESCENT && current_state.twist.linear.z > 0){
-
-                }
-                else{
-                    publishTrajectory();
-                }
+            } else{
+                publishTrajectory();
             }
         }
+
     }
     publishDebugInfo();
 }
 
-void DroneGuidanceNode::startDescent(){
+void DroneGuidanceNode::startDescent() {
     drone_mpc.setTarget(drone_mpc.target_land, target_control);
     drone_mpc.warmStartDescent();
     drone_mpc.setDescentConstraints();
     started_descent = true;
     computeTrajectory();
-    publishTrajectory();
-    drone_gnc::SetFSM srv;
-    srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
-    set_fsm_client.call(srv);
 }
 
 void DroneGuidanceNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
@@ -223,9 +223,6 @@ int main(int argc, char **argv) {
         ros::spinOnce();
         droneGuidanceNode.run();
     }
-//    ros::Timer control_thread = nh.createTimer(ros::Duration(droneGuidanceNode.period), [&](const ros::TimerEvent &) {
-//        droneGuidanceNode.run();
-//    });
-//    ros::spin();
+
     return 0;
 }
