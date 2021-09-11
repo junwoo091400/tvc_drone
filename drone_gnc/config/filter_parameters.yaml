@@ -8,7 +8,7 @@ predict_vars:
 
   thrust_scaling: 1.0e-8
   torque_scaling: 1.0e-7
-  disturbance_force: 20
+  disturbance_force: 10
   disturbance_force_z: 1.0e-5
   disturbance_torque: 0.01
   disturbance_torque_z: 0.001

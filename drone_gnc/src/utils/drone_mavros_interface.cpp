@@ -137,8 +137,8 @@ int main(int argc, char **argv) {
     for(int i = 100; ros::ok() && i > 0; --i){
         pixhawk_controls[0] = -1;
         pixhawk_controls[1] = -1;
-        pixhawk_controls[2] = -0.02;
-        pixhawk_controls[3] = 0.24;
+        pixhawk_controls[2] = servo1_offset;
+        pixhawk_controls[3] = servo2_offset;
 
         mavros_msgs::ActuatorControl pixhawk_control_msg;
         pixhawk_control_msg.header.stamp = ros::Time::now();

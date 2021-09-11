@@ -12,8 +12,8 @@
 <!--        <node machine="gnc_machine" name="optitrack_client" pkg="drone_gnc" type="optitrack_client"/>-->
         <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
         <include file="$(find drone_gnc)/launch/drone_mavros_interface.launch"/>
-        <node name="recorder" pkg="rosbag" type="record" machine="gnc_machine"
-              args="record -a -O /home/drone/drone_ws/log.bag"/>
+        <node name="recorder_pi" pkg="rosbag" type="record" machine="gnc_machine"
+              args="record /drone_state -O /home/drone/drone_ws/log.bag"/>
     </group>
 
     <!-- local interface -->
@@ -28,6 +28,9 @@
               args="/drone_state /rocket_state real_time_simulator/State
               'real_time_simulator.msg.State(twist=m.twist, pose=m.pose, propeller_mass=0)'
               --import real_time_simulator"/>
+
+        <node name="recorder" pkg="rosbag" type="record" machine="local"
+              args="record -a -O $(find drone_utils)/log/log.bag"/>
     </group>
 
 </launch>
