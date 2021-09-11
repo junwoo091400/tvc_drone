@@ -12,6 +12,8 @@
 <!--        <node machine="gnc_machine" name="optitrack_client" pkg="drone_gnc" type="optitrack_client"/>-->
         <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
         <include file="$(find drone_gnc)/launch/drone_mavros_interface.launch"/>
+        <node name="recorder" pkg="rosbag" type="record" machine="gnc_machine"
+              args="record -a -O /home/drone/drone_ws/log.bag"/>
     </group>
 
     <!-- local interface -->
@@ -21,9 +23,6 @@
         <node name="GUI_interface" pkg="real_time_simulator" type="GUI_interface" machine="local"/>
         <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" machine="local" 
               args="--perspective-file $(find drone_utils)/GUI/drone_remote_control_GUI.perspective"/>
-        <node name="recorder" pkg="rosbag" type="record" machine="local"
-              args="record -a -O $(find drone_utils)/log/log.bag"/>
-
         <!-- transform drone_kalman to rocket state for visualization-->
         <node name="drone_to_rocket_state" pkg="topic_tools" type="transform" machine="local"
               args="/drone_state /rocket_state real_time_simulator/State

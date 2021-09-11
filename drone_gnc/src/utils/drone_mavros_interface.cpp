@@ -41,6 +41,9 @@ ros::Publisher pixhawk_control_pub, pixhawk_state_pub, target_apogee_pub;
 boost::array<double, 8> pixhawk_controls;
 double max_servo_angle = 15.0/180.0*M_PI;
 
+double servo1_offset;
+double servo2_offset;
+
 void updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
     double servo1 = std::min(std::max(drone_control->servo1, -max_servo_angle), max_servo_angle);
     double servo2 = std::min(std::max(drone_control->servo2, -max_servo_angle), max_servo_angle);
@@ -50,8 +53,8 @@ void updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control
 
     pixhawk_controls[0] = bottom/100*2 - 1;
     pixhawk_controls[1] = top/100*2 - 1;
-    pixhawk_controls[2] = servo1/(M_PI/4) - 0.02;
-    pixhawk_controls[3] = servo2/(M_PI/4) + 0.24;
+    pixhawk_controls[2] = servo1/(M_PI/4) + servo1_offset;
+    pixhawk_controls[3] = servo2/(M_PI/4) + servo2_offset;
 }
 
 void publishConvertedState(const nav_msgs::Odometry::ConstPtr& mavros_state) {
@@ -86,6 +89,12 @@ void RCCallback(const mavros_msgs::RCIn::ConstPtr& rc_control) {
 int main(int argc, char **argv) {
     ros::init(argc, argv, "drone_mavros_interface");
     ros::NodeHandle nh("drone_mavros_interface");
+
+    double servo1_offset_degree, servo2_offset_degree;
+    nh.param<double>("servo1_offset", servo1_offset_degree, 0.0);
+    nh.param<double>("servo2_offset", servo2_offset_degree, 0.0);
+    servo1_offset = servo1_offset_degree*M_PI/180.0;
+    servo2_offset = servo2_offset_degree*M_PI/180.0;
 
     // Subscribe to both mavros pose and twist and merge them
     // message_filters::Subscriber<geometry_msgs::PoseStamped> pose_sub(nh, "/mavros/local_position/pose", 1);

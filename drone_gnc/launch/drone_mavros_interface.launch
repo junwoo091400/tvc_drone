@@ -12,6 +12,8 @@
 
     <node name="drone_mavros_interface" pkg="drone_gnc" type="drone_mavros_interface" machine="gnc_machine">
 		<param name="enable_rc_control" value="false" />
+		<rosparam param="servo1_offset">-9.1</rosparam>
+		<rosparam param="servo2_offset">6</rosparam>
 	</node>
 </launch>
 
