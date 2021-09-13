@@ -1,8 +1,10 @@
-horizontal_slack: 30
+horizontal_slack: 50
 
 max_attitude_angle: 45
 
 descent_min_propeller_speed: 40
+
+descent_trigger_time: 0.5
 
 # constraints (+ used for scaling)
 min_z: 0
@@ -12,6 +14,6 @@ max_dz: 20
 
 max_horizon_length: 30.0
 
-max_sqp_iter: 3
-max_qp_iter: 500
+max_sqp_iter: 5
+max_qp_iter: 300
 max_line_search_iter: 5

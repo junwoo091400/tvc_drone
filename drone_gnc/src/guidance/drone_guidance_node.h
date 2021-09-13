@@ -24,9 +24,6 @@
 
 class DroneGuidanceNode {
 public:
-    double period;
-    bool stopped = false;
-
     DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
 
     void initTopics(ros::NodeHandle &nh);
@@ -61,6 +58,7 @@ private:
     Drone::control target_control;
     Drone::state x0;
     bool started_descent = false;
+    double descent_trigger_time;
 
     // Subscribers
     ros::Subscriber rocket_state_sub;

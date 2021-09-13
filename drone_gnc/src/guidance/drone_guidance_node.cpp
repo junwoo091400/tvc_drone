@@ -7,7 +7,11 @@ DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone>
     current_fsm.time_now = 0;
     current_fsm.state_machine = drone_gnc::FSM::IDLE;
 
-    nh.getParam("mpc/mpc_period", period);
+    if(nh.getParam("mpc/descent_trigger_time", descent_trigger_time)){
+    }
+    else{
+        ROS_ERROR("Failed to get Guidance node parameter");
+    }
 
     std::vector<double> initial_target_apogee;
     nh.getParam("target_apogee", initial_target_apogee);
@@ -31,7 +35,7 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     }
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneGuidanceNode::fsmCallback, this);
 
-    set_fsm_client = nh.serviceClient<drone_gnc::SetFSM>("/drone_fsm/set_fsm");
+    set_fsm_client = nh.serviceClient<drone_gnc::SetFSM>("/drone_fsm/set_fsm", true);
 
     // Publishers
     horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/target_trajectory", 10);
@@ -47,44 +51,35 @@ void DroneGuidanceNode::run() {
     double loop_start_time = ros::Time::now().toSec();
     time_compute_start = ros::Time::now();
     if (received_state && current_fsm.state_machine != drone_gnc::FSM::STOP) {
-//        if (current_fsm.state_machine == "Descent" && !started_descent) {
-//            drone_mpc.setTarget(drone_mpc.target_land, target_control);
-//            drone_mpc.warmStartDescent();
-//            drone_mpc.setDescentConstraints();
-//            started_descent = true;
-////            computeTrajectory();
-////            publishTrajectory();
-//        }
+        x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
+                current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
+                current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
+                current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
 
-        if (current_fsm.state_machine == drone_gnc::FSM::ASCENT && (current_state.twist.linear.z <= 0 || current_state.pose.position.z >= drone_mpc.target_apogee.z())  && current_state.pose.position.z > 1) {
-            drone_gnc::SetFSM srv;
-            srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
-            current_fsm.state_machine = drone_gnc::FSM::DESCENT;
-            set_fsm_client.call(srv);
-        } else if (current_fsm.state_machine == drone_gnc::FSM::DESCENT && current_state.twist.linear.z >= 0  && current_state.pose.position.z < 0.3) {
+        if (current_fsm.state_machine == drone_gnc::FSM::ASCENT &&
+            (current_state.twist.linear.z <= 0 || current_state.pose.position.z >= drone_mpc.target_apogee.z()) &&
+            current_state.pose.position.z > 1) {
+            startDescent();
+        } else if (current_fsm.state_machine == drone_gnc::FSM::DESCENT && current_state.twist.linear.z >= 0 &&
+                   current_state.pose.position.z < 0.3) {
             drone_gnc::SetFSM srv;
             srv.request.fsm.state_machine = drone_gnc::FSM::STOP;
             set_fsm_client.call(srv);
-        }
-        if (current_state.pose.position.z >= drone_mpc.target_apogee.z() &&
-            current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
-            startDescent();
-            drone_gnc::SetFSM srv;
-            srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
-            current_fsm.state_machine = drone_gnc::FSM::DESCENT;
-            set_fsm_client.call(srv);
         } else {
-            computeTrajectory();
             double p_sol = drone_mpc.solution_p()(0);
-            if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
-                ROS_ERROR_STREAM("Guidance MPC computation failed");
-                drone_mpc.initGuess(x0, target_state);
-            } else if (p_sol < 0.3) {
+            if (p_sol < descent_trigger_time) {
                 if (current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
                     startDescent();
                 }
-            } else{
-                publishTrajectory();
+            } else {
+                computeTrajectory();
+                double p_sol = drone_mpc.solution_p()(0);
+                if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
+                    ROS_ERROR_STREAM("Guidance MPC computation failed");
+                    drone_mpc.initGuess(x0, target_state);
+                } else {
+                    publishTrajectory();
+                }
             }
         }
 
@@ -93,11 +88,17 @@ void DroneGuidanceNode::run() {
 }
 
 void DroneGuidanceNode::startDescent() {
-    drone_mpc.setTarget(drone_mpc.target_land, target_control);
-    drone_mpc.warmStartDescent();
-    drone_mpc.setDescentConstraints();
+    if (started_descent) return;
     started_descent = true;
+    drone_mpc.setTarget(drone_mpc.target_land, target_control);
+    drone_mpc.warmStartDescent(x0);
+    drone_mpc.setDescentConstraints();
+    drone_gnc::SetFSM srv;
+    srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
+    current_fsm.state_machine = drone_gnc::FSM::DESCENT;
     computeTrajectory();
+    publishTrajectory();
+    set_fsm_client.call(srv);
 }
 
 void DroneGuidanceNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
@@ -131,11 +132,6 @@ void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
 }
 
 void DroneGuidanceNode::computeTrajectory() {
-    x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
-            current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
-            current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
-            current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
-
     drone_mpc.drone->setParams(current_state.thrust_scaling,
                                current_state.torque_scaling,
                                0, 0, 0,

@@ -40,7 +40,7 @@ public:
 
     void precomputeDescent();
 
-    void warmStartDescent();
+    void warmStartDescent(Drone::state x0);
 
     using MPC::info;
 

@@ -212,10 +212,9 @@ Drone::state DroneGuidanceMPC::solution_x_at(const int t) {
     if (tangent(2) < 0) tangent = -tangent;
     Vector<double, 3> unit_z;
     unit_z << 0, 0, 1;
-    Quaterniond tangent_orientation = Quaterniond::FromTwoVectors(unit_z, tangent);
+    Quaterniond tangent_orientation = Quaterniond::FromTwoVectors(tangent, unit_z);
     state_sol << sol,
-//            tangent_orientation.coeffs(),
-            0, 0, 0, 1,
+            tangent_orientation.coeffs(),
             0, 0, 0;
     return state_sol;
 }
@@ -273,14 +272,18 @@ void DroneGuidanceMPC::precomputeDescent() {
     descent_p_sol = solution_p();
 }
 
-void DroneGuidanceMPC::warmStartDescent() {
+void DroneGuidanceMPC::warmStartDescent(Drone::state x0) {
     u_guess(descent_control_sol);
+    for (int i = 0; i < num_nodes; i++) {
+        descent_state_sol(i * ocp().NX) += x0(0) - target_apogee(0);
+        descent_state_sol(i * ocp().NX + 1) += x0(1) - target_apogee(1);
+    }
     x_guess(descent_state_sol);
     lam_guess(descent_dual_sol);
     p_guess(descent_p_sol);
 }
 
-void DroneGuidanceMPC::setDescentConstraints(){
+void DroneGuidanceMPC::setDescentConstraints() {
     const double inf = std::numeric_limits<double>::infinity();
     ocp_control lbu, ubu;
     ocp().get_control_bounds(lbu, ubu);
