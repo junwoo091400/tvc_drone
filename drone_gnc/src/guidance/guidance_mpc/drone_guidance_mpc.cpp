@@ -234,17 +234,17 @@ void DroneGuidanceMPC::solve(Drone::state &x0_full) {
 
     const double inf = std::numeric_limits<double>::infinity();
 
+    double eps = 1e-3;
     ocp_state x0 = x0_full.head(6);
-    initial_conditions(x0);
+    initial_conditions(x0.array()-eps, x0.array()+eps);
 
     //final state bound
-    double eps = 0.001;
     ocp_state lbx_f, ubx_f;
     ocp().get_state_bounds(lbx_f, ubx_f);
     //constraint on z, vx, vy, vz
     lbx_f.segment(2, 4) = ocp().xs.segment(2, 4).array();
     ubx_f.segment(2, 4) = ocp().xs.segment(2, 4).array();
-    final_state_bounds(lbx_f, ubx_f);
+    final_state_bounds(lbx_f.array()-eps, ubx_f.array()+eps);
 
     double time_now = ros::Time::now().toSec();
 
@@ -290,7 +290,8 @@ void DroneGuidanceMPC::setDescentConstraints() {
     lbu(0) = ocp().descent_min_propeller_speed;
     control_bounds(lbu, ubu);
 
-    lbu << ocp().descent_min_propeller_speed, 0, 0; // lower bound on control
-    ubu << drone->max_propeller_speed, 0, 0; // upper bound on control=
+    double eps = 1e-5;
+    lbu << ocp().descent_min_propeller_speed, -eps, -eps; // lower bound on control
+    ubu << drone->max_propeller_speed, eps, eps; // upper bound on control=
     final_control_bounds(lbu, ubu);
 }

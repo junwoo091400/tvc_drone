@@ -1,6 +1,6 @@
 horizontal_slack: 50
 
-max_attitude_angle: 45
+max_attitude_angle: 30
 
 descent_min_propeller_speed: 40
 

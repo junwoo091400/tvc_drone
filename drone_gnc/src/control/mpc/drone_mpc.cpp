@@ -153,7 +153,8 @@ void DroneMPC::solve(Drone::state &x0) {
     ubx0(13) = previous_x(13) + maxServoRate * mpc_period;
     ubx0(14) = previous_x(14) + maxServoRate * mpc_period;
 
-    initial_conditions(lbx0.cwiseProduct(ocp().x_scaling_vec), ubx0.cwiseProduct(ocp().x_scaling_vec));
+    double eps = 1e-4;
+    initial_conditions(lbx0.cwiseProduct(ocp().x_scaling_vec).array() - eps, ubx0.cwiseProduct(ocp().x_scaling_vec).array() + eps);
 
 //    warmStart();
 

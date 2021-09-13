@@ -7,9 +7,8 @@ DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone>
     current_fsm.time_now = 0;
     current_fsm.state_machine = drone_gnc::FSM::IDLE;
 
-    if(nh.getParam("mpc/descent_trigger_time", descent_trigger_time)){
-    }
-    else{
+    if (nh.getParam("mpc/descent_trigger_time", descent_trigger_time)) {
+    } else {
         ROS_ERROR("Failed to get Guidance node parameter");
     }
 
@@ -67,10 +66,8 @@ void DroneGuidanceNode::run() {
             set_fsm_client.call(srv);
         } else {
             double p_sol = drone_mpc.solution_p()(0);
-            if (p_sol < descent_trigger_time) {
-                if (current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
-                    startDescent();
-                }
+            if (current_fsm.state_machine == drone_gnc::FSM::ASCENT && p_sol < descent_trigger_time) {
+                startDescent();
             } else {
                 computeTrajectory();
                 double p_sol = drone_mpc.solution_p()(0);

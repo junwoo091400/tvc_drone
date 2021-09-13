@@ -14,7 +14,7 @@
 
     <node name="simulator_interface" pkg="drone_simulator_interface" type="simulator_interface" cwd = "node"  output ="screen">
         <rosparam param="use_servo_model">false</rosparam>
-        <rosparam param="min_z">-0.1</rosparam>
+        <rosparam param="min_z">-0.001</rosparam>
         <rosparam param="servo_noise_std">0.01</rosparam>
         <rosparam param="torque_noise_std">0.01</rosparam>
     </node>
