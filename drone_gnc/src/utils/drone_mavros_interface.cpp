@@ -66,13 +66,13 @@ void publishConvertedState(const nav_msgs::Odometry::ConstPtr& mavros_state) {
     pixhawk_state_pub.publish(drone_state);
 }
 
-double joystic_speed = 1;
+double joystic_speed = 2;
 double last_rc_cb;
 double max_z = 2;
 void RCCallback(const mavros_msgs::RCIn::ConstPtr& rc_control) {
     double dt = ros::Time::now().toSec() - last_rc_cb;
     double joystic_x = ((double)rc_control->channels[1]-1500)/1000;
-    double joystic_y = ((double)rc_control->channels[2]-1500)/1000;
+    double joystic_y = - ((double)rc_control->channels[2]-1500)/1000;
     double joystic_z = ((double)rc_control->channels[0]-1000)/1000;
 
     if(abs(joystic_x)<0.1)joystic_x=0;

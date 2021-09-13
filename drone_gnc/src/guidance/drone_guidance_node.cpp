@@ -56,7 +56,7 @@ void DroneGuidanceNode::run() {
 ////            publishTrajectory();
 //        }
 
-        if (current_fsm.state_machine == drone_gnc::FSM::ASCENT && current_state.twist.linear.z <= 0  && current_state.pose.position.z > 1) {
+        if (current_fsm.state_machine == drone_gnc::FSM::ASCENT && (current_state.twist.linear.z <= 0 || current_state.pose.position.z >= drone_mpc.target_apogee.z())  && current_state.pose.position.z > 1) {
             drone_gnc::SetFSM srv;
             srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
             current_fsm.state_machine = drone_gnc::FSM::DESCENT;
@@ -69,6 +69,10 @@ void DroneGuidanceNode::run() {
         if (current_state.pose.position.z >= drone_mpc.target_apogee.z() &&
             current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
             startDescent();
+            drone_gnc::SetFSM srv;
+            srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
+            current_fsm.state_machine = drone_gnc::FSM::DESCENT;
+            set_fsm_client.call(srv);
         } else {
             computeTrajectory();
             double p_sol = drone_mpc.solution_p()(0);

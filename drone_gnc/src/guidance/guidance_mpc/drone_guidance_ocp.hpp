@@ -101,7 +101,7 @@ public:
 
     void get_control_bounds(control_t <scalar_t> &lbu, control_t <scalar_t> &ubu) {
         const double inf = std::numeric_limits<double>::infinity();
-        lbu << drone->min_propeller_speed, -inf, 1e-6; // lower bound on control
+        lbu << drone->min_propeller_speed, -inf, -max_attitude_angle; // lower bound on control
         ubu << drone->max_propeller_speed, inf, max_attitude_angle; // upper bound on control
 
         lbu = lbu.cwiseProduct(u_scaling_vec);
