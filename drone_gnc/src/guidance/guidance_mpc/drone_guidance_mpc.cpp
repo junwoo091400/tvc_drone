@@ -58,6 +58,9 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
 
     precomputeDescent();
 
+    state_bounds(lbx, ubx);
+    control_bounds(lbu, ubu);
+
     setTarget(target_apogee, target_control);
     initGuess(x0, target_apogee);
 }
@@ -208,13 +211,14 @@ void DroneGuidanceMPC::warmStart() {
 Drone::state DroneGuidanceMPC::solution_x_at(const int t) {
     Drone::state state_sol;
     ocp_state sol = MPC::solution_x_at(t).cwiseProduct(ocp().x_unscaling_vec);
-    Vector<double, 3> tangent = sol.segment(3, 3);
+    Vector3d tangent = sol.segment(3, 3);
     if (tangent(2) < 0) tangent = -tangent;
-    Vector<double, 3> unit_z;
+    Vector3d unit_z;
     unit_z << 0, 0, 1;
-    Quaterniond tangent_orientation = Quaterniond::FromTwoVectors(tangent, unit_z);
+    Quaterniond tangent_orientation = Quaterniond::FromTwoVectors(unit_z, tangent);
     state_sol << sol,
-            tangent_orientation.coeffs(),
+//            tangent_orientation.coeffs(),
+            0, 0, 0, 1,
             0, 0, 0;
     return state_sol;
 }
@@ -262,6 +266,7 @@ void DroneGuidanceMPC::precomputeDescent() {
     setTarget(target_land, target_control);
     initGuess(target_apogee, target_land);
 
+    setDescentConstraints();
     for (int i = 0; i < 10; i++) {
         solve(target_apogee);
     }
