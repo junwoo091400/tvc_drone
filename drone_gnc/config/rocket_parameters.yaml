@@ -38,8 +38,8 @@ Cd:
 CM_offset_x: 0
 initial_speed: 0
 
-min_propeller_speed: 40
-max_propeller_speed: 90
+min_propeller_speed: 50
+max_propeller_speed: 80
 
 max_propeller_delta: 40
 

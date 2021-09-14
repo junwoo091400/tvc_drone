@@ -2,14 +2,14 @@ horizontal_slack: 50
 
 max_attitude_angle: 30
 
-descent_min_propeller_speed: 40
+descent_min_propeller_speed: 50
 
 descent_trigger_time: 0.5
 
 # constraints (+ used for scaling)
 min_z: 0
 
-min_dz: -1
+min_dz: -0.7
 max_dz: 20
 
 max_horizon_length: 30.0
