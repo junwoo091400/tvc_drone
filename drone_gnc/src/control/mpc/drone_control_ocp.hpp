@@ -1,3 +1,11 @@
+/* This file is part of the the TVC drone project (https://github.com/EPFLRocketTeam/tvc_drone).
+ *
+ * Copyright (C) 2021  Raphaël Linsen
+ *
+ * This source code is subject to the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3. If a copy of the GNU General Public License was not distributed
+ * with this file, you can obtain one at http://www.gnu.org/licenses/.
+ */
 
 #ifndef SRC_DRONE_CONTROL_OCP_HPP
 #define SRC_DRONE_CONTROL_OCP_HPP
@@ -246,8 +254,8 @@ public:
 
 
         g(0) = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
-        g(1) = u_drone(0) + 0.5*u_drone(1);
-        g(2) = u_drone(0) - 0.5*u_drone(1);
+        g(1) = u_drone(0) + 0.5 * u_drone(1);
+        g(2) = u_drone(0) - 0.5 * u_drone(1);
     }
 
     //workaround to get the current node index in cost functions
@@ -272,7 +280,7 @@ public:
 
 
         lagrange = (x_error2.dot(Q.template cast<T>().cwiseProduct(x_error2)) +
-                   u_error.dot(R.template cast<T>().cwiseProduct(u_error)))*horizon_length;
+                    u_error.dot(R.template cast<T>().cwiseProduct(u_error))) * horizon_length;
 
         k--;
     }

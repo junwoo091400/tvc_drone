@@ -1,3 +1,12 @@
+/* This file is part of the the TVC drone project (https://github.com/EPFLRocketTeam/tvc_drone).
+ *
+ * Copyright (C) 2021  Raphaël Linsen
+ *
+ * This source code is subject to the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3. If a copy of the GNU General Public License was not distributed
+ * with this file, you can obtain one at http://www.gnu.org/licenses/.
+ */
+
 #ifndef SRC_POLYMPC_REDEF_HPP
 #define SRC_POLYMPC_REDEF_HPP
 
