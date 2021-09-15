@@ -16,7 +16,7 @@ Each package contains its own readme file with more information.
 
 ### Dependencies installation
 
-* Install ROS
+* Install ROS Melodic (Ubuntu 18.04 required)
 ```
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 sudo apt install curl
