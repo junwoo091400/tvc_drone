@@ -10,8 +10,9 @@
 #include <drone_gnc/SetFSM.h>
 #include "drone_guidance_node.h"
 
-DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
-                                                                                              drone(drone_ptr) {
+DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, const std::shared_ptr<Drone> &drone_ptr) : drone_mpc(nh,
+                                                                                                               drone_ptr),
+                                                                                                     drone(drone_ptr) {
     // Initialize fsm
     current_fsm.time_now = 0;
     current_fsm.state_machine = drone_gnc::FSM::IDLE;
@@ -56,8 +57,8 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
 }
 
 void DroneGuidanceNode::run() {
-    double loop_start_time = ros::Time::now().toSec();
     time_compute_start = ros::Time::now();
+
     if (received_state && current_fsm.state_machine != drone_gnc::FSM::STOP) {
         x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
                 current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
@@ -78,7 +79,10 @@ void DroneGuidanceNode::run() {
             if (current_fsm.state_machine == drone_gnc::FSM::ASCENT && p_sol < descent_trigger_time) {
                 startDescent();
             } else {
+                double time_now = ros::Time::now().toSec();
                 computeTrajectory();
+                last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
+
                 double p_sol = drone_mpc.solution_p()(0);
                 if (isnan(drone_mpc.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
                     ROS_ERROR_STREAM("Guidance MPC computation failed");
@@ -138,10 +142,10 @@ void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
 }
 
 void DroneGuidanceNode::computeTrajectory() {
-    drone_mpc.drone->setParams(current_state.thrust_scaling,
-                               current_state.torque_scaling,
-                               0, 0, 0,
-                               0, 0, 0);
+    drone->setParams(current_state.thrust_scaling,
+                     current_state.torque_scaling,
+                     0, 0, 0,
+                     0, 0, 0);
 
     drone_mpc.solve(x0);
 }
@@ -211,20 +215,18 @@ void DroneGuidanceNode::publishDebugInfo() {
     msg2.data = drone_mpc.info().qp_solver_iter;
     qp_iter_pub.publish(msg2);
     std_msgs::Float64 msg3;
-    msg3.data = drone_mpc.last_computation_time;
+    msg3.data = last_computation_time;
     computation_time_pub.publish(msg3);
 }
 
 
 int main(int argc, char **argv) {
-    // Init ROS time keeper node
     ros::init(argc, argv, "guidance");
     ros::NodeHandle nh("guidance");
 
     std::shared_ptr<Drone> drone = make_shared<Drone>(nh);
     DroneGuidanceNode droneGuidanceNode(nh, drone);
 
-//    // Thread to compute control. Duration defines interval time in seconds
     while (ros::ok()) {
         ros::spinOnce();
         droneGuidanceNode.run();

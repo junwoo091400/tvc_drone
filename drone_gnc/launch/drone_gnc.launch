@@ -4,7 +4,7 @@
     </group>
 
     <group ns="control/mpc">
-        <rosparam file="$(find drone_gnc)/config/control_mpc_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/control_tracking_mpc_parameters.yaml"/>
     </group>
 
     <group ns="guidance/mpc">
@@ -16,9 +16,9 @@
     </group>
 
 <!--       <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">-->
-<!--           <rosparam param="speed">0.4</rosparam>-->
+<!--           <rosparam param="speed">0.35</rosparam>-->
 <!--           <rosparam param="scaling">1</rosparam>-->
-<!--           <rosparam param="rotation_angle">90</rosparam>-->
+<!--           <rosparam param="rotation_angle">0</rosparam>-->
 <!--       </node>-->
 
     <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen"

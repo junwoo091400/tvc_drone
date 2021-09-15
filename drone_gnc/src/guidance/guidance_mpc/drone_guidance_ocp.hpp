@@ -27,9 +27,6 @@
 #include "drone_model.hpp"
 
 using namespace Eigen;
-
-// Poly MPC stuff ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 using namespace std;
 
 #define POLY_ORDER 7
@@ -45,22 +42,13 @@ class DroneGuidanceOCP : public ContinuousOCP<DroneGuidanceOCP, Approximation, S
 public:
     ~DroneGuidanceOCP() = default;
 
-    Matrix<scalar_t, NU, 1> R;
-
     Matrix<scalar_t, NX, 1> xs;
-    Matrix<scalar_t, NU, 1> us;
 
     shared_ptr<Drone> drone;
 
     scalar_t min_z;
     scalar_t min_dz;
     scalar_t max_dz;
-
-    Matrix<scalar_t, NX, 1> x_unscaling_vec;
-    Matrix<scalar_t, NU, 1> u_unscaling_vec;
-
-    Matrix<scalar_t, NX, 1> x_scaling_vec;
-    Matrix<scalar_t, NU, 1> u_scaling_vec;
 
     scalar_t horizontal_slack, max_attitude_angle, descent_min_propeller_speed;
 
@@ -73,47 +61,11 @@ public:
             nh.getParam("mpc/horizontal_slack", horizontal_slack) &&
             nh.getParam("mpc/max_attitude_angle", max_attitude_angle_degree) &&
             nh.getParam("mpc/descent_min_propeller_speed", descent_min_propeller_speed)) {
-            x_unscaling_vec << 1, 1, 1,
-                    1, 1, max_dz;
-            x_scaling_vec = x_unscaling_vec.cwiseInverse();
-
-            u_unscaling_vec << 1, 1, drone->max_propeller_speed;
-            u_scaling_vec = u_unscaling_vec.cwiseInverse();
-
             max_attitude_angle = max_attitude_angle_degree * M_PI / 180.0;
-
-            u_unscaling_vec.setOnes();
-            u_scaling_vec.setOnes();
-            x_unscaling_vec.setOnes();
-            x_scaling_vec.setOnes();
         } else {
             ROS_ERROR("Failed to get Guidance MPC parameter");
         }
 
-    }
-
-    void get_state_bounds(state_t <scalar_t> &lbx, state_t <scalar_t> &ubx) {
-        const double inf = std::numeric_limits<double>::infinity();
-        const double eps = 1e-1;
-
-        lbx << -inf, -inf, 0 - eps,
-                -inf, -inf, min_dz;
-
-        ubx << inf, inf, inf,
-                inf, inf, max_dz;
-
-        lbx = lbx.cwiseProduct(x_scaling_vec);
-        ubx = ubx.cwiseProduct(x_scaling_vec);
-    }
-
-
-    void get_control_bounds(control_t <scalar_t> &lbu, control_t <scalar_t> &ubu) {
-        const double inf = std::numeric_limits<double>::infinity();
-        lbu << drone->min_propeller_speed, -inf, -max_attitude_angle; // lower bound on control
-        ubu << drone->max_propeller_speed, inf, max_attitude_angle; // upper bound on control
-
-        lbu = lbu.cwiseProduct(u_scaling_vec);
-        ubu = ubu.cwiseProduct(u_scaling_vec);
     }
 
     template<typename T>
@@ -124,12 +76,9 @@ public:
                               const T &t, Ref<state_t < T>>
 
     xdot)  const noexcept{
-        Matrix<T, NX, 1> x_unscaled = x.cwiseProduct(x_unscaling_vec.template cast<T>());
-        Matrix<T, NU, 1> u_unscaled = u.cwiseProduct(u_unscaling_vec.template cast<T>());
-
-        T prop_av = u_unscaled(0);
-        T phi = u_unscaled(1);
-        T theta = u_unscaled(2);
+        T prop_av = u(0);
+        T phi = u(1);
+        T theta = u(2);
 
         T thrust = drone->getThrust(prop_av) * drone->thrust_scaling;
 
@@ -141,11 +90,8 @@ public:
         Eigen::Matrix<T, 3, 1> gravity;
         gravity << (T) 0, (T) 0, (T) - 9.81;
 
-        xdot.head(3) = x_unscaled.segment(3, 3);
+        xdot.head(3) = x.segment(3, 3);
         xdot.segment(3, 3) = thrust_vector * (T) drone->dry_mass_inv + gravity;
-
-        //unscale
-        xdot = xdot.cwiseProduct(x_scaling_vec.template cast<T>());
 
         //minimal time
         xdot *= p(0);

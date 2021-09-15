@@ -26,8 +26,8 @@
 #include <autodiff/AutoDiffScalar.h>
 #include <drone_model.hpp>
 
-static const int NX = 13;
-static const int NU = 4;
+static const int NX = Drone::NX;
+static const int NU = Drone::NU;
 
 using namespace Eigen;
 using namespace std;
@@ -58,10 +58,8 @@ void computeLinearizedModel(shared_ptr<Drone> drone,
 
     Drone::parameters params;
     params << 1.0, 1.0,
-            0.0, 0.0,
             0.0, 0.0, 0.0,
             0.0, 0.0, 0.0;
-
 
     /** initialize derivatives */
     state_t<ad_state> ADx(x_bar);
@@ -145,8 +143,9 @@ bool solveRiccatiIterationC(const Eigen::MatrixXd &A, const Eigen::MatrixXd &B,
     return false; // over iteration limit
 }
 
-void computeLQRTerminalCost(shared_ptr<Drone> drone, Matrix<double, NX - 2, 1> Q_, Matrix<double, NU, 1> R_,
-                            Matrix<double, NX - 2, NX - 2> &QN) {
+Matrix<double, NX - 2, NX - 2>
+computeLQRTerminalCost(shared_ptr<Drone> drone, Matrix<double, NX - 2, 1> Q_, Matrix<double, NU, 1> R_) {
+    Matrix<double, NX - 2, NX - 2> QN;
     Matrix<double, NX, NX> A_;
     Matrix<double, NX, NU> B_;
     computeLinearizedModel(drone, A_, B_);
@@ -168,11 +167,6 @@ void computeLQRTerminalCost(shared_ptr<Drone> drone, Matrix<double, NX - 2, 1> Q
     R.setZero();
     R.diagonal() << R_;
 
-    ROS_INFO_STREAM("A = DF/DX\n" << A);
-    ROS_INFO_STREAM("B = DF/DU\n" << B);
-    ROS_INFO_STREAM("Q\n" << Q);
-    ROS_INFO_STREAM("R\n" << R);
-
     Eigen::MatrixXd P = Eigen::MatrixXd::Zero(NX - 1, NX - 1);
 
     bool found = solveRiccatiIterationC(A, B, Q, R, P, 0.0001, 1.E-5, 100000);
@@ -184,4 +178,5 @@ void computeLQRTerminalCost(shared_ptr<Drone> drone, Matrix<double, NX - 2, 1> Q
     QN.block(0, 8, 8, 3) = P.block(0, 9, 8, 3);
     QN.block(8, 0, 3, 8) = P.block(9, 0, 3, 8);
     QN.block(8, 8, 3, 3) = P.block(9, 9, 3, 3);
+    return QN;
 }

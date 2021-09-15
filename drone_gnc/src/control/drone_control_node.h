@@ -53,7 +53,7 @@ public:
 
     void computeControl();
 
-    void publishFeedforwardControl();
+    void publishControl();
 
     void publishTrajectory();
 
@@ -67,10 +67,6 @@ public:
     void sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
                                       Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj);
 
-    void saveDebugInfo();
-
-    void printDebugInfo();
-
     void publishDebugInfo();
 
 private:
@@ -80,13 +76,9 @@ private:
     bool received_state = false;
     drone_gnc::DroneState current_state;
     geometry_msgs::Vector3 target_apogee;
-    bool fixed_guidance;
+    double time_compute_start;
     bool track_guidance;
 
-    int ff_index = 0;
-    // Thread to feedforward spline control interpolations
-    ros::Timer low_level_control_thread;
-    double feedforward_period;
     drone_gnc::FSM current_fsm;
     double emergency_stop = false;
 
@@ -104,9 +96,6 @@ private:
     double guidance_tf;
     double start_time = 0;
     double computation_time = 0;
-
-//    std::mutex target_mutex;
-//    std::mutex state_mutex;
 
     double SEG_LENGTH;
 
@@ -126,12 +115,4 @@ private:
     ros::Publisher qp_iter_pub;
     ros::Publisher horizon_pub;
     ros::Publisher computation_time_pub;
-
-    // Variables to track performance over whole simulation
-    double time_compute_start;
-    std::vector<float> average_time;
-    std::vector<int> average_status;
-    std::vector<double> average_x_error;
-    std::vector<double> average_y_error;
-    std::vector<double> average_z_error;
 };

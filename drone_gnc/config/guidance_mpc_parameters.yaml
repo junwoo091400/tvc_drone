@@ -1,19 +1,18 @@
+# cost on target x and y error (smaller = more slack)
 horizontal_slack: 50
 
-max_attitude_angle: 30
-
-descent_min_propeller_speed: 50
-
+# time until target before the descent trajectory starts to be computed
 descent_trigger_time: 0.5
 
-# constraints (+ used for scaling)
+# constraints
 min_z: 0
-
 min_dz: -0.7
 max_dz: 20
-
+max_attitude_angle: 30
+descent_min_propeller_speed: 50
 max_horizon_length: 30.0
 
+# important parameters that affect speed/performance
 max_sqp_iter: 5
 max_qp_iter: 300
 max_line_search_iter: 5

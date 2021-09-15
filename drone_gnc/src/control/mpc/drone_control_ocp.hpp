@@ -27,9 +27,6 @@
 #include "mpc_utils.hpp"
 
 using namespace Eigen;
-
-// Poly MPC stuff ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 using namespace std;
 
 #define POLY_ORDER 6
@@ -39,6 +36,7 @@ using namespace std;
 using Polynomial = polympc::Chebyshev<POLY_ORDER, polympc::GAUSS_LOBATTO, double>;
 using Approximation = polympc::Spline<Polynomial, NUM_SEG>;
 
+// declaration of the number of states, control signals and inequality constraints
 POLYMPC_FORWARD_DECLARATION(/*Name*/ DroneControlOCP, /*NX*/ 15, /*NU*/ 4, /*NP*/ 0, /*ND*/ 0, /*NG*/3, /*TYPE*/ double)
 
 class DroneControlOCP : public ContinuousOCP<DroneControlOCP, Approximation, SPARSE> {
@@ -54,15 +52,7 @@ public:
 
     shared_ptr<Drone> drone;
 
-    scalar_t max_attitude_angle;
-
-    scalar_t min_z;
-    scalar_t min_dz;
-    scalar_t max_dx;
-    scalar_t max_dz;
-    scalar_t max_datt;
-    scalar_t scaling_x;
-    scalar_t scaling_z;
+    scalar_t max_attitude_angle, min_z, min_dz, max_dx, max_dz, max_datt, scaling_x, scaling_z;
 
     Matrix<scalar_t, NX, 1> x_unscaling_vec;
     Matrix<scalar_t, NU, 1> u_unscaling_vec;
@@ -81,16 +71,7 @@ public:
         drone = drone_ptr;
         scalar_t x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
         scalar_t max_attitude_angle_degree, weight_scaling;
-        if (nh.getParam("mpc/min_z", min_z) &&
-            nh.getParam("mpc/min_dz", min_dz) &&
-            nh.getParam("mpc/max_dx", max_dx) &&
-            nh.getParam("mpc/max_dz", max_dz) &&
-            nh.getParam("mpc/max_datt", max_datt) &&
-            nh.getParam("mpc/scaling_x", scaling_x) &&
-            nh.getParam("mpc/scaling_z", scaling_z) &&
-            nh.getParam("mpc/weight_scaling", weight_scaling) &&
-
-            nh.getParam("mpc/state_costs/x", x_cost) &&
+        if (nh.getParam("mpc/state_costs/x", x_cost) &&
             nh.getParam("mpc/state_costs/dz", dx_cost) &&
             nh.getParam("mpc/state_costs/z", z_cost) &&
             nh.getParam("mpc/state_costs/dz", dz_cost) &&
@@ -101,9 +82,18 @@ public:
             nh.getParam("mpc/input_costs/thrust", thrust_cost) &&
             nh.getParam("mpc/input_costs/torque", torque_cost) &&
 
+            nh.getParam("mpc/min_z", min_z) &&
+            nh.getParam("mpc/min_dz", min_dz) &&
+            nh.getParam("mpc/max_dx", max_dx) &&
+            nh.getParam("mpc/max_dz", max_dz) &&
+            nh.getParam("mpc/max_datt", max_datt) &&
+            nh.getParam("mpc/scaling_x", scaling_x) &&
+            nh.getParam("mpc/scaling_z", scaling_z) &&
+            nh.getParam("mpc/weight_scaling", weight_scaling) &&
             nh.getParam("mpc/max_attitude_angle", max_attitude_angle_degree) &&
-
             nh.getParam("mpc/horizon_length", horizon_length)) {
+
+            max_attitude_angle = max_attitude_angle_degree * (M_PI / 180);
 
             Q << x_cost, x_cost, z_cost,
                     dx_cost, dx_cost, dz_cost,
@@ -112,102 +102,50 @@ public:
 
             R << servo_cost, servo_cost, thrust_cost, torque_cost;
 
-            computeLQRTerminalCost(drone, Q, R, QN);
+            QN = computeLQRTerminalCost(drone, Q, R);
 
-            ROS_INFO_STREAM("QN" << QN);
-
-            max_attitude_angle = max_attitude_angle_degree * (M_PI / 180);
-
+            // Scaling setup to have the optimization variables on the order of magnitude ~ 1
             x_unscaling_vec << scaling_x, scaling_x, scaling_z,
                     max_dx, max_dx, max_dz,
                     1, 1, 1, 1,
                     max_datt, max_datt, max_datt,
                     drone->max_servo1_angle, drone->max_servo2_angle;
-            x_scaling_vec = x_unscaling_vec.cwiseInverse();
-
             u_unscaling_vec << drone->max_servo_rate, drone->max_servo_rate,
                     drone->max_propeller_speed, drone->max_propeller_delta / 2;
-            u_scaling_vec = u_unscaling_vec.cwiseInverse();
 
-//            u_unscaling_vec.setOnes();
-//            u_scaling_vec.setOnes();
-//            x_unscaling_vec.setOnes();
-//            x_scaling_vec.setOnes();
-
-            //scale costs
             x_drone_unscaling_vec = x_unscaling_vec.segment(0, Drone::NX);
-            u_drone_unscaling_vec.segment(0, 2) = x_unscaling_vec.segment(Drone::NX, 2);
-            u_drone_unscaling_vec.segment(2, 2) = u_unscaling_vec.segment(2, 2);
+            u_drone_unscaling_vec << x_unscaling_vec.segment(Drone::NX, 2), u_unscaling_vec.segment(2, 2);
 
+            x_scaling_vec = x_unscaling_vec.cwiseInverse();
+            u_scaling_vec = u_unscaling_vec.cwiseInverse();
             x_drone_scaling_vec = x_drone_unscaling_vec.cwiseInverse();
             u_drone_scaling_vec = u_drone_unscaling_vec.cwiseInverse();
 
+            //scaling of cost matrices
             Matrix<scalar_t, 11, 1> Q_unscaling_vec;
             Q_unscaling_vec.segment(0, 8) = x_unscaling_vec.segment(0, 8);
             Q_unscaling_vec.segment(8, 3) = x_unscaling_vec.segment(10, 3);
             Q = Q.cwiseProduct(Q_unscaling_vec).cwiseProduct(Q_unscaling_vec);
+
+            R = R.cwiseProduct(u_drone_unscaling_vec).cwiseProduct(u_drone_unscaling_vec);
 
             Matrix<scalar_t, 11, 11> Q_unscaling_mat;
             Q_unscaling_mat.setZero();
             Q_unscaling_mat.diagonal() << Q_unscaling_vec;
             QN = Q_unscaling_mat * QN * Q_unscaling_mat;
 
-            R = R.cwiseProduct(u_drone_unscaling_vec).cwiseProduct(u_drone_unscaling_vec);
-            ROS_INFO_STREAM("u_drone_scale" << u_drone_unscaling_vec);
-
-            ROS_INFO_STREAM("Q" << Q);
-            ROS_INFO_STREAM("R" << R);
-            ROS_INFO_STREAM("QN" << QN);
+            //additional scaling
             R /= weight_scaling;
             Q /= weight_scaling;
             QN /= weight_scaling;
+
+            //TODO
             R = R.eval();
             Q = Q.eval();
             QN = QN.eval();
         } else {
             ROS_ERROR("Failed to get MPC parameter");
         }
-
-    }
-
-    void getConstraints(state_t<scalar_t> &lbx, state_t<scalar_t> &ubx,
-                        control_t<scalar_t> &lbu, control_t<scalar_t> &ubu,
-                        constraint_t <scalar_t> &lbg, constraint_t <scalar_t> &ubg) {
-        const double inf = std::numeric_limits<double>::infinity();
-        const double eps = 1e-3;
-
-        lbu << -drone->max_servo_rate, -drone->max_servo_rate,
-                drone->min_propeller_speed, -drone->max_propeller_delta / 2; // lower bound on control
-        ubu << drone->max_servo_rate, drone->max_servo_rate,
-                drone->max_propeller_speed, drone->max_propeller_delta / 2; // upper bound on control
-
-        lbx << -inf, -inf, min_z - eps,
-                -max_dx, -max_dx, min_dz,
-                -inf, -inf, -inf, -inf,
-                -max_datt, -max_datt, -inf,
-                -drone->max_servo1_angle, -drone->max_servo2_angle;
-
-        ubx << inf, inf, inf,
-                max_dx, max_dx, max_dz,
-                inf, inf, inf, inf,
-                max_datt, max_datt, inf,
-                drone->max_servo1_angle, drone->max_servo2_angle;
-
-        //TODO fix attitude constraint [cos(maxAttitudeAngle) 1]
-        lbg << cos(max_attitude_angle), drone->min_propeller_speed, drone->min_propeller_speed;
-        ubg << inf, drone->max_propeller_speed, drone->max_propeller_speed;
-        ROS_INFO_STREAM(lbg);
-        ROS_INFO_STREAM("min cos" << cos(max_attitude_angle));
-//
-        lbu = lbu.cwiseProduct(u_scaling_vec);
-        ubu = ubu.cwiseProduct(u_scaling_vec);
-        ROS_INFO_STREAM("lbu" << lbu.transpose());
-        ROS_INFO_STREAM("ubu" << ubu.transpose());
-
-        lbx = lbx.cwiseProduct(x_scaling_vec);
-        ubx = ubx.cwiseProduct(x_scaling_vec);
-        ROS_INFO_STREAM("lbx" << lbx.transpose());
-        ROS_INFO_STREAM("ubx" << ubx.transpose());
 
     }
 
@@ -251,7 +189,6 @@ public:
     g) const noexcept
     {
         Matrix<T, 2, 1> u_drone = u.segment(2, 2).cwiseProduct(u_unscaling_vec.segment(2, 2).template cast<T>());
-
 
         g(0) = x(9) * x(9) - x(6) * x(6) - x(7) * x(7) + x(8) * x(8);
         g(1) = u_drone(0) + 0.5 * u_drone(1);

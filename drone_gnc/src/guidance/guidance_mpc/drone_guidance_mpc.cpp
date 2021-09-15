@@ -31,10 +31,17 @@ DroneGuidanceMPC::DroneGuidanceMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     set_time_limits(0, 1);
 
     // Setup constraints
+    const double inf = std::numeric_limits<double>::infinity();
+    double eps = 1e-3;
     ocp_state lbx, ubx;
     ocp_control lbu, ubu;
-    ocp().get_control_bounds(lbu, ubu);
-    ocp().get_state_bounds(lbx, ubx);
+    lbx << -inf, -inf, 0 - eps,
+            -inf, -inf, ocp().min_dz;
+    ubx << inf, inf, inf,
+            inf, inf, ocp().max_dz;
+
+    lbu << drone->min_propeller_speed, -inf, -ocp().max_attitude_angle; // lower bound on control
+    ubu << drone->max_propeller_speed, inf, ocp().max_attitude_angle; // upper bound on control
 
     state_bounds(lbx, ubx);
     control_bounds(lbu, ubu);
@@ -159,12 +166,6 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
         p0 << 1.0;
     }
 
-
-
-    //scaling
-    traj_state_guess = ocp().x_scaling_vec.asDiagonal() * traj_state_guess;
-    traj_control_guess = ocp().u_scaling_vec.asDiagonal() * traj_control_guess;
-
     p_guess(p0);
 
     //TODO scaling
@@ -180,46 +181,12 @@ void DroneGuidanceMPC::initGuess(Drone::state &x0, Drone::state &target_state) {
 }
 
 void DroneGuidanceMPC::setTarget(Drone::state &target_state, Drone::control &target_control) {
-    ocp().xs << target_state.head(6).cwiseProduct(ocp().x_scaling_vec);
-    ocp().us << target_control.head(3).cwiseProduct(ocp().u_scaling_vec);
-}
-
-void DroneGuidanceMPC::warmStart() {
-//    //warm start
-//    traj_state_t x_guess;
-//    traj_control_t u_guess;
-//    int NX = ocp().NX;
-//    int NU = ocp().NU;
-//    int NUM _NODES = ocp().NUM_NODES;
-//    state x_interp;
-//    control u_interp;
-//    double previous_interp_time = 0;
-//
-//    double time_since_last_solve = feedforward_period;
-//
-//    for (int i = 0; i < NUM_NODES; i++) {
-//        double interp_time = time_grid(i) + time_since_last_solve;
-//        if (interp_time <= horizon_length) {
-//            x_interp = solution_x_at(interp_time);
-//            u_interp = solution_u_at(interp_time);
-//        } else {
-////            drone->stepRK4(x_interp.cwiseProduct(mpc.ocp().x_unscaling_vec),
-////                           u_interp.cwiseProduct(mpc.ocp().u_unscaling_vec),
-////                           interp_time - previous_interp_time,
-////                           x_interp);
-////            x_interp = x_interp.cwiseProduct(mpc.ocp().x_scaling_vec);
-//        }
-//        x_guess.segment((NUM_NODES - i - 1) * NX, NX) = x_interp;
-//        u_guess.segment((NUM_NODES - i - 1) * NU, NU) = u_interp;
-//        previous_interp_time = interp_time;
-//    }
-//    x_guess(x_guess);
-//    u_guess(u_guess);
+    ocp().xs << target_state.head(6);
 }
 
 Drone::state DroneGuidanceMPC::solution_x_at(const int t) {
     Drone::state state_sol;
-    ocp_state sol = MPC::solution_x_at(t).cwiseProduct(ocp().x_unscaling_vec);
+    ocp_state sol = MPC::solution_x_at(t);
     Vector3d tangent = sol.segment(3, 3);
     if (tangent(2) < 0) tangent = -tangent;
     Vector3d unit_z;
@@ -249,23 +216,15 @@ void DroneGuidanceMPC::solve(Drone::state &x0_full) {
 
     double eps = 1e-3;
     ocp_state x0 = x0_full.head(6);
-    initial_conditions(x0.array()-eps, x0.array()+eps);
+    initial_conditions(x0.array() - eps, x0.array() + eps);
 
     //final state bound
     ocp_state lbx_f, ubx_f;
-    ocp().get_state_bounds(lbx_f, ubx_f);
-    //constraint on z, vx, vy, vz
-    lbx_f.segment(2, 4) = ocp().xs.segment(2, 4).array();
-    ubx_f.segment(2, 4) = ocp().xs.segment(2, 4).array();
-    final_state_bounds(lbx_f.array()-eps, ubx_f.array()+eps);
-
-    double time_now = ros::Time::now().toSec();
+    lbx_f << -inf, -inf, ocp().xs.segment(2, 4);
+    ubx_f << inf, inf, ocp().xs.segment(2, 4);
+    final_state_bounds(lbx_f.array() - eps, ubx_f.array() + eps);
 
     MPC::solve();
-
-//    ROS_ERROR_STREAM(solution_u().transpose());
-
-    last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
 }
 
 void DroneGuidanceMPC::precomputeDescent() {
@@ -298,10 +257,11 @@ void DroneGuidanceMPC::warmStartDescent(Drone::state x0) {
 }
 
 void DroneGuidanceMPC::setDescentConstraints() {
-    const double inf = std::numeric_limits<double>::infinity();
     ocp_control lbu, ubu;
-    ocp().get_control_bounds(lbu, ubu);
-    lbu(0) = ocp().descent_min_propeller_speed;
+    //TODO
+    const double inf = std::numeric_limits<double>::infinity();
+    lbu << ocp().descent_min_propeller_speed, -inf, -ocp().max_attitude_angle; // lower bound on control
+    ubu << drone->max_propeller_speed, inf, ocp().max_attitude_angle; // upper bound on control
     control_bounds(lbu, ubu);
 
     double eps = 1e-5;

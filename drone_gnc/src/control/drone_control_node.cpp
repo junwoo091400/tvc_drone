@@ -9,10 +9,8 @@
 
 #include "drone_control_node.h"
 
-DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) : drone_mpc(nh, drone_ptr),
-                                                                                            drone(drone_ptr),
-                                                                                            backup_controller(
-                                                                                                    drone_ptr) {
+DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr) :
+        drone_mpc(nh, drone_ptr), drone(drone_ptr), backup_controller(drone_ptr) {
     initTopics(nh);
 
     std::vector<double> initial_target_apogee;
@@ -21,26 +19,9 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, std::shared_ptr<Drone> d
     target_apogee.y = initial_target_apogee.at(1);
     target_apogee.z = initial_target_apogee.at(2);
 
-    //init segment length
-//    double guidance_horizon_length;
-//    nh.getParam("guidance/mpc/horizon_length", guidance_horizon_length);
-
-    nh.param("/fixed_guidance", fixed_guidance, false);
     nh.param("track_guidance", track_guidance, false);
 
-    nh.getParam("mpc/mpc_period", period);
-    nh.getParam("mpc/feedforward_period", feedforward_period);
-
-    int max_ff_index = std::round(period / feedforward_period) - 1;
-
-//    low_level_control_thread = nh.createTimer(
-//            ros::Duration(feedforward_period), [&](const ros::TimerEvent &) {
-//                if (ff_index < max_ff_index) {
-//                    publishFeedforwardControl();
-//                    ff_index++;
-//                }
-//            });
-
+    nh.getParam("mpc/period", period);
 
     // Initialize fsm
     current_fsm.time_now = 0;
@@ -83,14 +64,11 @@ void DroneControlNode::run() {
         // State machine ------------------------------------------
 
         if ((received_trajectory || !track_guidance) && received_state) {
-
             fetchNewTarget();
             if (!USE_BACKUP_CONTROLLER) {
                 computeControl();
             }
 
-            publishTrajectory();
-            saveDebugInfo();
             publishDebugInfo();
 
             stall_time = loop_start_time + period * 0.93 - ros::Time::now().toSec();
@@ -98,11 +76,10 @@ void DroneControlNode::run() {
 
             if (current_fsm.state_machine == drone_gnc::FSM::IDLE) {
                 start_time = ros::Time::now().toSec();
-            }
-            else if (current_fsm.state_machine == drone_gnc::FSM::ASCENT || current_fsm.state_machine == drone_gnc::FSM::DESCENT) {
-                publishFeedforwardControl();
-            }
-            else if (current_fsm.state_machine == drone_gnc::FSM::STOP) {
+            } else if (current_fsm.state_machine == drone_gnc::FSM::ASCENT ||
+                       current_fsm.state_machine == drone_gnc::FSM::DESCENT) {
+                publishControl();
+            } else if (current_fsm.state_machine == drone_gnc::FSM::STOP) {
                 drone_gnc::DroneControl drone_control;
                 drone_control.bottom = 0;
                 drone_control.top = 0;
@@ -110,12 +87,6 @@ void DroneControlNode::run() {
                 drone_control.servo2 = 0;
                 drone_control_pub.publish(drone_control);
             }
-//        if (current_fsm.state_machine.compare("Launch") == 0) {
-//            low_level_control_thread.stop();
-//            publishFeedforwardControl();
-//            ff_index = 0;
-//            low_level_control_thread.start();
-//        }
         }
         if (stall_time > 0) computation_time = (ros::Time::now().toSec() - loop_start_time - stall_time) * 1000;
         else computation_time = (ros::Time::now().toSec() - loop_start_time) * 1000;
@@ -150,7 +121,7 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
         guidance_state_trajectory = Eigen::MatrixXd(Drone::NX, GUIDANCE_NUM_NODE);
         guidance_control_trajectory = Eigen::MatrixXd(Drone::NU, GUIDANCE_NUM_NODE);
 
-        if(GUIDANCE_NUM_SEG != 0){
+        if (GUIDANCE_NUM_SEG != 0) {
             GUIDANCE_POLY_ORDER = GUIDANCE_NUM_NODE / GUIDANCE_NUM_SEG;
             SEG_LENGTH = 1.0 / GUIDANCE_NUM_SEG;
             // init lagrange basis
@@ -163,8 +134,7 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
             }
             m_basis = Eigen::MatrixXd(GUIDANCE_POLY_ORDER + 1, GUIDANCE_POLY_ORDER + 1);
             polympc::LagrangeSpline::compute_lagrange_basis(time_grid, m_basis);
-        }
-        else{
+        } else {
             //fixed guidance
             GUIDANCE_POLY_ORDER = 0;
             SEG_LENGTH = 0;
@@ -198,7 +168,7 @@ void DroneControlNode::sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC
 
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
         //scaled time;
-        double t = (time_delta + drone_mpc.node_time(i) + drone_mpc.mpc_period) / (guidance_tf - guidance_t0);
+        double t = (time_delta + drone_mpc.node_time(i) + drone_mpc.period) / (guidance_tf - guidance_t0);
 
         //Clip between 0 and 1;
         t = max(min(t, 1.0), 0.0);
@@ -253,7 +223,6 @@ DroneControlNode::sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMP
 void DroneControlNode::computeControl() {
     time_compute_start = ros::Time::now().toSec();
 
-
     Drone::state x0;
 //    state_mutex.lock();
     x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
@@ -266,13 +235,12 @@ void DroneControlNode::computeControl() {
         emergency_stop = true;
     }
 
-    drone_mpc.drone->setParams(current_state.thrust_scaling,
-                               current_state.torque_scaling,
-                               current_state.disturbance_force.x, current_state.disturbance_force.y,
-                               current_state.disturbance_force.z,
-                               current_state.disturbance_torque.x, current_state.disturbance_torque.y,
-                               current_state.disturbance_torque.z);
-
+    drone->setParams(current_state.thrust_scaling,
+                     current_state.torque_scaling,
+                     current_state.disturbance_force.x, current_state.disturbance_force.y,
+                     current_state.disturbance_force.z,
+                     current_state.disturbance_torque.x, current_state.disturbance_torque.y,
+                     current_state.disturbance_torque.z);
 
     drone_mpc.solve(x0);
 
@@ -284,7 +252,7 @@ void DroneControlNode::computeControl() {
 
 }
 
-void DroneControlNode::publishFeedforwardControl() {
+void DroneControlNode::publishControl() {
     drone_gnc::DroneControl drone_control;
     if (USE_BACKUP_CONTROLLER) {
         drone_control = backup_controller.getControl(current_state, target_apogee);
@@ -296,13 +264,11 @@ void DroneControlNode::publishFeedforwardControl() {
 }
 
 void DroneControlNode::publishTrajectory() {
-
-    // Send optimal trajectory computed by control. Send onlys position for now
+    // Send optimal trajectory computed by control for debugging purpose
     drone_gnc::Trajectory trajectory_msg;
     drone_gnc::DroneTrajectory horizon_msg;
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
         Drone::state state_val = drone_mpc.solution_x_at(i);
-//            Drone::state state_val = drone_mpc.ocp().targetTrajectory.col(i);
 
         drone_gnc::Waypoint point;
         point.time = drone_mpc.node_time(i);
@@ -342,7 +308,6 @@ void DroneControlNode::publishTrajectory() {
         state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(drone_mpc.node_time(i));
         state_msg_stamped.header.frame_id = ' ';
 
-
         horizon_msg.trajectory.push_back(state_msg_stamped);
     }
     horizon_msg.header.stamp = ros::Time::now();
@@ -374,7 +339,7 @@ void DroneControlNode::fetchNewTarget() {
     } else if (GUIDANCE_NUM_SEG == 0) {
         sampleTargetTrajectoryLinear(mpc_target_state_traj, mpc_target_control_traj);
     } else {
-        drone_mpc.setHorizonLength(guidance_tf-ros::Time::now().toSec()-drone_mpc.mpc_period);
+        drone_mpc.setHorizonLength(guidance_tf - ros::Time::now().toSec() - drone_mpc.period);
         sampleTargetTrajectory(mpc_target_state_traj, mpc_target_control_traj);
         //TODO remove
         for (int i = 0; i < DroneMPC::num_nodes; i++) {
@@ -386,31 +351,9 @@ void DroneControlNode::fetchNewTarget() {
     drone_mpc.setTargetControlTrajectory(mpc_target_control_traj);
 }
 
-void DroneControlNode::saveDebugInfo() {
-    double x_error = current_state.pose.position.x - target_apogee.x;
-    average_x_error.push_back(x_error * x_error);
-    double y_error = current_state.pose.position.y - target_apogee.y;
-    average_y_error.push_back(y_error * y_error);
-    double z_error = current_state.pose.position.z - target_apogee.z;
-    average_z_error.push_back(z_error * z_error);
-
-    average_status.push_back(drone_mpc.info().status.value);
-    average_time.push_back(time_compute_start);
-}
-
-void DroneControlNode::printDebugInfo() {
-    std::cout << "Average time: "
-              << (std::accumulate(average_time.begin(), average_time.end(), 0.0)) / average_time.size()
-              << "ms | Average error (x, y, z): "
-              << (std::accumulate(average_x_error.begin(), average_x_error.end(), 0.0)) / average_z_error.size()
-              << ", "
-              << (std::accumulate(average_y_error.begin(), average_y_error.end(), 0.0)) / average_z_error.size()
-              << ", "
-              << (std::accumulate(average_z_error.begin(), average_z_error.end(), 0.0)) / average_z_error.size()
-              << "\n";
-}
-
 void DroneControlNode::publishDebugInfo() {
+    publishTrajectory();
+
     std_msgs::Int32 msg1;
     msg1.data = drone_mpc.info().iter;
     sqp_iter_pub.publish(msg1);
@@ -430,11 +373,11 @@ int main(int argc, char **argv) {
 
     std::shared_ptr<Drone> drone = make_shared<Drone>(nh);
 
-    DroneControlNode droneControlNode(nh, drone);
+    DroneControlNode drone_control_node(nh, drone);
 
     // Thread to compute control. Duration defines interval time in seconds
-    ros::Timer control_thread = nh.createTimer(ros::Duration(droneControlNode.period), [&](const ros::TimerEvent &) {
-        droneControlNode.run();
+    ros::Timer control_thread = nh.createTimer(ros::Duration(drone_control_node.period), [&](const ros::TimerEvent &) {
+        drone_control_node.run();
     });
     ros::spin();
 }

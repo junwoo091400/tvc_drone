@@ -33,16 +33,14 @@
 
 class DroneGuidanceNode {
 public:
-    DroneGuidanceNode(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
+    DroneGuidanceNode(ros::NodeHandle &nh, const std::shared_ptr<Drone> &drone_ptr);
 
     void initTopics(ros::NodeHandle &nh);
 
     void run();
 
-    // Callback function to store last received state
     void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state);
 
-    // Callback function to store last received state
     void targetCallback(const geometry_msgs::Vector3 &target);
 
     void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm);
@@ -68,6 +66,7 @@ private:
     Drone::state x0;
     bool started_descent = false;
     double descent_trigger_time;
+    double last_computation_time;
 
     // Subscribers
     ros::Subscriber rocket_state_sub;

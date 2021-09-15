@@ -15,9 +15,9 @@
 #include <ros/ros.h>
 #include "drone_gnc/InterpolateControlSpline.h"
 
-#include "guidance_polympc_redef.hpp"
+#include "guidance_solver.hpp"
 
-class DroneGuidanceMPC : private MPC<DroneGuidanceOCP, Solver> {
+class DroneGuidanceMPC : private MPC<DroneGuidanceOCP, GuidanceSolver> {
 
 public:
     using ocp_state = state_t;
@@ -53,13 +53,10 @@ public:
 
     using MPC::info;
 
-    std::shared_ptr<Drone> drone;
-    double last_computation_time = 0;
     double max_horizon_length;
 
 private:
-    void warmStart();
-
+    std::shared_ptr<Drone> drone;
     traj_control_t descent_control_sol;
     traj_state_t descent_state_sol;
     dual_var_t descent_dual_sol;

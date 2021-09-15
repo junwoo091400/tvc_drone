@@ -65,14 +65,8 @@ public:
         x_error2(7) = x_error(9) * x_error(7) + x_error(6) * x_error(8);
         x_error2.segment(8, 3) = x_error.segment(10, 3);
 
-        ROS_ERROR_STREAM("qx " << x_error2(6));
-        ROS_ERROR_STREAM("qy " << x_error2(7));
-
         control u_tilde = -K * x_error2;
         control u = u_tilde + us;
-
-        ROS_ERROR_STREAM("servo1 "  << u(0));
-        ROS_ERROR_STREAM("servo2 " << u(1));
 
         drone_gnc::DroneControl drone_control;
         drone_control.servo1 = u(0);

@@ -15,9 +15,9 @@
 #include <ros/ros.h>
 #include "drone_gnc/InterpolateControlSpline.h"
 
-#include "polympc_redef.hpp"
+#include "control_solver.hpp"
 
-class DroneMPC : private MPC<DroneControlOCP, Solver> {
+class DroneMPC : private MPC<DroneControlOCP, ControlSolver> {
 
 public:
     using ocp_state = state_t;
@@ -25,6 +25,9 @@ public:
     using ocp_constraint = constraint_t;
 
     using MPC::num_nodes;
+
+    double period;
+    double max_horizon_length;
 
     DroneMPC(ros::NodeHandle &nh, std::shared_ptr<Drone> drone_ptr);
 
@@ -40,6 +43,15 @@ public:
 
     Drone::control solution_u_at(const int t);
 
+    inline void state_bounds(const Eigen::Ref<const state_t> &xlb, const Eigen::Ref<const state_t> &xub) {
+        MPC::state_bounds(xlb.cwiseProduct(ocp().x_scaling_vec), xub.cwiseProduct(ocp().x_scaling_vec));
+    }
+
+    inline void control_bounds(const Eigen::Ref<const control_t> &lb, const Eigen::Ref<const control_t> &ub) {
+        MPC::control_bounds(lb.cwiseProduct(ocp().u_scaling_vec), ub.cwiseProduct(ocp().u_scaling_vec));
+    }
+
+
     void setHorizonLength(double horizon_length);
 
     double node_time(int i);
@@ -51,22 +63,11 @@ public:
     void integrateX0(const Drone::state x0, Drone::state &new_x0);
 
     void setTargetStateTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> target_state_trajectory);
+
     void setTargetControlTrajectory(Matrix<double, Drone::NU, DroneMPC::num_nodes> target_control_trajectory);
 
-
-    std::shared_ptr<Drone> drone;
-    double mpc_period;
-    double feedforward_period;
-    double fixed_computation_time;
-    double last_computation_time = 0;
-    double init_time;
-    double max_horizon_length;
-
 private:
-    void warmStart();
-
-    double solution_time;
-    bool is_simu;
+    std::shared_ptr<Drone> drone;
 };
 
 
