@@ -31,21 +31,18 @@ public:
     using parameters_t = Eigen::Matrix<T, NP, 1>;
     using parameters = parameters_t<double>;
 
-
-    double min_propeller_speed;
-    double max_propeller_speed;
+    // parameters
+    double min_propeller_speed, max_propeller_speed;
     double max_propeller_delta;
-
-    double max_servo1_angle;
-    double max_servo2_angle;
-
+    double max_servo1_angle, max_servo2_angle;
     double max_servo_rate;
 
+    // estimated parameters
     double thrust_scaling;
-    Eigen::Vector3d disturbance_torque;
-    Eigen::Vector3d disturbance_force;
-
     double torque_scaling;
+    Eigen::Vector3d disturbance_force;
+    Eigen::Vector3d disturbance_torque;
+
     double servo1_offset;
     double servo2_offset;
 
@@ -66,8 +63,7 @@ public:
         max_servo2_angle = max_servo2_angle_degree * (M_PI / 180);
         max_servo_rate = max_servo_rate_degree * (M_PI / 180);
 
-        double servo1_offset_degree;
-        double servo2_offset_degree;
+        double servo1_offset_degree, servo2_offset_degree;
         nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset_degree, 0);
         nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset_degree, 0);
         servo1_offset = servo1_offset_degree * M_PI / 180.0;
@@ -97,10 +93,12 @@ public:
         T prop_av = input(2);
         T prop_delta = input(3);
 
+        // thrust is a function of the average propeller speed
         T thrust = getThrust(prop_av) * thrust_scaling;
+        // the difference in speed between the two propellers creates a torque
         T torque = getTorque(prop_delta) * torque_scaling;
 
-        // servomotors thrust vector rotation (see drone_interface for equivalent quaternion implementation)
+        // servomotors thrust vector rotation (see drone_simulator_interface for equivalent quaternion implementation)
         Eigen::Matrix<T, 3, 1> thrust_direction;
         thrust_direction << sin(servo2),
                 -cos(servo2) * sin(servo1),

@@ -56,12 +56,6 @@ public:
                                         const Eigen::Matrix<T, 3, 1> disturbance_force,
                                         const Eigen::Matrix<T, 3, 1> disturbance_torque,
                                         state &xdot) const noexcept {
-        // -------------- Simulation parameters -------------- -------------
-        // Earth gravity in [m/s^2]
-
-        // -------------- Simulation variables -----------------------------
-        T mass_inv = (T) dry_mass_inv;
-
         // Orientation of the rocket with quaternion
         Eigen::Quaternion<T> attitude(x(9), x(6), x(7), x(8));
 
@@ -74,7 +68,7 @@ public:
         // Angular velocity omega in quaternion format to compute quaternion derivative
         Eigen::Quaternion<T> omega_quat((T) 0.0, x(10), x(11), x(12));
 
-        // X, Y force and Z torque in body frame
+        // thrust vector torque in body frame (M = r x F)
         Eigen::Vector<T, 3> rocket_torque;
         rocket_torque << thrust_vector(1) * total_CM,
                 -thrust_vector(0) * total_CM,
@@ -82,13 +76,14 @@ public:
 
         // -------------- Differential equations ---------------------
 
-        // Position variation is speed
+        // Position derivative is speed
         xdot.head(3) = x.segment(3, 3);
 
-        // Speed variation is Force/mass
-        xdot.segment(3, 3) = total_force * mass_inv;
+        // Speed derivative is Force/mass
+        // using mass inverse to avoid computing slow division (maybe not needed?)
+        xdot.segment(3, 3) = total_force * (T) dry_mass_inv;
 
-        // Quaternion variation is 0.5*w◦q (if w in inertial frame)
+        // Quaternion derivative is 0.5*q◦w (if w in body frame)
         xdot.segment(6, 4) = (T) 0.5 * (attitude * omega_quat).coeffs();
 
         Eigen::Vector<T, 3> omega = x.segment(10, 3);
@@ -97,9 +92,8 @@ public:
         Eigen::Matrix<T, 3, 1> total_torque;
         total_torque = rocket_torque + body_torque + rot_matrix.transpose() * disturbance_torque;
 
-        // Angular speed variation is Torque/Inertia
-        xdot.segment(10, 3) = (total_torque -
-                               omega.cross(inertia.template cast<T>().cwiseProduct(omega)))
+        // Angular speed derivative is given by Euler's rotation equations (if in body frame)
+        xdot.segment(10, 3) = (total_torque - omega.cross(inertia.template cast<T>().cwiseProduct(omega)))
                 .cwiseProduct(inertia_inv.template cast<T>());
     }
 

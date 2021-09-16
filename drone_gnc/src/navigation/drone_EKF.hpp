@@ -21,33 +21,50 @@
 
 using namespace Eigen;
 
-template <typename Derived, int NZ>
+template<typename Derived, int NZ>
 class DroneEKF {
 public:
     static const int NP = Drone::NP;
     static const int NU = Drone::NU;
     static const int NX = Drone::NX + Drone::NP;
 
-    // Autodiff dor state
+    // template variables for Autodiff to compute F and H
+    // Autodiff for state
     template<typename scalar_t>
     using state_t = Matrix<scalar_t, NX, 1>;
     using state = state_t<double>;
-
+    // Autodiff state variable
     using ad_state = state_t<AutoDiffScalar<state>>;
 
     // Autodiff for sensor
     template<typename scalar_t>
     using sensor_data_t = Matrix<scalar_t, NZ, 1>;
     using sensor_data = sensor_data_t<double>;
-
+    // Autodiff sensor variable
     using ad_sensor_data = sensor_data_t<AutoDiffScalar<state_t<double>>>;
 
     typedef Matrix<double, NX, NX> state_matrix;
+    typedef Matrix<double, NZ, NZ> sensor_matrix;
 
+private:
+    // EKF usual matrices
+    state_matrix Q; // constant
+    sensor_matrix R; // constant
+    state_matrix F; // computed using autodiff
+    Matrix<double, NZ, NX> H; // computed using autodiff
+
+    state X0;
     state X;
+    state_matrix P;
     ad_state ADx;
+
+    Drone drone;
+
+public:
+    // booleans that define whether to use the full model
     bool estimate_params;
     bool received_control;
+
     DroneEKF(ros::NodeHandle &nh) : drone(nh) {
         std::vector<double> initial_state;
         nh.getParam("initial_state", initial_state);
@@ -55,7 +72,6 @@ public:
 
         bool init_estimated_params;
         nh.param("init_estimated_params", init_estimated_params, false);
-
         if (init_estimated_params) {
             double thrust_scaling, torque_scaling;
             nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
@@ -72,7 +88,7 @@ public:
 
         reset();
 
-        /** initialize derivatives */
+        // initialize derivatives ->  the Jacobian of ADx (=X but in autodiff format) is the identity matrix
         ADx(X);
         int div_size = ADx.size();
         int derivative_idx = 0;
@@ -80,6 +96,14 @@ public:
             ADx(i).derivatives() = state::Unit(div_size, derivative_idx);
             derivative_idx++;
         }
+    }
+
+    state getState() {
+        return X;
+    }
+
+    double getState(int i) {
+        return X(i);
     }
 
     void reset() {
@@ -90,7 +114,7 @@ public:
         received_control = false;
     }
 
-    void startParamEstimation(){
+    void startParamEstimation() {
         state Pdiag = P.diagonal();
         P.setIdentity();
         P.diagonal().head(Drone::NX) << Pdiag.head(Drone::NX);
@@ -108,6 +132,7 @@ public:
     template<typename T>
     void stateDynamics(const state_t<T> &x, const Drone::control &u, state_t<T> &xdot) {
         if (received_control && estimate_params) {
+            // use full dynamics to estimate parameters
             Drone::state_t<T> x_drone = x.head(Drone::NX);
 
             Drone::parameters_t<T> params = x.segment(Drone::NX, Drone::NP);
@@ -117,6 +142,7 @@ public:
             //state derivatives
             drone.state_dynamics(x_drone, u_drone, params, xdot);
         } else {
+            // use 3d rigid body dynamics without parameter estimation
             // Orientation of the rocket with quaternion
             Eigen::Quaternion<T> attitude(x(9), x(6), x(7), x(8));
             attitude.normalize();
@@ -135,15 +161,15 @@ public:
     }
 
     template<typename T>
-    void measurementModel(const state_t<T> &x, sensor_data_t<T> &z){
-        static_cast<Derived*>(this)->measurementModel_impl(x, z);
+    void measurementModel(const state_t<T> &x, sensor_data_t<T> &z) {
+        static_cast<Derived *>(this)->measurementModel_impl(x, z);
     }
 
     void fullDerivative(const state &x,
-                                  const state_matrix &P,
-                                  const Drone::control &u,
-                                  state &xdot,
-                                  state_matrix &Pdot) {
+                        const state_matrix &P,
+                        const Drone::control &u,
+                        state &xdot,
+                        state_matrix &Pdot) {
         //X derivative
         stateDynamics(x, u, xdot);
 
@@ -153,7 +179,7 @@ public:
         ad_state Xdot;
         stateDynamics(ADx, u, Xdot);
 
-        // obtain the jacobian of f(x)
+        // fetch the jacobian of f(x)
         for (int i = 0; i < Xdot.size(); i++) {
             F.row(i) = Xdot(i).derivatives();
         }
@@ -163,11 +189,11 @@ public:
 
 
     void RK4(const state &X,
-                       const state_matrix &P,
-                       const Drone::control &u,
-                       double dT,
-                       state &Xnext,
-                       state_matrix &Pnext) {
+             const state_matrix &P,
+             const Drone::control &u,
+             double dT,
+             state &Xnext,
+             state_matrix &Pnext) {
         state k1, k2, k3, k4;
         state_matrix k1_P, k2_P, k3_P, k4_P;
 
@@ -201,7 +227,8 @@ public:
             H.row(i) = hdot(i).derivatives();
         }
 
-        // copied from https://github.com/LA-EPFL/yakf/blob/master/ExtendedKalmanFilter.h
+        // taken from https://github.com/LA-EPFL/yakf/blob/master/ExtendedKalmanFilter.h
+        // this is a faster version of the commented code below
         Eigen::Matrix<double, NX, NX> IKH;  // temporary matrix
         Eigen::Matrix<double, NZ, NZ> S; // innovation covariance
         Eigen::Matrix<double, NX, NZ> K; // Kalman gain
@@ -213,23 +240,12 @@ public:
         IKH = (I - K * H);
         P = IKH * P * IKH.transpose() + K * R * K.transpose();
 
-//    Matrix<double, NX, NZ> K;
-//    K = P * H.transpose() * ((H * P * H.transpose() + R).inverse());
-//    X = X + K * (z - h_x);
-//    P = P - K * H * P;
+        // equivalent code:
+        // Matrix<double, NX, NZ> K;
+        // K = P * H.transpose() * ((H * P * H.transpose() + R).inverse());
+        // X = X + K * (z - h_x);
+        // P = P - K * H * P;
     }
-private:
-    state_matrix P;
-
-    state_matrix F;
-    Matrix<double, NZ, NX> H;
-
-    Drone drone;
-
-    state X0;
-protected:
-    state_matrix Q;
-    Matrix<double, NZ, NZ> R;
 };
 
 //template <typename Derived> const int DroneEKF<Derived>::NZ(Derived::NZ);

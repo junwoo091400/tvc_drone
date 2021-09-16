@@ -168,31 +168,31 @@ void DroneNavigationNodePixhawk::controlCallback(const drone_gnc::DroneControl::
 void DroneNavigationNodePixhawk::publishDroneState() {
     drone_gnc::DroneState kalman_state;
 
-    kalman_state.pose.position.x = kalman.X(0);
-    kalman_state.pose.position.y = kalman.X(1);
-    kalman_state.pose.position.z = kalman.X(2);
+    kalman_state.pose.position.x = kalman.getState(0);
+    kalman_state.pose.position.y = kalman.getState(1);
+    kalman_state.pose.position.z = kalman.getState(2);
 
-    kalman_state.twist.linear.x = kalman.X(3);
-    kalman_state.twist.linear.y = kalman.X(4);
-    kalman_state.twist.linear.z = kalman.X(5);
+    kalman_state.twist.linear.x = kalman.getState(3);
+    kalman_state.twist.linear.y = kalman.getState(4);
+    kalman_state.twist.linear.z = kalman.getState(5);
 
-    kalman_state.pose.orientation.x = kalman.X(6);
-    kalman_state.pose.orientation.y = kalman.X(7);
-    kalman_state.pose.orientation.z = kalman.X(8);
-    kalman_state.pose.orientation.w = kalman.X(9);
+    kalman_state.pose.orientation.x = kalman.getState(6);
+    kalman_state.pose.orientation.y = kalman.getState(7);
+    kalman_state.pose.orientation.z = kalman.getState(8);
+    kalman_state.pose.orientation.w = kalman.getState(9);
 
-    kalman_state.twist.angular.x = kalman.X(10);
-    kalman_state.twist.angular.y = kalman.X(11);
-    kalman_state.twist.angular.z = kalman.X(12);
+    kalman_state.twist.angular.x = kalman.getState(10);
+    kalman_state.twist.angular.y = kalman.getState(11);
+    kalman_state.twist.angular.z = kalman.getState(12);
 
-    kalman_state.thrust_scaling = kalman.X(13);
-    kalman_state.torque_scaling = kalman.X(14);
-    kalman_state.disturbance_force.x = kalman.X(15);
-    kalman_state.disturbance_force.y = kalman.X(16);
-    kalman_state.disturbance_force.z = kalman.X(17);
-    kalman_state.disturbance_torque.x = kalman.X(18);
-    kalman_state.disturbance_torque.y = kalman.X(19);
-    kalman_state.disturbance_torque.z = kalman.X(20);
+    kalman_state.thrust_scaling = kalman.getState(13);
+    kalman_state.torque_scaling = kalman.getState(14);
+    kalman_state.disturbance_force.x = kalman.getState(15);
+    kalman_state.disturbance_force.y = kalman.getState(16);
+    kalman_state.disturbance_force.z = kalman.getState(17);
+    kalman_state.disturbance_torque.x = kalman.getState(18);
+    kalman_state.disturbance_torque.y = kalman.getState(19);
+    kalman_state.disturbance_torque.z = kalman.getState(20);
 
     kalman_state.header.stamp = ros::Time::now();
 

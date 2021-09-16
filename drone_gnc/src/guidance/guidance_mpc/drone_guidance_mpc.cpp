@@ -191,7 +191,7 @@ Drone::state DroneGuidanceMPC::solution_x_at(const int t) {
     if (tangent(2) < 0) tangent = -tangent;
     Vector3d unit_z;
     unit_z << 0, 0, 1;
-    Quaterniond tangent_orientation = Quaterniond::FromTwoVectors(unit_z, tangent);
+//    Quaterniond tangent_orientation = Quaterniond::FromTwoVectors(unit_z, tangent);
     state_sol << sol,
 //            tangent_orientation.coeffs(),
             0, 0, 0, 1,
@@ -210,8 +210,6 @@ double DroneGuidanceMPC::node_time(int i) {
 }
 
 void DroneGuidanceMPC::solve(Drone::state &x0_full) {
-    double computation_start_time = ros::Time::now().toSec();
-
     const double inf = std::numeric_limits<double>::infinity();
 
     double eps = 1e-3;

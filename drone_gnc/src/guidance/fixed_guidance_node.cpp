@@ -312,17 +312,12 @@ public:
 
 private:
     ros::Subscriber fsm_sub;
-    // Publishers
     ros::Publisher horizon_viz_pub;
-
-    // Debug
     ros::Publisher horizon_pub;
-    // Variables to track performance over whole simulation
 };
 
 
 int main(int argc, char **argv) {
-    // Init ROS time keeper node
     ros::init(argc, argv, "guidance");
     ros::NodeHandle nh("guidance");
 

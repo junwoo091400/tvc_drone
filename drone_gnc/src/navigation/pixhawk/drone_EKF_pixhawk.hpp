@@ -22,7 +22,6 @@ using namespace Eigen;
 class DroneEKFPixhawk : public DroneEKF<DroneEKFPixhawk, 13> {
 public:
     DroneEKFPixhawk(ros::NodeHandle &nh): DroneEKF(nh) {
-
         double x_var, dx_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, disturbance_force_var, disturbance_force_z_var, disturbance_torque_var, disturbance_torque_z_var;
         double x_optitrack_var, pixhawk_var, pixhawk_vel_var;
         bool use_gps;
@@ -41,8 +40,8 @@ public:
             nh.getParam("update_vars/pixhawk_vel", pixhawk_vel_var) &&
             nh.getParam("use_gps", use_gps)) {
 
-            Q.setZero();
-            Q.diagonal() << x_var, x_var, x_var,
+            state diag_Q;
+            diag_Q << x_var, x_var, x_var,
                     dx_var, dx_var, dx_var,
                     att_var, att_var, att_var, att_var,
                     datt_var, datt_var, datt_var,
@@ -50,20 +49,22 @@ public:
                     torque_scaling_var,
                     disturbance_force_var, disturbance_force_var, disturbance_force_z_var,
                     disturbance_torque_var, disturbance_torque_var, disturbance_torque_z_var;
+            setQdiagonal(diag_Q);
 
-            R.setZero();
+            sensor_data diag_R;
             if(use_gps){
-                R.diagonal() << pixhawk_var, pixhawk_var, pixhawk_var,
+                diag_R << pixhawk_var, pixhawk_var, pixhawk_var,
                         pixhawk_var, pixhawk_var, pixhawk_var,
                         pixhawk_var, pixhawk_var, pixhawk_var, pixhawk_var,
                         pixhawk_var, pixhawk_var, pixhawk_var;
             }
             else{
-                R.diagonal() << x_optitrack_var, x_optitrack_var, x_optitrack_var,
+                diag_R << x_optitrack_var, x_optitrack_var, x_optitrack_var,
                         pixhawk_vel_var, pixhawk_vel_var, pixhawk_vel_var,
                         pixhawk_var, pixhawk_var, pixhawk_var, pixhawk_var,
                         pixhawk_var, pixhawk_var, pixhawk_var;
             }
+            setRdiagonal(diag_R);
 
         } else {
             ROS_ERROR("Failed to get kalman filter parameter");

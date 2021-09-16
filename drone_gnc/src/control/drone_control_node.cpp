@@ -60,7 +60,7 @@ void DroneControlNode::run() {
         ROS_ERROR_STREAM("emergency stop");
     } else {
         double loop_start_time = ros::Time::now().toSec();
-        double stall_time;
+        double stall_time = 0;
         // State machine ------------------------------------------
 
         if ((received_trajectory || !track_guidance) && received_state) {

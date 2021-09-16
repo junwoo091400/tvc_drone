@@ -21,8 +21,7 @@ using namespace Eigen;
 
 class DroneEKFOptitrack : public DroneEKF<DroneEKFOptitrack, 7> {
 public:
-    DroneEKFOptitrack(ros::NodeHandle &nh): DroneEKF(nh) {
-
+    DroneEKFOptitrack(ros::NodeHandle &nh) : DroneEKF(nh) {
         double x_var, dx_var, att_var, datt_var, thrust_scaling_var, torque_scaling_var, servo_offset_var, disturbance_force_var, disturbance_force_z_var, disturbance_torque_var, disturbance_torque_z_var;
         double x_optitrack_var, att_optitrack_var;
         if (nh.getParam("predict_vars/x", x_var) &&
@@ -39,7 +38,8 @@ public:
             nh.getParam("update_vars/optitrack_x", x_optitrack_var) &&
             nh.getParam("update_vars/optitrack_att", att_optitrack_var)) {
 
-            Q.diagonal() << x_var, x_var, x_var,
+            state diag_Q;
+            diag_Q << x_var, x_var, x_var,
                     dx_var, dx_var, dx_var,
                     att_var, att_var, att_var, att_var,
                     datt_var, datt_var, datt_var,
@@ -48,9 +48,12 @@ public:
                     servo_offset_var, servo_offset_var,
                     disturbance_force_var, disturbance_force_var, disturbance_force_z_var,
                     disturbance_torque_var, disturbance_torque_var, disturbance_torque_z_var;
+            setQdiagonal(diag_Q);
 
-            R.diagonal() << x_optitrack_var, x_optitrack_var, x_optitrack_var,
+            sensor_data diag_R;
+            diag_R << x_optitrack_var, x_optitrack_var, x_optitrack_var,
                     att_optitrack_var, att_optitrack_var, att_optitrack_var, att_optitrack_var;
+            setRdiagonal(diag_R);
         } else {
             ROS_ERROR("Failed to get kalman filter parameter");
         }
@@ -58,7 +61,7 @@ public:
     }
 
     template<typename T>
-    void measurementModel_impl(const state_t<T> &x, sensor_data_t<T> &z) {
+    void measurementModel_impl(const state_t <T> &x, sensor_data_t <T> &z) {
         z.segment(0, 3) = x.segment(0, 3);
         z.segment(3, 4) = x.segment(6, 4);
     }
