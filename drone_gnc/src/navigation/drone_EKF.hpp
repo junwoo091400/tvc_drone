@@ -10,23 +10,22 @@
 #ifndef SRC_DRONE_EKF_HPP
 #define SRC_DRONE_EKF_HPP
 
-#include "ros/ros.h"
-
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 
 #include <autodiff/AutoDiffScalar.h>
 #include <drone_model.hpp>
-#include <drone_gnc/DroneControl.h>
+#include "navigation_settings.hpp"
 
 using namespace Eigen;
 
-template<typename Derived, int NZ>
+//template<typename Derived, int NZ>
 class DroneEKF {
 public:
     static const int NP = Drone::NP;
     static const int NU = Drone::NU;
     static const int NX = Drone::NX + Drone::NP;
+    static const int NZ = 13;
 
     // template variables for Autodiff to compute F and H
     // Autodiff for state
@@ -58,30 +57,22 @@ private:
     state_matrix P;
     ad_state ADx;
 
-    Drone drone;
+    DroneProps<double> drone_props;
+    Drone *drone;
+
+    NavigationSettings<double> settings;
 
 public:
-    // booleans that define whether to use the full model
-    bool estimate_params;
-    bool received_control;
+    bool received_control = false;
 
-    DroneEKF(ros::NodeHandle &nh) : drone(nh) {
-        std::vector<double> initial_state;
-        nh.getParam("initial_state", initial_state);
-        Drone::state drone_X0(initial_state.data());
+    DroneEKF(Drone *drone, NavigationSettings<double> settings) : drone(drone), settings(settings) {
+        Drone::state drone_X0(settings.initial_state.data());
 
-        bool init_estimated_params;
-        nh.param("init_estimated_params", init_estimated_params, false);
-        if (init_estimated_params) {
-            double thrust_scaling, torque_scaling;
-            nh.param<double>("/rocket/estimated/thrust_scaling", thrust_scaling, 1);
-            nh.param<double>("/rocket/estimated/torque_scaling", torque_scaling, 1);
-            X0 << drone_X0, thrust_scaling, torque_scaling, 0, 0, 0, 0, 0, 0;
+        if (settings.init_estimated_params) {
+            X0 << drone_X0, settings.initial_thrust_scaling, settings.initial_torque_scaling, 0, 0, 0, 0, 0, 0;
         } else {
             X0 << drone_X0, 1, 1, 0, 0, 0, 0, 0, 0;
         }
-
-        nh.param("estimate_params", estimate_params, false);
 
         Q.setIdentity();
         R.setIdentity();
@@ -96,6 +87,32 @@ public:
             ADx(i).derivatives() = state::Unit(div_size, derivative_idx);
             derivative_idx++;
         }
+
+        state diag_Q;
+        diag_Q << settings.x_var, settings.x_var, settings.x_var,
+                settings.dx_var, settings.dx_var, settings.dx_var,
+                settings.att_var, settings.att_var, settings.att_var, settings.att_var,
+                settings.datt_var, settings.datt_var, settings.datt_var,
+                settings.thrust_scaling_var,
+                settings.torque_scaling_var,
+                settings.disturbance_force_var, settings.disturbance_force_var, settings.disturbance_force_z_var,
+                settings.disturbance_torque_var, settings.disturbance_torque_var, settings.disturbance_torque_z_var;
+        setQdiagonal(diag_Q);
+
+        sensor_data diag_R;
+        if (settings.use_gps) {
+            diag_R << settings.pixhawk_var, settings.pixhawk_var, settings.pixhawk_var,
+                    settings.pixhawk_var, settings.pixhawk_var, settings.pixhawk_var,
+                    settings.pixhawk_var, settings.pixhawk_var, settings.pixhawk_var, settings.pixhawk_var,
+                    settings.pixhawk_var, settings.pixhawk_var, settings.pixhawk_var;
+        } else {
+            diag_R << settings.x_optitrack_var, settings.x_optitrack_var, settings.x_optitrack_var,
+                    settings.pixhawk_vel_var, settings.pixhawk_vel_var, settings.pixhawk_vel_var,
+                    settings.pixhawk_var, settings.pixhawk_var, settings.pixhawk_var, settings.pixhawk_var,
+                    settings.pixhawk_var, settings.pixhawk_var, settings.pixhawk_var;
+        }
+        setRdiagonal(diag_R);
+
     }
 
     state getState() {
@@ -131,7 +148,7 @@ public:
 
     template<typename T>
     void stateDynamics(const state_t<T> &x, const Drone::control &u, state_t<T> &xdot) {
-        if (received_control && estimate_params) {
+        if (received_control && settings.estimate_params) {
             // use full dynamics to estimate parameters
             Drone::state_t<T> x_drone = x.head(Drone::NX);
 
@@ -140,7 +157,7 @@ public:
             Drone::control_t<T> u_drone = u;
 
             //state derivatives
-            drone.state_dynamics(x_drone, u_drone, params, xdot);
+            drone->state_dynamics(x_drone, u_drone, params, xdot);
         } else {
             // use 3d rigid body dynamics without parameter estimation
             // Orientation of the rocket with quaternion
@@ -162,7 +179,8 @@ public:
 
     template<typename T>
     void measurementModel(const state_t<T> &x, sensor_data_t<T> &z) {
-        static_cast<Derived *>(this)->measurementModel_impl(x, z);
+        //static_cast<Derived *>(this)->measurementModel_impl(x, z);
+        z.head(13) = x.head(13);
     }
 
     void fullDerivative(const state &x,

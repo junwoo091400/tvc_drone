@@ -10,3 +10,5 @@ venv/
 *.pyc
 
 drone_utils/log/log.orig.bag
+
+drone_gnc/src/cmake-build-debug/

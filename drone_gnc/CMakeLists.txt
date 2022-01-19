@@ -138,8 +138,8 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
         CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs #polympc-ros
-        INCLUDE_DIRS src/utils src/control src/models src/navigation
-        #  LIBRARIES tvc_simulator
+        INCLUDE_DIRS src/ros_nodes src/models src/ros_nodes/utils src/control src/guidance
+        #LIBRARIES ${PROJECT_NAME}
         #  DEPENDS system_lib
 )
 
@@ -184,24 +184,20 @@ catkin_package(
 #   ${catkin_LIBRARIES}
 # )
 
-include_directories(src/utils src/control src/models src/navigation submodule/polympc/src
+include_directories(src/utils src/control src/models src/navigation src/guidance submodule/polympc/src src/ros_nodes
         ${catkin_INCLUDE_DIRS}
         ${VRPN_INCLUDE_DIR})
 
-add_subdirectory(src/utils)
+add_subdirectory(src/ros_nodes)
 add_subdirectory(src/control)
 add_subdirectory(src/guidance)
 add_subdirectory(src/models)
-add_subdirectory(src/navigation)
-add_subdirectory(src/utils/drone_dome)
 
-add_subdirectory(submodule/polympc)
-
-set_source_files_properties(
-        submodule/polympc
-        PROPERTIES
-        COMPILE_FLAGS "-w"
-)
+#set_source_files_properties(
+#        submodule/polympc
+#        PROPERTIES
+#        COMPILE_FLAGS "-w"
+#)
 
 #############
 ## Install ##

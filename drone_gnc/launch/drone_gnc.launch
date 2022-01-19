@@ -1,4 +1,6 @@
 <launch>
+    <arg name="use_guidance" default="false"/>
+
     <group ns="rocket">
         <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
     </group>
@@ -21,23 +23,27 @@
 <!--           <rosparam param="rotation_angle">0</rosparam>-->
 <!--       </node>-->
 
-    <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen"
-          launch-prefix="taskset -c 2">
-        <rosparam param="target_apogee">[0, 0, 4]</rosparam>
-        <rosparam param="target_land">[0, 1, 0]</rosparam>
-    </node>
+<!--    valgrind &#45;&#45;track-origins=yes &#45;&#45;leak-check=full-->
+
+    <group if="$(arg use_guidance)">
+        <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen"
+              launch-prefix="taskset -c 2">
+            <rosparam param="target_apogee">[0, 0, 4]</rosparam>
+            <rosparam param="target_land">[0, 1, 0]</rosparam>
+        </node>
+    </group>
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" output="screen"
           launch-prefix="taskset -c 3">
-        <rosparam param="target_apogee">[0,0,4]</rosparam>
-        <rosparam param="track_guidance">true</rosparam>
+        <rosparam param="target_apogee">[0,0,1]</rosparam>
+        <rosparam param="track_guidance" subst_value="true">$(arg use_guidance)</rosparam>
     </node>
 
-    <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" output="screen" cwd="node">
+    <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" output="screen">
         <rosparam param="initial_state">"Idle"</rosparam>
     </node>
 
-    <node name="navigation" pkg="drone_gnc" type="drone_navigation_pixhawk" machine="gnc_machine"
+    <node name="navigation" pkg="drone_gnc" type="drone_navigation" machine="gnc_machine"
           output="screen" launch-prefix="taskset -c 1">
         <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
         <rosparam param="estimate_params">true</rosparam>

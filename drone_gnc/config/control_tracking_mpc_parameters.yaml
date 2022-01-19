@@ -25,7 +25,7 @@ max_datt: 0.6 # also used for scaling
 # scaling to improve numerical performance
 scaling_x: 2
 scaling_z: 4
-weight_scaling: 100
+weight_scaling: 64
 
 # important parameters that affect speed/performance
 period: 0.02

@@ -11,25 +11,20 @@
 #define SRC_DRONE_MODEL_HPP
 
 #include <Eigen/Eigen>
-#include "rocket_model.hpp"
 
 #include <cmath>
 
-class Drone : public Rocket {
-public:
-    static const int NX = 13;
-    static const int NU = 4;
-    static const int NP = 8;
+template<typename scalar>
+struct DroneProps {
+    double dry_mass;
+    double dry_mass_inv;
 
-    template<typename T>
-    using state_t = Eigen::Matrix<T, NX, 1>;
-    using state = state_t<double>;
-    template<typename T>
-    using control_t = Eigen::Matrix<T, NU, 1>;
-    using control = control_t<double>;
-    template<typename T>
-    using parameters_t = Eigen::Matrix<T, NP, 1>;
-    using parameters = parameters_t<double>;
+    double total_CM; // Current Cm of rocket, in real time
+
+    std::vector<double> dry_Inertia{0, 0, 0};
+
+    Eigen::Vector<double, 3> inertia;
+    Eigen::Vector<double, 3> inertia_inv;
 
     // parameters
     double min_propeller_speed, max_propeller_speed;
@@ -46,33 +41,87 @@ public:
     double servo1_offset;
     double servo2_offset;
 
-    Drone(ros::NodeHandle &nh) : Rocket(nh) {
-        double max_servo1_angle_degree, max_servo2_angle_degree, max_servo_rate_degree;
-        if (nh.getParam("/rocket/min_propeller_speed", min_propeller_speed) &&
-            nh.getParam("/rocket/max_propeller_speed", max_propeller_speed) &&
-            nh.getParam("/rocket/max_propeller_delta", max_propeller_delta) &&
-            nh.getParam("/rocket/max_servo1_angle", max_servo1_angle_degree) &&
-            nh.getParam("/rocket/max_servo2_angle", max_servo2_angle_degree) &&
-            nh.getParam("/rocket/max_servo_rate", max_servo_rate_degree) &&
-            nh.getParam("/rocket/CM_to_thrust_distance", total_CM)) {}
-        else {
-            ROS_ERROR("Failed to get drone parameters");
-        }
-
-        max_servo1_angle = max_servo1_angle_degree * (M_PI / 180);
-        max_servo2_angle = max_servo2_angle_degree * (M_PI / 180);
-        max_servo_rate = max_servo_rate_degree * (M_PI / 180);
-
-        double servo1_offset_degree, servo2_offset_degree;
-        nh.param<double>("/rocket/estimated/servo1_offset", servo1_offset_degree, 0);
-        nh.param<double>("/rocket/estimated/servo2_offset", servo2_offset_degree, 0);
-        servo1_offset = servo1_offset_degree * M_PI / 180.0;
-        servo2_offset = servo2_offset_degree * M_PI / 180.0;
-
+    DroneProps() {
         thrust_scaling = 1;
         torque_scaling = 1;
         disturbance_force.setZero();
         disturbance_torque.setZero();
+    };
+};
+
+
+class Drone {
+public:
+    static const int NX = 13;
+    static const int NU = 4;
+    static const int NP = 8;
+
+    template<typename T>
+    using state_t = Eigen::Matrix<T, NX, 1>;
+    using state = state_t<double>;
+    template<typename T>
+    using control_t = Eigen::Matrix<T, NU, 1>;
+    using control = control_t<double>;
+    template<typename T>
+    using parameters_t = Eigen::Matrix<T, NP, 1>;
+    using parameters = parameters_t<double>;
+
+    const double g = 9.81;
+    Eigen::Vector<double, 3> gravity_vector;
+
+    DroneProps<double> props;
+
+    Drone(DroneProps<double> &props_) : props(props_) {
+        gravity_vector << 0, 0, -g;
+    }
+
+    template<typename T, typename state>
+    inline void generic_rocket_dynamics(const Eigen::Matrix<T, 13, 1> x,
+                                        const Eigen::Matrix<T, 3, 1> thrust_vector,
+                                        const Eigen::Matrix<T, 3, 1> body_torque,
+                                        const Eigen::Matrix<T, 3, 1> disturbance_force,
+                                        const Eigen::Matrix<T, 3, 1> disturbance_torque,
+                                        state &xdot) const noexcept {
+        // Orientation of the rocket with quaternion
+        Eigen::Quaternion<T> attitude(x(9), x(6), x(7), x(8));
+
+        Eigen::Matrix<T, 3, 3> rot_matrix = attitude.toRotationMatrix();
+
+        // Total force in inertial frame [N]
+        Eigen::Vector<T, 3> total_force;
+        total_force =
+                rot_matrix * thrust_vector + gravity_vector.template cast<T>() * (T) props.dry_mass + disturbance_force;
+
+        // Angular velocity omega in quaternion format to compute quaternion derivative
+        Eigen::Quaternion<T> omega_quat((T) 0.0, x(10), x(11), x(12));
+
+        // thrust vector torque in body frame (M = r x F)
+        Eigen::Vector<T, 3> rocket_torque;
+        rocket_torque << thrust_vector(1) * props.total_CM,
+                -thrust_vector(0) * props.total_CM,
+                (T) 0;
+
+        // -------------- Differential equations ---------------------
+
+        // Position derivative is speed
+        xdot.head(3) = x.segment(3, 3);
+
+        // Speed derivative is Force/mass
+        // using mass inverse to avoid computing slow division (maybe not needed?)
+        xdot.segment(3, 3) = total_force * (T) props.dry_mass_inv;
+
+        // Quaternion derivative is 0.5*q◦w (if w in body frame)
+        xdot.segment(6, 4) = (T) 0.5 * (attitude * omega_quat).coeffs();
+
+        Eigen::Vector<T, 3> omega = x.segment(10, 3);
+
+        // Total torque in body frame
+        Eigen::Matrix<T, 3, 1> total_torque;
+        total_torque = rocket_torque + body_torque + rot_matrix.transpose() * disturbance_torque;
+
+        // Angular speed derivative is given by Euler's rotation equations (if in body frame)
+        xdot.segment(10, 3) = (total_torque - omega.cross(props.inertia.template cast<T>().cwiseProduct(omega)))
+                .cwiseProduct(props.inertia_inv.template cast<T>());
     }
 
     template<typename T, typename state>
@@ -88,8 +137,8 @@ public:
         Eigen::Matrix<T, 3, 1> dist_force = params.segment(2, 3);
         Eigen::Matrix<T, 3, 1> dist_torque = params.segment(5, 3);
 
-        T servo1 = input(0) + (T) servo1_offset;
-        T servo2 = input(1) + (T) servo2_offset;
+        T servo1 = input(0) + (T) props.servo1_offset;
+        T servo2 = input(1) + (T) props.servo2_offset;
         T prop_av = input(2);
         T prop_delta = input(3);
 
@@ -111,7 +160,7 @@ public:
         Eigen::Matrix<T, 13, 1> x_body = x.segment(0, 13);
         Eigen::Ref<Eigen::Matrix<T, 13, 1>> xdot_body = xdot.segment(0, 13);
 
-        Rocket::generic_rocket_dynamics(x_body, thrust_vector, propeller_torque, dist_force, dist_torque, xdot_body);
+        generic_rocket_dynamics(x_body, thrust_vector, propeller_torque, dist_force, dist_torque, xdot_body);
     }
 
     //thrust 2rd order model
@@ -119,19 +168,17 @@ public:
     const double b = 0.029719658777622;
     const double c = -0.341510545964088;
 
-    const double g = 9.81;
-
     // roll model: rot_acc = delta * delta_to_acc
     // torque = I * rot_acc
     const double delta_to_acc = -0.1040;
 
-    double getAverageSpeed(const float thrust) const {
+    double getAverageSpeed(const double thrust) const {
         double average = (-b + std::sqrt(b * b - 4 * a * (c - thrust / g))) / (2 * a);
         return average;
     }
 
     double getHoverSpeedAverage() {
-        return getAverageSpeed(9.81 * dry_mass);
+        return getAverageSpeed(g * props.dry_mass);
     }
 
 
@@ -143,7 +190,7 @@ public:
 
     template<typename T>
     inline T getTorque(const T prop_delta) const {
-        T torque = dry_Inertia[2] * prop_delta * delta_to_acc;
+        T torque = props.dry_Inertia[2] * prop_delta * delta_to_acc;
         return torque;
     }
 
@@ -151,22 +198,22 @@ public:
                    double torque_scaling_val,
                    double fx, double fy, double fz,
                    double mx, double my, double mz) {
-        thrust_scaling = thrust_scaling_val;
-        torque_scaling = torque_scaling_val;
-        disturbance_force << fx, fy, fz;
-        disturbance_torque << mx, my, mz;
+        props.thrust_scaling = thrust_scaling_val;
+        props.torque_scaling = torque_scaling_val;
+        props.disturbance_force << fx, fy, fz;
+        props.disturbance_torque << mx, my, mz;
     }
 
     template<typename T>
     inline void getParams(parameters_t<T> &params) {
-        params << (T) thrust_scaling,
-                (T) torque_scaling,
-                (T) disturbance_force.x(), (T) disturbance_force.y(), (T) disturbance_force.z(),
-                (T) disturbance_torque.x(), (T) disturbance_torque.y(), (T) disturbance_torque.z();
+        params << (T) props.thrust_scaling,
+                (T) props.torque_scaling,
+                (T) props.disturbance_force.x(), (T) props.disturbance_force.y(), (T) props.disturbance_force.z(),
+                (T) props.disturbance_torque.x(), (T) props.disturbance_torque.y(), (T) props.disturbance_torque.z();
     }
 
-
-    void stepRK4(const state x0, const control u, double dT, state &x_next) {
+    void state_dynamics_discrete(const state x0, const control u, double dT, state &x_next) {
+        /* RK4 Discretization */
         state k1, k2, k3, k4;
 
         parameters params;

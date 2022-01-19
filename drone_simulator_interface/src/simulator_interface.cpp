@@ -14,12 +14,14 @@
 #include <drone_gnc/FSM.h>
 #include <real_time_simulator/FSM.h>
 #include "drone_model.hpp"
+#include "load_drone_props.hpp"
 
 using namespace Eigen;
 
 
 class SimulatorInterfaceNode {
 private:
+    DroneProps<double> drone_props;
     Drone drone;
 
     ros::Publisher rocket_control_pub, drone_state_pub, pixhawk_state_pub, command_pub, fake_optitrack_pub,
@@ -50,7 +52,7 @@ private:
     double previous_servo1 = 0;
     double previous_servo2 = 0;
 public:
-    SimulatorInterfaceNode(ros::NodeHandle &nh) : drone(nh), generator(seed) {
+    SimulatorInterfaceNode(ros::NodeHandle &nh) : drone((drone_props = loadDroneProps(nh), drone_props)), generator(seed) {
         //init state system (discrete ss model for ts = 0.03s)
         x_servo1 << 0, 0;
         x_servo2 << 0, 0;
@@ -81,7 +83,7 @@ public:
             nh.getParam("/rocket/CM_offset_x", CM_OFFSET_X) &&
             nh.getParam("/rocket/max_servo_rate", max_servo_rate)) {
         } else {
-            ROS_ERROR("Simulator Interface: Failed to get rocket parameters");
+            ROS_ERROR("Simulator Interface: Failed to get drone parameters");
         }
 
         initTopics(nh);
