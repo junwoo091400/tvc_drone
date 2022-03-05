@@ -6,7 +6,11 @@
         <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
     </group>
 
-    <group ns="control/mpc">
+    <group ns="control/mpc" unless="$(arg use_guidance)">
+        <rosparam file="$(find drone_gnc)/config/control_mpc_parameters.yaml"/>
+    </group>
+
+    <group ns="control/mpc" if="$(arg use_guidance)">
         <rosparam file="$(find drone_gnc)/config/control_tracking_mpc_parameters.yaml"/>
     </group>
 
@@ -17,12 +21,6 @@
     <group ns="navigation">
         <rosparam file="$(find drone_gnc)/config/filter_parameters.yaml"/>
     </group>
-
-<!--       <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">-->
-<!--           <rosparam param="speed">0.35</rosparam>-->
-<!--           <rosparam param="scaling">1</rosparam>-->
-<!--           <rosparam param="rotation_angle">0</rosparam>-->
-<!--       </node>-->
 
 <!--    valgrind &#45;&#45;track-origins=yes &#45;&#45;leak-check=full-->
 

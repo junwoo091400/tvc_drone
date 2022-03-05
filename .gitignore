@@ -12,3 +12,6 @@ venv/
 drone_utils/log/log.orig.bag
 
 drone_gnc/src/cmake-build-debug/
+drone_utils/scripts/.vscode/
+
+drone_simulator_interface/GUI/drone_GUI.perspective
