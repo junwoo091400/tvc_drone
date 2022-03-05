@@ -1,5 +1,6 @@
 <launch>
     <arg name="use_guidance" default="false"/>
+    <arg name="use_fixed_guidance" default="false"/>
 
     <group ns="rocket">
         <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
@@ -26,11 +27,21 @@
 <!--    valgrind &#45;&#45;track-origins=yes &#45;&#45;leak-check=full-->
 
     <group if="$(arg use_guidance)">
-        <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen"
-              launch-prefix="taskset -c 2">
-            <rosparam param="target_apogee">[0, 0, 4]</rosparam>
-            <rosparam param="target_land">[0, 1, 0]</rosparam>
-        </node>
+        <group unless="$(arg use_fixed_guidance)">
+            <node name="guidance" pkg="drone_gnc" type="drone_guidance" machine="gnc_machine" output="screen"
+                  launch-prefix="taskset -c 2">
+                <rosparam param="target_apogee">[0, 0, 4]</rosparam>
+                <rosparam param="target_land">[0, 1, 0]</rosparam>
+            </node>
+        </group>
+
+        <group if="$(arg use_fixed_guidance)">
+            <node name="guidance" pkg="drone_gnc" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">
+                <rosparam param="speed">0.35</rosparam>
+                <rosparam param="scaling">1</rosparam>
+                <rosparam param="rotation_angle">0</rosparam>
+            </node>
+        </group>
     </group>
 
     <node name="control" pkg="drone_gnc" type="drone_control" machine="gnc_machine" output="screen"
