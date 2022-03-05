@@ -85,6 +85,11 @@ pip install pyqtgraph
 
 * Clone the content of the repository into ~/drone_ws/src
 
+* Rviz config issue: The config of the rviz plugin in rqt will not load properly because it only stores the absolute path in the .perspective file. This is fixed by writing your absolute ROS workspace path in _drone_simulator_interface/drone_GUI.perspective_ at the line:
+    ```
+    "repr": "u'*your ROS workspace absolute path*/src/drone_simulator_interface/GUI/rocket_config.rviz'"
+    ```
+
 * Build the project
 ```
 source ~/.bashrc
