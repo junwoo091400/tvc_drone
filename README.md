@@ -21,6 +21,7 @@ Each package contains its own readme file with more information.
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 sudo apt install curl
 curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+sudo apt update
 sudo apt install ros-melodic-desktop-full
 echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
 sudo apt install python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential
@@ -91,19 +92,20 @@ cd ~/drone_ws
 catkin_make
 ```
 
-* Setup automatic sourcing of the project for new shell instances 
+* Setup automatic sourcing of the project for new shell instances
 ```
 echo "source ~/drone_ws/devel/setup.bash" >> ~/.bashrc
 ```
 
 ### Raspberry Pi setup
-Setup passwordless login
+* Connect to the same Wi-Fi network as the Raspberry Pi
+* Setup passwordless login
 ```
 ssh-keygen -t rsa
 cat .ssh/id_rsa.pub | ssh drone@ert.local 'cat >> .ssh/authorized_keys'
 ```
 
-Add Raspberry Pi to known hosts
+* Add the Raspberry Pi to the known hosts
 ```
 ssh-keyscan -H ert.local >> ~/.ssh/known_hosts
 ```
@@ -111,22 +113,29 @@ ssh-keyscan -H ert.local >> ~/.ssh/known_hosts
 
 ## Launching the code
 
-* Build
+* Build the project:
 ```
 cd ~/drone_ws
 catkin_make
 ```
 
-* Run in simulation
-```
-roslaunch drone_utils simu_drone.launch
-```
+* Run the simulation:
+    ```
+    roslaunch drone_utils simu_drone.launch
+    ```
+    Start the simulation by publishing an empty string on `/commands/data`, by pressing the "Publish" button.
+    You can then control the target apogee using the sliders.
+    
+    To enable the guidance algorithm, run instead:
+    ```
+    roslaunch drone_utils simu_drone.launch use_guidance:=true
+    ```
 
-* Run remotely on Raspberry Pi over Wi-Fi
-```
-roscd drone_utils/bash_scripts
-./remote_drone_launch.sh
-```
+* Run remotely on the Raspberry Pi over Wi-Fi:
+    ```
+    roscd drone_utils/bash_scripts
+    ./remote_drone_launch.sh
+    ```
 
 
 ## Authors
