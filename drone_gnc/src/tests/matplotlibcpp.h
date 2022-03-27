@@ -1643,9 +1643,9 @@ inline void legend(const std::map<std::string, std::string>& keywords) {
 
         // construct positional args
         PyObject *args = PyTuple_New(3);
-        PyTuple_SetItem(args, 0, PyFloat_FromDouble(nrows));
-        PyTuple_SetItem(args, 1, PyFloat_FromDouble(ncols));
-        PyTuple_SetItem(args, 2, PyFloat_FromDouble(plot_number));
+        PyTuple_SetItem(args, 0, PyInt_FromLong(nrows));
+        PyTuple_SetItem(args, 1, PyInt_FromLong(ncols));
+        PyTuple_SetItem(args, 2, PyInt_FromLong(plot_number));
 
         PyObject *res = PyObject_CallObject(
                 detail::_interpreter::get().s_python_function_subplot, args);
