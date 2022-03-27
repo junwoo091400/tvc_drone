@@ -44,8 +44,8 @@ int main(int argc, char *argv[]) {
             0, 0, 0, 1,
             0, 0, 0;
 
-    for (int i = 0; i < 20; i++)
-        drone_mpc.solve(x0);
+    for (int i = 0; i < 50; i++)
+        drone_mpc.solve(x0, false);
 
     std::cout << "Control:" << std::endl;
     std::cout << drone_mpc.solution_u_at(0).transpose() << std::endl;

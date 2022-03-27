@@ -26,7 +26,7 @@ public:
 
     DroneMPC(Drone *drone, ControlMPCSettings<scalar_t> &mpc_settings);
 
-    void solve(Drone::state &x0);
+    void solve(Drone::state &x0, bool constrain_servo_rate_between_iterations=true);
 
     Drone::state solution_x_at(double t);
 

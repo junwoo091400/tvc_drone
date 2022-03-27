@@ -101,22 +101,30 @@ double DroneMPC::node_time(int i) {
     return time_grid(i) * ocp().horizon_length;
 }
 
-void DroneMPC::solve(Drone::state &x0) {
+void DroneMPC::solve(Drone::state &x0, bool constrain_servo_rate_between_iterations) {
     Drone::state predicted_x0;
     integrateX0(x0, predicted_x0); // Integrate the state over one period to account for computation time delay
 
-    //servo rate constraint
-    ocp_state previous_x = MPC::solution_x_at(0).cwiseProduct(ocp().x_unscaling_vec);
-    double maxServoRate = drone->props.max_servo_rate;
-    ocp_state lbx0;
+    ocp_state lbx0, ubx0;
     lbx0.segment(0, 13) = predicted_x0;
-    lbx0(13) = previous_x(13) - maxServoRate * period;
-    lbx0(14) = previous_x(14) - maxServoRate * period;
-
-    ocp_state ubx0;
     ubx0.segment(0, 13) = predicted_x0;
-    ubx0(13) = previous_x(13) + maxServoRate * period;
-    ubx0(14) = previous_x(14) + maxServoRate * period;
+
+    if (constrain_servo_rate_between_iterations) {
+        //servo rate constraint
+        ocp_state previous_x = MPC::solution_x_at(0).cwiseProduct(ocp().x_unscaling_vec);
+        double maxServoRate = drone->props.max_servo_rate;
+        lbx0(13) = previous_x(13) - maxServoRate * period;
+        lbx0(14) = previous_x(14) - maxServoRate * period;
+
+        ubx0(13) = previous_x(13) + maxServoRate * period;
+        ubx0(14) = previous_x(14) + maxServoRate * period;
+    } else {
+        lbx0(13) = -drone->props.max_servo1_angle;
+        lbx0(14) = -drone->props.max_servo2_angle;
+
+        ubx0(13) = drone->props.max_servo1_angle;
+        ubx0(14) = drone->props.max_servo2_angle;
+    }
 
     double eps = 1e-7;
     initial_conditions(lbx0.cwiseProduct(ocp().x_scaling_vec).array() - eps,
