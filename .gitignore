@@ -15,3 +15,10 @@ drone_gnc/src/cmake-build-debug/
 drone_utils/scripts/.vscode/
 
 drone_simulator_interface/GUI/drone_GUI.perspective
+
+drone_gnc/src/cmake-build-release/
+
+
+drone_gnc/src/tests/test_results/sim_control.csv
+
+drone_gnc/src/tests/test_results/sim_state.csv

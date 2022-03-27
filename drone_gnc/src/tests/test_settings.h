@@ -5,7 +5,7 @@
 #include "drone_guidance_settings.hpp"
 #include "drone_mpc_settings.hpp"
 
-// TODO load from XML without ROS?
+// TODO load from yaml without ROS?
 
 DroneProps<double> getDroneProps() {
     DroneProps<double> props;
