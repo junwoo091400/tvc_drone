@@ -1,7 +1,7 @@
 # Visualization parameters
 stl_model: "package://drone_simulator_interface/GUI/drone_model.STL"
 stl_model_scale: 1.0e-2
-stl_alpha: 0.7
+stl_alpha: 1
 thrust_vector_length_scaling: 0.02
 thrust_vector_arrow_scaling: 0.4
 trajectory_line_width: 0.03
