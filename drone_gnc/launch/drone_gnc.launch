@@ -3,23 +3,23 @@
     <arg name="use_fixed_guidance" default="false"/>
 
     <group ns="rocket">
-        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/drone_properties.yaml"/>
     </group>
 
     <group ns="control/mpc" unless="$(arg use_guidance)">
-        <rosparam file="$(find drone_gnc)/config/control_mpc_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/mpc_config.yaml"/>
     </group>
 
     <group ns="control/mpc" if="$(arg use_guidance)">
-        <rosparam file="$(find drone_gnc)/config/control_tracking_mpc_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/mpc_config_guidance_tracking.yaml"/>
     </group>
 
     <group ns="guidance/mpc">
-        <rosparam file="$(find drone_gnc)/config/guidance_mpc_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/guidance_config.yaml"/>
     </group>
 
     <group ns="navigation">
-        <rosparam file="$(find drone_gnc)/config/filter_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/ekf_config.yaml"/>
     </group>
 
 <!--    valgrind &#45;&#45;track-origins=yes &#45;&#45;leak-check=full-->

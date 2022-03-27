@@ -3,11 +3,11 @@
     <rosparam param="/is_simu">false</rosparam>
 
     <group ns="rocket">
-        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/drone_properties.yaml"/>
     </group>
 
     <group ns="filter">
-        <rosparam file="$(find drone_gnc)/config/filter_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/ekf_config.yaml"/>
     </group>
 
     <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>

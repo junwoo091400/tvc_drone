@@ -1,10 +1,10 @@
 <launch>
     <group ns="rocket">
-        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/drone_properties.yaml"/>
     </group>
 
     <group ns="control/mpc">
-        <rosparam file="$(find drone_gnc)/config/control_mpc_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/mpc_config.yaml"/>
     </group>
 
     <group ns="visualization">

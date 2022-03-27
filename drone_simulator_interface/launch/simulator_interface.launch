@@ -1,7 +1,7 @@
 <launch>
 
     <group ns="rocket">
-        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/drone_properties.yaml"/>
     </group>
 
     <group ns="environment">

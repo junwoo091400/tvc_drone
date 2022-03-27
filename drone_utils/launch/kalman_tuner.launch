@@ -2,11 +2,11 @@
     <arg name="path" default="log/log.bag" />
 
     <group ns="rocket">
-        <rosparam file="$(find drone_gnc)/config/rocket_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/drone_properties.yaml"/>
     </group>
 
     <group ns="navigation">
-        <rosparam file="$(find drone_gnc)/config/filter_parameters.yaml"/>
+        <rosparam file="$(find drone_gnc)/config/ekf_config.yaml"/>
     </group>
 
     <node name="navigation" pkg="drone_gnc" type="kalman_tuner" cwd="node" output="screen">
