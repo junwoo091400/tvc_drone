@@ -1,0 +1,35 @@
+# MPC parameters
+
+state_costs:
+  x: 20
+  dx: 0.1
+  z: 30
+  dz: 30
+  att: 0.5
+  datt: 1
+  droll: 1
+
+input_costs:
+  servo: 5
+  thrust: 0.001
+  torque: 0.001
+
+# constraints
+min_z: 0
+max_attitude_angle: 90
+max_dx: 1.2 # also used for scaling
+min_dz: -1
+max_dz: 10 # also used for scaling
+max_datt: 0.6 # also used for scaling
+
+# scaling to improve numerical performance
+scaling_x: 2
+scaling_z: 4
+weight_scaling: 64
+
+# important parameters that affect speed/performance
+period: 0.02
+horizon_length: 2
+max_sqp_iter: 1
+max_qp_iter: 100
+max_line_search_iter: 4
