@@ -17,13 +17,33 @@ else ()
     set(CMAKE_BUILD_TYPE "Debug")
 endif ()
 
+# Check if ROS is setup
+find_package(roscpp QUIET)
+set(BUILD_ROS ${roscpp_FOUND})
+
+if("$ENV{BUILD_TVC_DRONE_TESTS}" STREQUAL "")
+    # Build tests by default
+    set(BUILD_TESTS True)
+else()
+    set(BUILD_TESTS $ENV{BUILD_TVC_DRONE_TESTS})
+endif()
+
+if(BUILD_TESTS)
+    message(STATUS "Building tests. Can be disabled using 'export BUILD_TVC_DRONE_TESTS=False'.")
+endif()
+
+if(NOT BUILD_ROS)
+    message(STATUS "Could not find roscpp, so not building ROS-specific functionality. Did you source the ROS setup.sh file?")
+endif()
+
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
+if(BUILD_ROS)
+    find_package(catkin REQUIRED COMPONENTS
         roscpp
         rospy
         roslib
@@ -33,8 +53,8 @@ find_package(catkin REQUIRED COMPONENTS
         genmsg
         visualization_msgs
         tf2_ros
-        #polympc-ros
         )
+endif()
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -71,41 +91,44 @@ find_package(Eigen3 REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-        FILES
-        FSM.msg
-        Waypoint.msg
-        Sensor.msg
-        Trajectory.msg
-        DroneTrajectory.msg
-        DroneControl.msg
-        DroneState.msg
-        DroneWaypointStamped.msg
-)
+if(BUILD_ROS)
+    add_message_files(
+            FILES
+            FSM.msg
+            Waypoint.msg
+            Sensor.msg
+            Trajectory.msg
+            DroneTrajectory.msg
+            DroneControl.msg
+            DroneState.msg
+            DroneWaypointStamped.msg
+    )
 
-## Generate services in the 'srv' folder
-add_service_files(
-        FILES
-        GetFSM.srv
-        SetFSM.srv
-        InterpolateControlSpline.srv
-        KalmanSimu.srv
-)
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+    ## Generate services in the 'srv' folder
+    add_service_files(
+            FILES
+            GetFSM.srv
+            SetFSM.srv
+            InterpolateControlSpline.srv
+            KalmanSimu.srv
+    )
+    ## Generate actions in the 'action' folder
+    # add_action_files(
+    #   FILES
+    #   Action1.action
+    #   Action2.action
+    # )
 
 
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-        DEPENDENCIES
-        std_msgs
-        geometry_msgs
-        ${MESSAGE_DEPENDENCIES}
-)
+    ## Generate added messages and services with any dependencies listed here
+    generate_messages(
+            DEPENDENCIES
+            std_msgs
+            geometry_msgs
+            ${MESSAGE_DEPENDENCIES}
+    )
+
+endif()
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -136,12 +159,14 @@ generate_messages(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-        CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs #polympc-ros
-        INCLUDE_DIRS src/ros_nodes src/models src/ros_nodes/utils src/control src/guidance
-        #LIBRARIES ${PROJECT_NAME}
-        #  DEPENDS system_lib
-)
+if(BUILD_ROS)
+    catkin_package(
+            CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs #polympc-ros
+            INCLUDE_DIRS src/ros_nodes src/models src/ros_nodes/utils src/control src/guidance
+            #LIBRARIES ${PROJECT_NAME}
+            #  DEPENDS system_lib
+    )
+endif()
 
 ###########
 ## Build ##
@@ -188,10 +213,16 @@ include_directories(src/utils src/control src/models src/navigation src/guidance
         ${catkin_INCLUDE_DIRS}
         ${VRPN_INCLUDE_DIR})
 
-add_subdirectory(src/ros_nodes)
 add_subdirectory(src/control)
 add_subdirectory(src/guidance)
 add_subdirectory(src/models)
+if(BUILD_ROS)
+    add_subdirectory(src/ros_nodes)
+endif()
+if(BUILD_TESTS)
+    add_subdirectory(src/tests)
+endif()
+
 
 #set_source_files_properties(
 #        submodule/polympc

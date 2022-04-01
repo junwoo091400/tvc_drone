@@ -10,4 +10,4 @@ GNC algorithms for controlling the drone TVC prototype
   - **utils/drone_fsm_node**: State machine
   - **utils/drone_mavros_interface**: Interface to communicate with the Pixhawk using MAVROS (uses MAVLink over serial)
   - **utils/drone_dome**: Contains the VPRN interface to access the Optitrack pose data in the drone dome
-- **tests**: Contains tests to debug the code without ROS. Use the _CmakeLists.txt_ located inside of the _src_ directory instead of the one in _drone_gnc_ that uses ROS.
+- **tests**: Contains tests to debug the code without ROS.
