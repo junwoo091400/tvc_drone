@@ -10,8 +10,8 @@
 #ifndef SRC_DRONE_MODEL_HPP
 #define SRC_DRONE_MODEL_HPP
 
-#include <Eigen/Eigen>
-
+#include <Eigen/Dense>
+#include <vector>
 #include <cmath>
 
 template<typename scalar>
@@ -23,8 +23,8 @@ struct DroneProps {
 
     std::vector<double> dry_Inertia{0, 0, 0};
 
-    Eigen::Vector<double, 3> inertia;
-    Eigen::Vector<double, 3> inertia_inv;
+    Eigen::Vector3d inertia;
+    Eigen::Vector3d inertia_inv;
 
     // parameters
     double min_propeller_speed, max_propeller_speed;
@@ -67,7 +67,7 @@ public:
     using parameters = parameters_t<double>;
 
     const double g = 9.81;
-    Eigen::Vector<double, 3> gravity_vector;
+    Eigen::Vector3d gravity_vector;
 
     DroneProps<double> props;
 
@@ -88,7 +88,7 @@ public:
         Eigen::Matrix<T, 3, 3> rot_matrix = attitude.toRotationMatrix();
 
         // Total force in inertial frame [N]
-        Eigen::Vector<T, 3> total_force;
+        Eigen::Matrix<T, 3, 1> total_force;
         total_force =
                 rot_matrix * thrust_vector + gravity_vector.template cast<T>() * (T) props.dry_mass + disturbance_force;
 
@@ -96,7 +96,7 @@ public:
         Eigen::Quaternion<T> omega_quat((T) 0.0, x(10), x(11), x(12));
 
         // thrust vector torque in body frame (M = r x F)
-        Eigen::Vector<T, 3> rocket_torque;
+        Eigen::Matrix<T, 3, 1> rocket_torque;
         rocket_torque << thrust_vector(1) * props.total_CM,
                 -thrust_vector(0) * props.total_CM,
                 (T) 0;
@@ -113,7 +113,7 @@ public:
         // Quaternion derivative is 0.5*q◦w (if w in body frame)
         xdot.segment(6, 4) = (T) 0.5 * (attitude * omega_quat).coeffs();
 
-        Eigen::Vector<T, 3> omega = x.segment(10, 3);
+        Eigen::Matrix<T, 3, 1> omega = x.segment(10, 3);
 
         // Total torque in body frame
         Eigen::Matrix<T, 3, 1> total_torque;

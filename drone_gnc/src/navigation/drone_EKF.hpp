@@ -80,7 +80,7 @@ public:
         reset();
 
         // initialize derivatives ->  the Jacobian of ADx (=X but in autodiff format) is the identity matrix
-        ADx(X);
+        ADx = X;
         int div_size = ADx.size();
         int derivative_idx = 0;
         for (int i = 0; i < ADx.size(); ++i) {

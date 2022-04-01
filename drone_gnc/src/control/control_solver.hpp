@@ -10,10 +10,8 @@
 #ifndef SRC_CONTROL_SOLVER_HPP
 #define SRC_CONTROL_SOLVER_HPP
 
-#include <eigen3/Eigen/Eigen>
-
+#include <Eigen/Dense>
 using namespace Eigen;
-
 
 #include "polynomials/ebyshev.hpp"
 #include "control/continuous_ocp.hpp"

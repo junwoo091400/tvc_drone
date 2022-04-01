@@ -12,7 +12,7 @@
 
 #include "ros/ros.h"
 
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Dense>
 
 #include "drone_EKF.hpp"
 

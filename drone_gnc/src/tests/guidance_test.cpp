@@ -3,7 +3,7 @@
 #include <chrono>
 #include <vector>
 #include <utility>
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Dense>
 #include <fstream>
 
 #include "drone_guidance.h"
