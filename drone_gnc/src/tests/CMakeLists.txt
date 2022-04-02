@@ -47,7 +47,7 @@ target_link_libraries(control_mpc_simulation_test drone_mpc Eigen3::Eigen OsqpEi
 
 add_executable(guidance_test guidance_test.cpp)
 set_target_properties(guidance_test PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(guidance_test drone_guidance_lib Eigen3::Eigen OsqpEigen::OsqpEigen)
+target_link_libraries(guidance_test drone_guidance_lib Eigen3::Eigen OsqpEigen::OsqpEigen matplotlib_cpp)
 
 add_executable(terminal_cost_test terminal_cost_test.cpp)
 set_target_properties(terminal_cost_test PROPERTIES LINKER_LANGUAGE CXX)
