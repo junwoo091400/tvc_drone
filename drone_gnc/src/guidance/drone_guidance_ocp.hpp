@@ -57,9 +57,7 @@ public:
                               const Ref<const control_t <T>> u,
                               const Ref<const parameter_t <T>> p,
                               const Ref<const static_parameter_t> &d,
-                              const T &t, Ref<state_t < T>>
-
-    xdot)  const noexcept{
+                              const T &t, Ref<state_t <T>> xdot) const noexcept {
         T prop_av = u(0);
         T phi = u(1);
         T theta = u(2);
@@ -72,7 +70,7 @@ public:
                 thrust * cos(theta);
 
         Eigen::Matrix<T, 3, 1> gravity;
-        gravity << (T) 0, (T) 0, (T) - 9.81;
+        gravity << (T) 0, (T) 0, (T) -9.81;
 
         xdot.head(3) = x.segment(3, 3);
         xdot.segment(3, 3) = thrust_vector * (T) drone->props.dry_mass_inv + gravity;
@@ -85,10 +83,7 @@ public:
     EIGEN_STRONG_INLINE void
     inequality_constraints_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
                                 const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
-                                const scalar_t &t, Ref<constraint_t < T>>
-
-    g) const noexcept
-    {
+                                const scalar_t &t, Ref<constraint_t <T>> g) const noexcept {
     }
 
     template<typename T>

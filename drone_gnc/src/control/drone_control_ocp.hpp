@@ -128,9 +128,8 @@ public:
                               const Ref<const control_t<T>> u,
                               const Ref<const parameter_t <T>> p,
                               const Ref<const static_parameter_t> &d,
-                              const T &t, Ref<state_t<T>>
-
-                              xdot) const noexcept {
+                              const T &t,
+                              Ref<state_t<T>> xdot) const noexcept {
         Matrix<T, NX, 1> x_unscaled = x.cwiseProduct(x_unscaling_vec.template cast<T>());
         Matrix<T, NU, 1> u_unscaled = u.cwiseProduct(u_unscaling_vec.template cast<T>());
 
