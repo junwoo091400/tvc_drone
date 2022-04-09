@@ -86,7 +86,7 @@ Each package contains its own readme file with more information.
 * Clone the content of the repository into ~/drone_ws/src
   ```
   cd ~ && mkdir drone_ws && cd drone_ws
-  git clone https://github.com/EPFLRocketTeam/tvc_drone.git src
+  git clone --recurse-submodules https://github.com/EPFLRocketTeam/tvc_drone.git src
   ```
 * Rviz config issue: The config of the rviz plugin in rqt will not load properly because it only stores the absolute path in the .perspective file. This is fixed by writing your absolute ROS workspace path in _drone_simulator_interface/drone_GUI.perspective_ at the line:
     ```
@@ -110,7 +110,7 @@ Each package contains its own readme file with more information.
 * Setup passwordless login
   ```
   ssh-keygen -t rsa
-  cat .ssh/id_rsa.pub | ssh drone@ert.local 'cat >> .ssh/authorized_keys'
+  cat ~/.ssh/id_rsa.pub | ssh drone@ert.local 'cat >> .ssh/authorized_keys'
   ```
 
 * Add the Raspberry Pi to the known hosts
