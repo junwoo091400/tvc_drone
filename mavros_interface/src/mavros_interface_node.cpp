@@ -12,8 +12,7 @@
 #include <geometry_msgs/PoseStamped.h>
 
 #include <mavros_msgs/ActuatorControl.h>
-#include "drone_gnc/DroneControl.h"
-#include "drone_gnc/DroneState.h"
+#include "real_time_simulator/StateStamped.h"
 
 #include <std_msgs/String.h>
 #include <message_filters/subscriber.h>
@@ -55,26 +54,26 @@ double max_servo_angle = 15.0 / 180.0 * M_PI;
 double servo1_offset;
 double servo2_offset;
 
-void updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
-    double servo1 = std::min(std::max(drone_control->servo1, -max_servo_angle), max_servo_angle);
-    double servo2 = std::min(std::max(drone_control->servo2, -max_servo_angle), max_servo_angle);
-
-    double bottom = std::min(std::max(drone_control->bottom, 0.0), 90.0);
-    double top = std::min(std::max(drone_control->top, 0.0), 90.0);
-
-    pixhawk_controls[0] = bottom / 100 * 2 - 1;
-    pixhawk_controls[1] = top / 100 * 2 - 1;
-    pixhawk_controls[2] = servo1 / (M_PI / 4) + servo1_offset;
-    pixhawk_controls[3] = servo2 / (M_PI / 4) + servo2_offset;
-}
+//void updateCurrentControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
+//    double servo1 = std::min(std::max(drone_control->servo1, -max_servo_angle), max_servo_angle);
+//    double servo2 = std::min(std::max(drone_control->servo2, -max_servo_angle), max_servo_angle);
+//
+//    double bottom = std::min(std::max(drone_control->bottom, 0.0), 90.0);
+//    double top = std::min(std::max(drone_control->top, 0.0), 90.0);
+//
+//    pixhawk_controls[0] = bottom / 100 * 2 - 1;
+//    pixhawk_controls[1] = top / 100 * 2 - 1;
+//    pixhawk_controls[2] = servo1 / (M_PI / 4) + servo1_offset;
+//    pixhawk_controls[3] = servo2 / (M_PI / 4) + servo2_offset;
+//}
 
 void publishConvertedState(const nav_msgs::Odometry::ConstPtr &mavros_state) {
-    drone_gnc::DroneState drone_state;
-    drone_state.header.stamp = ros::Time::now();
-    drone_state.pose = mavros_state->pose.pose;
-    drone_state.twist = mavros_state->twist.twist;
+    real_time_simulator::StateStamped rocket_state;
+    rocket_state.header.stamp = ros::Time::now();
+    rocket_state.state.pose = mavros_state->pose.pose;
+    rocket_state.state.twist = mavros_state->twist.twist;
 
-    pixhawk_state_pub.publish(drone_state);
+    pixhawk_state_pub.publish(rocket_state);
 }
 
 double joystic_speed = 2;
@@ -116,7 +115,7 @@ int main(int argc, char **argv) {
     ros::Subscriber pose_sub = nh.subscribe("/mavros/global_position/local", 1, publishConvertedState);
 
     // Subscribe to drone control
-    ros::Subscriber drone_control_sub = nh.subscribe("/drone_control", 1, updateCurrentControl);
+//    ros::Subscriber drone_control_sub = nh.subscribe("/drone_control", 1, updateCurrentControl);
 
     // Subscribe to drone control
     ros::Subscriber target_apogee_sub = nh.subscribe("/target_apogee", 1, targetCallback);
@@ -137,7 +136,7 @@ int main(int argc, char **argv) {
     }
 
     // Create state publisher
-    pixhawk_state_pub = nh.advertise<drone_gnc::DroneState>("/pixhawk_drone_state", 10);
+//    pixhawk_state_pub = nh.advertise<drone_gnc::DroneState>("/pixhawk_drone_state", 10);
 
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("/mavros/state", 10, mavrosStateCallback);
     ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>
