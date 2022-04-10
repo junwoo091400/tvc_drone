@@ -7,3 +7,6 @@
 [submodule "drone_gnc/submodule/polympc"]
 	path = drone_gnc/submodule/polympc
 	url = https://gitlab.epfl.ch/listov/polympc.git
+[submodule "template_gnc"]
+	path = template_gnc
+	url = https://github.com/EPFLRocketTeam/template_gnc.git
