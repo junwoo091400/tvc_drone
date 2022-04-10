@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>optitrack_ekf</name>
+  <version>0.2.2</version>
+  <description>Opitrack EKF</description>
+
+  <author email="raphael.linsen@epfl.ch">Raphael Linsen</author>
+  <maintainer email="raphael.linsen@epfl.ch">Raphael Linsen</maintainer>
+
+  <license>TODO</license>
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>tf2_ros</depend>
+  <depend>vrpn</depend>
+  <depend>real_time_simulator</depend>
+
+  <test_depend>roslaunch</test_depend>
+  <test_depend>roslint</test_depend>
+
+  <export>
+  </export>
+</package>
