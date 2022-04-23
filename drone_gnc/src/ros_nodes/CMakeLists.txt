@@ -22,7 +22,7 @@ target_link_libraries(fixed_guidance Eigen3::Eigen ${catkin_LIBRARIES})
 add_dependencies(fixed_guidance drone_gnc_generate_messages_cpp)
 
 add_executable(drone_navigation navigation/drone_navigation_node.cpp)
-target_link_libraries(drone_navigation drone_model Eigen3::Eigen ${catkin_LIBRARIES})
+target_link_libraries(drone_navigation Eigen3::Eigen ${catkin_LIBRARIES})
 add_dependencies(drone_navigation drone_gnc_generate_messages_cpp)
 
 add_subdirectory(utils)
