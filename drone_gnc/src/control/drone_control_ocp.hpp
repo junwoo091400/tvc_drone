@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_DRONE_CONTROL_OCP_HPP
-#define SRC_DRONE_CONTROL_OCP_HPP
+#pragma once
 
 #include <string>
 #include <math.h>
@@ -212,5 +211,3 @@ public:
 //        mayer = (T) 0;
     }
 };
-
-#endif //SRC_DRONE_CONTROL_OCP_HPP

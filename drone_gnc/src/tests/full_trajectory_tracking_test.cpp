@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
 
     const int N = 100;
     Eigen::Matrix<double, Drone::NX, N> guidance_trajectory;
-    for (size_t i; i < N; i++) {
+    for (size_t i = 0; i < N; i++) {
         double t = guidance_tf * i / (N - 1);
         guidance_trajectory.col(i) = drone_guidance.solution_x_at(t);
     }

@@ -1,5 +1,4 @@
-#ifndef DRONE_GNC_LOAD_MPC_SETTINGS_HPP
-#define DRONE_GNC_LOAD_MPC_SETTINGS_HPP
+#pragma once
 
 #include <ros/ros.h>
 #include "../control/drone_mpc_settings.hpp"
@@ -44,5 +43,3 @@ ControlMPCSettings<double> loadMPCSettings(ros::NodeHandle &nh) {
 
     return settings;
 }
-
-#endif

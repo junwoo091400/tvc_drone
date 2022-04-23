@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_DRONE_MPC_H
-#define SRC_DRONE_MPC_H
+#pragma once
 
 #include "control_solver.hpp"
 
@@ -65,6 +64,3 @@ public:
 private:
     Drone *drone;
 };
-
-
-#endif //SRC_DRONE_MPC_H

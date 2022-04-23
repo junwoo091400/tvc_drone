@@ -1,5 +1,4 @@
-#ifndef DRONE_GNC_LOAD_DRONE_PROPS_HPP
-#define DRONE_GNC_LOAD_DRONE_PROPS_HPP
+#pragma once
 
 #include <ros/ros.h>
 
@@ -39,5 +38,3 @@ DroneProps<double> loadDroneProps(ros::NodeHandle &nh) {
 
     return props;
 }
-
-#endif

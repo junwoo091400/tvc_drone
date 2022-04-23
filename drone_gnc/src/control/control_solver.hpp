@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_CONTROL_SOLVER_HPP
-#define SRC_CONTROL_SOLVER_HPP
+#pragma once
 
 #include <Eigen/Dense>
 using namespace Eigen;
@@ -131,5 +130,3 @@ public:
         this->problem.hessian_update_impl(hessian, x_step, grad_step);
     }
 };
-
-#endif //SRC_CONTROL_SOLVER_HPP

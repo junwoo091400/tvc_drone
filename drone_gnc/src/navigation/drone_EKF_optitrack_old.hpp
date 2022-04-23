@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_DRONE_EKF_OPTITRACK_OLD_HPP
-#define SRC_DRONE_EKF_OPTITRACK_OLD_HPP
+#pragma once
 
 #include "ros/ros.h"
 
@@ -65,6 +64,3 @@ public:
         z.segment(3, 4) = x.segment(6, 4);
     }
 };
-
-
-#endif //SRC_DRONE_EKF_OPTITRACK_OLD_HPP

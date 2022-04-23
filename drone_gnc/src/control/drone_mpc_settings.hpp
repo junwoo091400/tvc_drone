@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_DRONE_MPC_SETTINGS_HPP
-#define SRC_DRONE_MPC_SETTINGS_HPP
+#pragma once
 
 template<typename scalar>
 struct ControlMPCSettings {
@@ -23,5 +22,3 @@ struct ControlMPCSettings {
 
     scalar period;
 };
-
-#endif

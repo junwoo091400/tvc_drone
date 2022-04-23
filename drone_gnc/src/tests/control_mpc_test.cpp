@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
     Eigen::Matrix<double, Drone::NX, N> mpc_horizon;
     Eigen::Matrix<double, Drone::NU, N> mpc_control_horizon;
     Eigen::Matrix<double, 1, N> t;
-    for (size_t i; i < N; i++) {
+    for (size_t i = 0; i < N; i++) {
         t(i) = mpc_settings.horizon_length * i / (N - 1);
         mpc_horizon.col(i) = drone_mpc.solution_x_at(t(i));
         mpc_control_horizon.col(i) = drone_mpc.solution_u_at(t(i));

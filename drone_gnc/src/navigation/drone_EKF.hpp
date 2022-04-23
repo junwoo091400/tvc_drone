@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_DRONE_EKF_HPP
-#define SRC_DRONE_EKF_HPP
+#pragma once
 
 #include "Eigen/Core"
 #include "Eigen/Geometry"
@@ -265,8 +264,3 @@ public:
         // P = P - K * H * P;
     }
 };
-
-//template <typename Derived> const int DroneEKF<Derived>::NZ(Derived::NZ);
-
-
-#endif //SRC_DRONE_EKF_HPP

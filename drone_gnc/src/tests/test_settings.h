@@ -1,5 +1,4 @@
-#ifndef DRONE_DEFAULT_PROPS_H
-#define DRONE_DEFAULT_PROPS_H
+#pragma once
 
 #include "drone_model.hpp"
 #include "drone_guidance_settings.hpp"
@@ -85,5 +84,3 @@ GuidanceSettings<double> getGuidanceSettings() {
 
     return settings;
 };
-
-#endif //DRONE_DEFAULT_PROPS_H

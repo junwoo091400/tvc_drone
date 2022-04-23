@@ -1,5 +1,4 @@
-#ifndef DRONE_GNC_LOAD_GUIDANCE_SETTINGS_HPP
-#define DRONE_GNC_LOAD_GUIDANCE_SETTINGS_HPP
+#pragma once
 
 #include <ros/ros.h>
 #include "../guidance/drone_guidance_settings.hpp"
@@ -28,5 +27,3 @@ GuidanceSettings<double> loadGuidanceSettings(ros::NodeHandle &nh) {
 
     return settings;
 }
-
-#endif

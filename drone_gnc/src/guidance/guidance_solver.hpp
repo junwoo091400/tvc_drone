@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_GUIDANCE_SOLVER_HPP
-#define SRC_GUIDANCE_SOLVER_HPP
+#pragma once
 
 using namespace Eigen;
 
@@ -107,5 +106,3 @@ public:
     }
 
 };
-
-#endif //SRC_CONTROL_SOLVER_HPP

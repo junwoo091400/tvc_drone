@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_DRONE_MODEL_HPP
-#define SRC_DRONE_MODEL_HPP
+#pragma once
 
 #include <Eigen/Dense>
 #include <vector>
@@ -228,6 +227,3 @@ public:
     }
 
 };
-
-
-#endif //SRC_DRONE_MODEL_HPP

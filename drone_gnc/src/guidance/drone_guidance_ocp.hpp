@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_DRONE_GUIDANCE_OCP_HPP
-#define SRC_DRONE_GUIDANCE_OCP_HPP
+#pragma once
 
 #include <string>
 #include <math.h>
@@ -101,5 +100,3 @@ public:
         mayer = settings.horizontal_slack * ((x(0) - xs(0)) * (x(0) - xs(0)) + (x(1) - xs(1)) * (x(1) - xs(1)));
     }
 };
-
-#endif //SRC_DRONE_GUIDANCE_OCP_HPP

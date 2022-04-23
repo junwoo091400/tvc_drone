@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_DRONE_GUIDANCE_MPC_H
-#define SRC_DRONE_GUIDANCE_MPC_H
+#pragma once
 
 #include <drone_model.hpp>
 
@@ -65,6 +64,3 @@ private:
     dual_var_t descent_dual_sol;
     parameter_t descent_p_sol;
 };
-
-
-#endif //SRC_DRONE_GUIDANCE_MPC_H

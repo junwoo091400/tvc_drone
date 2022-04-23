@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
     Eigen::Matrix<double, Drone::NX, N> guidance_trajectory;
     Eigen::Matrix<double, Drone::NU, N> guidance_control_trajectory;
     Eigen::Matrix<double, 1, N> t;
-    for (size_t i; i < N; i++) {
+    for (size_t i = 0; i < N; i++) {
         t(i) = guidance_tf * i / (N - 1);
         guidance_trajectory.col(i) = drone_guidance.solution_x_at(t(i));
         guidance_control_trajectory.col(i) = drone_guidance.solution_u_at(t(i));

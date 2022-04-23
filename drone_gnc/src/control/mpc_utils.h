@@ -7,8 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#ifndef SRC_DRONE_MPC_UTILS_HPP
-#define SRC_DRONE_MPC_UTILS_HPP
+#pragma once
 
 #include <time.h>
 
@@ -58,5 +57,3 @@ bool solveRiccatiIterationC(const Eigen::MatrixXd &A, const Eigen::MatrixXd &B,
 
 Matrix<double, NX - 2, NX - 2>
 computeLQRTerminalCost(Drone *drone, Matrix<double, NX - 2, 1> Q_, Matrix<double, NU, 1> R_);
-
-#endif
