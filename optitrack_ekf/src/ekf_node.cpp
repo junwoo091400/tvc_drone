@@ -15,7 +15,7 @@
 #include <std_msgs/Float64.h>
 
 #include "extended_kalman_filter.hpp"
-#include "real_time_simulator/StateStamped.h"
+#include "real_time_simulator/State.h"
 #include <tf/transform_broadcaster.h>
 
 class ExtendedKalmanFilterNode {
@@ -132,7 +132,7 @@ public:
 
 
     void publishState() {
-        real_time_simulator::StateStamped ekf_state_msg;
+        real_time_simulator::State ekf_state_msg;
         geometry_msgs::Pose pose_msg;
         geometry_msgs::Twist twist_msg;
 
@@ -161,10 +161,14 @@ public:
         twist_msg.angular.y = X(11);
         twist_msg.angular.z = X(12);
 
-        ekf_state_msg.header.stamp = ros::Time::now();
-        ekf_state_msg.state.pose = pose_msg;
-        ekf_state_msg.state.twist = twist_msg;
-        ekf_state_msg.state.propeller_mass = 0;
+        //TODO
+//        ekf_state_msg.header.stamp = ros::Time::now();
+//        ekf_state_msg.state.pose = pose_msg;
+//        ekf_state_msg.state.twist = twist_msg;
+//        ekf_state_msg.state.propeller_mass = 0;
+        ekf_state_msg.pose = pose_msg;
+        ekf_state_msg.twist = twist_msg;
+        ekf_state_msg.propeller_mass = 0;
 
         ekf_pub.publish(ekf_state_msg);
 

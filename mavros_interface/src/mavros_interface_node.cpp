@@ -12,7 +12,7 @@
 #include <geometry_msgs/PoseStamped.h>
 
 #include <mavros_msgs/ActuatorControl.h>
-#include "real_time_simulator/StateStamped.h"
+#include "real_time_simulator/State.h"
 
 #include <std_msgs/String.h>
 #include <message_filters/subscriber.h>
@@ -68,10 +68,15 @@ double servo2_offset;
 //}
 
 void publishConvertedState(const nav_msgs::Odometry::ConstPtr &mavros_state) {
-    real_time_simulator::StateStamped rocket_state;
-    rocket_state.header.stamp = ros::Time::now();
-    rocket_state.state.pose = mavros_state->pose.pose;
-    rocket_state.state.twist = mavros_state->twist.twist;
+    real_time_simulator::State rocket_state;
+    rocket_state.pose = mavros_state->pose.pose;
+    rocket_state.twist = mavros_state->twist.twist;
+    //TODO
+//    real_time_simulator::State rocket_state;
+//    rocket_state.header.stamp = ros::Time::now();
+//=mavros_state.header.stamp;
+//    rocket_state.state.pose = mavros_state->pose.pose;
+//    rocket_state.state.twist = mavros_state->twist.twist;
 
     pixhawk_state_pub.publish(rocket_state);
 }
