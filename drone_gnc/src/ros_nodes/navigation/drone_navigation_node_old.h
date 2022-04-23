@@ -10,7 +10,7 @@
 #include "ros/ros.h"
 
 #include "drone_gnc/FSM.h"
-#include "drone_gnc/DroneState.h"
+#include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneControl.h"
 
 #include "geometry_msgs/PoseStamped.h"
@@ -20,8 +20,8 @@
 
 #include <std_msgs/Float64.h>
 
-#include "drone_EKF.hpp"
-#include "navigation_settings.hpp"
+#include "drone_EKF_old.hpp"
+#include "navigation_settings_old.hpp"
 #include "load_drone_props.hpp"
 #include "load_navigation_settings.hpp"
 

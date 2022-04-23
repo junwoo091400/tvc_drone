@@ -10,19 +10,18 @@
 #include "ros/ros.h"
 
 #include "drone_gnc/FSM.h"
-#include "drone_gnc/DroneState.h"
+#include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneWaypointStamped.h"
-#include "drone_gnc/Waypoint.h"
-#include "drone_gnc/Trajectory.h"
+#include "rocket_utils/Waypoint.h"
+#include "rocket_utils/Trajectory.h"
 #include "drone_gnc/DroneTrajectory.h"
 
-#include "drone_gnc/DroneControl.h"
+#include "rocket_utils/GimbalControl.h"
+#include "rocket_utils/ControlMomentGyro.h"
 #include "geometry_msgs/Vector3.h"
 
 #include "std_msgs/Int32.h"
 #include "std_msgs/Float64.h"
-
-#include "drone_gnc/GetFSM.h"
 
 #include <time.h>
 
@@ -78,7 +77,7 @@ public:
     void initTopics(ros::NodeHandle &nh) {
         fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneFixedGuidanceNode::fsmCallback, this);
         // Publishers
-        horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/target_trajectory", 10);
+        horizon_viz_pub = nh.advertise<rocket_utils::Trajectory>("/target_trajectory", 10);
         horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("horizon", 10);
     }
 
@@ -237,7 +236,7 @@ public:
         return point;
     }
 
-    void sample_traj(double t, drone_gnc::DroneState &state_msg) {
+    void sample_traj(double t, rocket_utils::State &state_msg) {
         Vector3d point = samplePath(t);
 
         double eps = 1e-10;
@@ -271,7 +270,7 @@ public:
 
     void publishTrajectory() {
         // Send optimal trajectory computed by control. Send only position for now
-        drone_gnc::Trajectory trajectory_msg;
+        rocket_utils::Trajectory trajectory_msg;
         drone_gnc::DroneTrajectory horizon_msg;
 
         int NUM_POINTS = 800;
@@ -279,24 +278,29 @@ public:
         for (int i = 0; i < NUM_POINTS; i++) {
             double t = i * total_duration / (NUM_POINTS - 1);
 
-            drone_gnc::DroneState state_msg;
+            rocket_utils::State state_msg;
             sample_traj(t, state_msg);
 
-            drone_gnc::DroneControl control_msg;
-            control_msg.servo1 = 0;
-            control_msg.servo2 = 0;
-            control_msg.bottom = 0;
-            control_msg.top = 0;
+            rocket_utils::GimbalControl gimbal_control_msg;
+            gimbal_control_msg.outer_angle = 0;
+            gimbal_control_msg.inner_angle = 0;
+            gimbal_control_msg.thrust = 0;
+
+            rocket_utils::ControlMomentGyro roll_control_msg;
+            roll_control_msg.outer_angle = 0;
+            roll_control_msg.inner_angle = 0;
+            roll_control_msg.torque = 0;
 
             drone_gnc::DroneWaypointStamped state_msg_stamped;
-            state_msg_stamped.state = state_msg;
-            state_msg_stamped.control = control_msg;
+            state_msg_stamped.state.state = state_msg;
+            state_msg_stamped.gimbal_control = gimbal_control_msg;
+            state_msg_stamped.roll_control = roll_control_msg;
             state_msg_stamped.header.stamp = time_compute_start + ros::Duration(t);
             state_msg_stamped.header.frame_id = ' ';
 
             horizon_msg.trajectory.push_back(state_msg_stamped);
 
-            drone_gnc::Waypoint point;
+            rocket_utils::Waypoint point;
             point.time = t;
             point.position.x = state_msg.pose.position.x;
             point.position.y = state_msg.pose.position.y;

@@ -3,7 +3,7 @@
     <arg name="use_fixed_guidance" default="false"/>
 
     <group ns="rocket">
-        <rosparam file="$(find drone_gnc)/config/drone_properties.yaml"/>
+        <rosparam file="$(find drone_utils)/config/drone_properties.yaml"/>
     </group>
 
     <group ns="control/mpc" unless="$(arg use_guidance)">
@@ -54,14 +54,6 @@
 
     <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" output="screen">
         <rosparam param="initial_state">"Idle"</rosparam>
-    </node>
-
-    <node name="navigation" pkg="drone_gnc" type="drone_navigation" machine="gnc_machine"
-          output="screen" launch-prefix="taskset -c 1">
-        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0]</rosparam>
-        <rosparam param="estimate_params">true</rosparam>
-        <rosparam param="init_estimated_params">true</rosparam>
-        <rosparam param="use_gps">true</rosparam>
     </node>
 </launch>
 

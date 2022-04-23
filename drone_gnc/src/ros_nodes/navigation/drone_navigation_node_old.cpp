@@ -6,7 +6,7 @@
  * the Free Software Foundation, version 3. If a copy of the GNU General Public License was not distributed
  * with this file, you can obtain one at http://www.gnu.org/licenses/.
  */
-#include "drone_navigation_node.h"
+#include "drone_navigation_node_old.h"
 
 DroneNavigationNode::DroneNavigationNode(ros::NodeHandle &nh) :
         drone((drone_props = loadDroneProps(nh), drone_props)),
@@ -33,7 +33,7 @@ DroneNavigationNode::DroneNavigationNode(ros::NodeHandle &nh) :
 
 void DroneNavigationNode::initTopics(ros::NodeHandle &nh) {
     // Create filtered rocket state publisher
-    kalman_pub = nh.advertise<drone_gnc::DroneState>("/drone_state", 1);
+    kalman_pub = nh.advertise<drone_gnc::DroneExtendedState>("/drone_state", 1);
 
     // Subscribe to time_keeper for fsm and time
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneNavigationNode::fsmCallback, this);
@@ -163,7 +163,7 @@ void DroneNavigationNode::controlCallback(const drone_gnc::DroneControl::ConstPt
 }
 
 void DroneNavigationNode::publishDroneState() {
-    drone_gnc::DroneState kalman_state;
+    drone_gnc::DroneExtendedState kalman_state;
 
     kalman_state.pose.position.x = kalman.getState(0);
     kalman_state.pose.position.y = kalman.getState(1);

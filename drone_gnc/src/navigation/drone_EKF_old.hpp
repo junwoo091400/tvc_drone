@@ -14,7 +14,7 @@
 
 #include <autodiff/AutoDiffScalar.h>
 #include <drone_model.hpp>
-#include "navigation_settings.hpp"
+#include "navigation_settings_old.hpp"
 
 using namespace Eigen;
 

@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  real_time_simulator
+  rocket_utils
   )
 
 ## System dependencies are found with CMake's conventions

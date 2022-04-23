@@ -28,6 +28,5 @@ int main(int argc, char **argv) {
 
     Matrix<double, NX - 2, NX - 2> QN;
     QN = computeLQRTerminalCost(&drone, Q, R);
-
     std::cout << "QN\n" << QN << std::endl;
 }

@@ -10,7 +10,7 @@
 #include "ros/ros.h"
 
 #include "drone_gnc/FSM.h"
-#include "drone_gnc/DroneState.h"
+#include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneControl.h"
 #include "drone_gnc/Sensor.h"
 #include "drone_gnc/KalmanSimu.h"
@@ -135,7 +135,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
             if (fsm->state_machine == drone_gnc::FSM::ASCENT) started = true;
         }
         else if (m.getTopic() == "/drone_state") {
-            drone_gnc::DroneState::ConstPtr state = m.instantiate<drone_gnc::DroneState>();
+            drone_gnc::DroneExtendedState::ConstPtr state = m.instantiate<drone_gnc::DroneExtendedState>();
             current_time = state->header.stamp.toSec();
             if (t0 == 0) {
                 t0 = current_time;
@@ -166,7 +166,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
                 update_trigger = false;
             }
 
-            drone_gnc::DroneState kalman_state;
+            drone_gnc::DroneExtendedState kalman_state;
 
             kalman_state.pose.position.x = kalman->getState(0);
             kalman_state.pose.position.y = kalman->getState(1);

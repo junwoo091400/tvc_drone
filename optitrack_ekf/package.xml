@@ -14,7 +14,7 @@
   <depend>roscpp</depend>
   <depend>tf2_ros</depend>
   <depend>vrpn</depend>
-  <depend>real_time_simulator</depend>
+  <depend>rocket_utils</depend>
 
   <test_depend>roslaunch</test_depend>
   <test_depend>roslint</test_depend>

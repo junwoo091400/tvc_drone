@@ -111,9 +111,9 @@ void DroneGuidance::initGuess(Drone::state &x0, Drone::state &target_state) {
         std::cout << "z0: " << z0 << " target: " << z_target << std::endl;
         std::cout << "traj length new guess: " << t_end << std::endl;
 
-        RowVectorXd z_guess(DroneGuidanceOCP::NUM_NODES);
-        RowVectorXd dz_guess(DroneGuidanceOCP::NUM_NODES);
-        RowVectorXd prop_av_guess(DroneGuidanceOCP::NUM_NODES);
+        RowVectorXd z_guess(num_nodes);
+        RowVectorXd dz_guess(num_nodes);
+        RowVectorXd prop_av_guess(num_nodes);
         for (int i = 0; i < time_grid.size(); i++) {
             double t = time_grid(i) * t_end;
             if (t < t_mid) {

@@ -3,13 +3,13 @@ project(optitrack_ekf)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/../../build)
 
-find_package(catkin REQUIRED COMPONENTS geometry_msgs roscpp tf tf2_ros real_time_simulator)
+find_package(catkin REQUIRED COMPONENTS geometry_msgs roscpp tf tf2_ros rocket_utils)
 find_package(VRPN REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES vrpn_client_ros
-  CATKIN_DEPENDS geometry_msgs tf2_ros real_time_simulator
+  CATKIN_DEPENDS geometry_msgs tf2_ros rocket_utils
   DEPENDS VRPN
 )
 

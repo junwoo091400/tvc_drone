@@ -10,19 +10,18 @@
 #include "ros/ros.h"
 
 #include "drone_gnc/FSM.h"
-#include "drone_gnc/DroneState.h"
+#include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneWaypointStamped.h"
 #include "drone_gnc/Waypoint.h"
-#include "drone_gnc/Trajectory.h"
+#include "rocket_utils/Trajectory.h"
 #include "drone_gnc/DroneTrajectory.h"
 
-#include "drone_gnc/DroneControl.h"
+#include "rocket_utils/GimbalControl.h"
+#include "rocket_utils/ControlMomentGyro.h"
 #include "geometry_msgs/Vector3.h"
 
 #include "std_msgs/Int32.h"
 #include "std_msgs/Float64.h"
-
-#include "drone_gnc/GetFSM.h"
 
 #include <mutex>
 #include <iostream>
@@ -44,15 +43,19 @@ public:
 
     void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm);
 
+    void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
+
     // Callback function to store last received state
-    void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state);
+    void stateCallback(const drone_gnc::DroneExtendedState::ConstPtr &rocket_state);
 
     // Callback function to store last received state
     void targetCallback(const geometry_msgs::Vector3 &target);
 
     void computeControl();
 
-    void publishControl();
+    void toROS(const Drone::control &control, rocket_utils::GimbalControl &gimbal_control, rocket_utils::ControlMomentGyro &roll_control);
+
+    void publishControl(Drone::control &control);
 
     void publishTrajectory();
 
@@ -75,7 +78,7 @@ private:
     ControlMPCSettings<double> mpc_settings;
 
     bool received_state = false;
-    drone_gnc::DroneState current_state;
+    drone_gnc::DroneExtendedState current_state;
     geometry_msgs::Vector3 target_apogee;
     double time_compute_start;
     bool track_guidance;
@@ -106,7 +109,7 @@ private:
 
     // Publishers
     ros::Publisher horizon_viz_pub;
-    ros::Publisher drone_control_pub;
+    ros::Publisher gimbal_control_pub, roll_control_pub;
     ros::Subscriber fsm_sub;
 
     // Debug

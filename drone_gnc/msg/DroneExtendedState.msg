@@ -1,6 +1,5 @@
 Header header
-geometry_msgs/Twist twist
-geometry_msgs/Pose pose
+rocket_utils/State state
 float64 thrust_scaling
 float64 torque_scaling
 geometry_msgs/Vector3 disturbance_force

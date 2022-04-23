@@ -1,7 +1,12 @@
 <launch>
+    <param name="simulation" type="int" value="3" />
 
     <group ns="rocket">
-        <rosparam file="$(find drone_gnc)/config/drone_properties.yaml"/>
+        <rosparam file="$(find drone_utils)/config/drone_properties.yaml"/>
+    </group>
+
+    <group ns="actuator">
+        <rosparam file="$(find drone_utils)/config/drone_actuator_parameters.yaml" />
     </group>
 
     <group ns="environment">
@@ -12,12 +17,12 @@
         <rosparam file="$(find drone_simulator_interface)/config/perturbations_parameters.yaml"/>
     </group>
 
-    <node name="simulator_interface" pkg="drone_simulator_interface" type="simulator_interface" cwd = "node"  output ="screen">
-        <rosparam param="use_servo_model">false</rosparam>
-        <rosparam param="min_z">-0.001</rosparam>
-        <rosparam param="servo_noise_std">0</rosparam>
-        <rosparam param="torque_noise_std">0</rosparam>
-    </node>
+<!--    <node name="simulator_interface" pkg="drone_simulator_interface" type="simulator_interface" cwd = "node"  output ="screen">-->
+<!--        <rosparam param="use_servo_model">false</rosparam>-->
+<!--        <rosparam param="min_z">-0.001</rosparam>-->
+<!--        <rosparam param="servo_noise_std">0</rosparam>-->
+<!--        <rosparam param="torque_noise_std">0</rosparam>-->
+<!--    </node>-->
 
 
     <!-- node that converts DroneState messages to State messages -->

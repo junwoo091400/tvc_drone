@@ -7,3 +7,4 @@ humidity: 0.5
 pressure: 84972.484
 wind_speed: 0
 wind_direction: 180 # angle of wind from north, clockwise
+rail_length: 0

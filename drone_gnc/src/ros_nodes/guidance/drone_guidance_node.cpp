@@ -12,7 +12,6 @@
 DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, Drone *drone) :
         drone(drone), drone_guidance(drone, (guidance_settings = loadGuidanceSettings(nh), guidance_settings)) {
     // Initialize fsm
-    current_fsm.time_now = 0;
     current_fsm.state_machine = drone_gnc::FSM::IDLE;
 
     if (nh.getParam("mpc/descent_trigger_time", descent_trigger_time)) {
@@ -34,18 +33,25 @@ DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, Drone *drone) :
 
 void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
-    state_sub = nh.subscribe("/drone_state", 1, &DroneGuidanceNode::stateCallback, this);
-    bool control_track_guidance;
+    bool control_track_guidance, use_simulation_state;
     nh.param<bool>("/control/track_guidance", control_track_guidance, false);
+    nh.param<bool>("/control/use_simulation_state", use_simulation_state, true);
     if (control_track_guidance) {
         target_sub = nh.subscribe("/target_apogee", 1, &DroneGuidanceNode::targetCallback, this);
     }
+    if (use_simulation_state){
+        state_sub = nh.subscribe("/rocket_state", 1, &DroneGuidanceNode::simulationStateCallback, this);
+    }
+    else{
+        state_sub = nh.subscribe("/drone_state", 1, &DroneGuidanceNode::stateCallback, this);
+    }
+
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneGuidanceNode::fsmCallback, this);
 
     set_fsm_client = nh.serviceClient<drone_gnc::SetFSM>("/drone_fsm/set_fsm", true);
 
     // Publishers
-    horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/target_trajectory", 10);
+    horizon_viz_pub = nh.advertise<rocket_utils::Trajectory>("/target_trajectory", 10);
 
     // Debug
     sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
@@ -58,17 +64,17 @@ void DroneGuidanceNode::run() {
     time_compute_start = ros::Time::now();
 
     if (received_state && current_fsm.state_machine != drone_gnc::FSM::STOP) {
-        x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
-                current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
-                current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
-                current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
+        x0 << current_state.state.pose.position.x, current_state.state.pose.position.y, current_state.state.pose.position.z,
+                current_state.state.twist.linear.x, current_state.state.twist.linear.y, current_state.state.twist.linear.z,
+                current_state.state.pose.orientation.x, current_state.state.pose.orientation.y, current_state.state.pose.orientation.z, current_state.state.pose.orientation.w,
+                current_state.state.twist.angular.x, current_state.state.twist.angular.y, current_state.state.twist.angular.z;
 
         if (current_fsm.state_machine == drone_gnc::FSM::ASCENT &&
-            (current_state.twist.linear.z <= 0 || current_state.pose.position.z >= drone_guidance.target_apogee.z()) &&
-            current_state.pose.position.z > 1) {
+            (current_state.state.twist.linear.z <= 0 || current_state.state.pose.position.z >= drone_guidance.target_apogee.z()) &&
+            current_state.state.pose.position.z > 1) {
             startDescent();
-        } else if (current_fsm.state_machine == drone_gnc::FSM::DESCENT && current_state.twist.linear.z >= 0 &&
-                   current_state.pose.position.z < 0.3) {
+        } else if (current_fsm.state_machine == drone_gnc::FSM::DESCENT && current_state.state.twist.linear.z >= 0 &&
+                   current_state.state.pose.position.z < 0.3) {
             drone_gnc::SetFSM srv;
             srv.request.fsm.state_machine = drone_gnc::FSM::STOP;
             set_fsm_client.call(srv);
@@ -113,7 +119,14 @@ void DroneGuidanceNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
     current_fsm = *fsm;
 }
 
-void DroneGuidanceNode::stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
+void DroneGuidanceNode::simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state) {
+    current_state.state = *rocket_state;
+    current_state.thrust_scaling = 1;
+    current_state.torque_scaling = 1;
+    received_state = true;
+}
+
+void DroneGuidanceNode::stateCallback(const drone_gnc::DroneExtendedState::ConstPtr &rocket_state) {
     current_state = *rocket_state;
     received_state = true;
 }
@@ -130,10 +143,10 @@ void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
 
     // recompute a new guess if sudden target change
     if ((target_state.head(3) - new_target_state.head(3)).norm() > 1) {
-        x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
-                current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
-                current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
-                current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
+        x0 << current_state.state.pose.position.x, current_state.state.pose.position.y, current_state.state.pose.position.z,
+                current_state.state.twist.linear.x, current_state.state.twist.linear.y, current_state.state.twist.linear.z,
+                current_state.state.pose.orientation.x, current_state.state.pose.orientation.y, current_state.state.pose.orientation.z, current_state.state.pose.orientation.w,
+                current_state.state.twist.angular.x, current_state.state.twist.angular.y, current_state.state.twist.angular.z;
         drone_guidance.initGuess(x0, target_state);
     }
     target_state = new_target_state;
@@ -150,20 +163,20 @@ void DroneGuidanceNode::computeTrajectory() {
 
 void DroneGuidanceNode::publishTrajectory() {
     // Send optimal trajectory computed by control. Send only position for now
-    drone_gnc::Trajectory trajectory_msg;
+    rocket_utils::Trajectory trajectory_msg;
     drone_gnc::DroneTrajectory horizon_msg;
 
     for (int i = 0; i < DroneGuidance::num_nodes; i++) {
         Drone::state state_val = drone_guidance.solution_x_at(i);
 
-        drone_gnc::Waypoint point;
+        rocket_utils::Waypoint point;
         point.time = drone_guidance.node_time(i);
         point.position.x = state_val(0);
         point.position.y = state_val(1);
         point.position.z = state_val(2);
         trajectory_msg.trajectory.push_back(point);
 
-        drone_gnc::DroneState state_msg;
+        rocket_utils::State state_msg;
         state_msg.pose.position.x = state_val(0);
         state_msg.pose.position.y = state_val(1);
         state_msg.pose.position.z = state_val(2);
@@ -182,15 +195,14 @@ void DroneGuidanceNode::publishTrajectory() {
         state_msg.twist.angular.z = state_val(12);
 
         Drone::control control_val = drone_guidance.solution_u_at(i);
-        drone_gnc::DroneControl control_msg;
-        control_msg.servo1 = control_val(0);
-        control_msg.servo2 = control_val(1);
-        control_msg.bottom = control_val(2) - control_val(3) / 2;
-        control_msg.top = control_val(2) + control_val(3) / 2;
+        //TODO
+        rocket_utils::GimbalControl gimbal_control_msg{};
+        rocket_utils::ControlMomentGyro roll_control_msg{};
 
         drone_gnc::DroneWaypointStamped state_msg_stamped;
-        state_msg_stamped.state = state_msg;
-        state_msg_stamped.control = control_msg;
+        state_msg_stamped.state.state = state_msg;
+        state_msg_stamped.gimbal_control = gimbal_control_msg;
+        state_msg_stamped.roll_control = roll_control_msg;
         state_msg_stamped.header.stamp = time_compute_start + ros::Duration(drone_guidance.node_time(i));
         state_msg_stamped.header.frame_id = ' ';
 

@@ -24,22 +24,30 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, Drone *drone) :
     period = mpc_settings.period;
 
     // Initialize fsm
-    current_fsm.time_now = 0;
     current_fsm.state_machine = drone_gnc::FSM::IDLE;
 }
 
 void DroneControlNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
-    drone_state_sub = nh.subscribe("/drone_state", 1, &DroneControlNode::stateCallback, this,
-                                   ros::TransportHints().tcpNoDelay());
+    bool use_simulation_state;
+    nh.param<bool>("/control/use_simulation_state", use_simulation_state, true);
+    if (use_simulation_state){
+        drone_state_sub = nh.subscribe("/rocket_state", 1, &DroneControlNode::simulationStateCallback, this,
+                     ros::TransportHints().tcpNoDelay());
+    }
+    else{
+        drone_state_sub = nh.subscribe("/drone_state", 1, &DroneControlNode::stateCallback, this,
+                                       ros::TransportHints().tcpNoDelay());
+    }
     target_sub = nh.subscribe("/target_apogee", 1, &DroneControlNode::targetCallback, this);
     target_traj_sub = nh.subscribe("/guidance/horizon", 1, &DroneControlNode::targetTrajectoryCallback, this,
                                    ros::TransportHints().tcpNoDelay());
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneControlNode::fsmCallback, this);
 
     // Publishers
-    horizon_viz_pub = nh.advertise<drone_gnc::Trajectory>("/mpc_horizon", 10);
-    drone_control_pub = nh.advertise<drone_gnc::DroneControl>("/drone_control", 10);
+    horizon_viz_pub = nh.advertise<rocket_utils::Trajectory>("/mpc_horizon", 10);
+    gimbal_control_pub = nh.advertise<rocket_utils::GimbalControl>("/gimbal_command_0", 10);
+    roll_control_pub = nh.advertise<rocket_utils::ControlMomentGyro>("/cmg_command_0", 10);
 
     // Debug
     sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
@@ -51,12 +59,9 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
 void DroneControlNode::run() {
     bool emergency_stop_enabled = false;
     if ((emergency_stop && emergency_stop_enabled)) {
-        drone_gnc::DroneControl drone_control;
-        drone_control.top = 0;
-        drone_control.bottom = 0;
-        drone_control.servo2 = 0;
-        drone_control.servo1 = 0;
-        drone_control_pub.publish(drone_control);
+        Drone::control control;
+        control.setZero();
+        publishControl(control);
         ROS_ERROR_STREAM("emergency stop");
     } else {
         double loop_start_time = ros::Time::now().toSec();
@@ -77,14 +82,12 @@ void DroneControlNode::run() {
                 start_time = ros::Time::now().toSec();
             } else if (current_fsm.state_machine == drone_gnc::FSM::ASCENT ||
                        current_fsm.state_machine == drone_gnc::FSM::DESCENT) {
-                publishControl();
+                Drone::control interpolated_control = drone_mpc.solution_u_at(0.0);
+                publishControl(interpolated_control);
             } else if (current_fsm.state_machine == drone_gnc::FSM::STOP) {
-                drone_gnc::DroneControl drone_control;
-                drone_control.bottom = 0;
-                drone_control.top = 0;
-                drone_control.servo1 = 0;
-                drone_control.servo2 = 0;
-                drone_control_pub.publish(drone_control);
+                Drone::control control;
+                control.setZero();
+                publishControl(control);
             }
         }
         if (stall_time > 0) computation_time = (ros::Time::now().toSec() - loop_start_time - stall_time) * 1000;
@@ -98,8 +101,15 @@ void DroneControlNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
     current_fsm = *fsm;
 }
 
+void DroneControlNode::simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state) {
+    current_state.state = *rocket_state;
+    current_state.thrust_scaling = 1;
+    current_state.torque_scaling = 1;
+    received_state = true;
+}
+
 // Callback function to store last received state
-void DroneControlNode::stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
+void DroneControlNode::stateCallback(const drone_gnc::DroneExtendedState::ConstPtr &rocket_state) {
 //    const std::lock_guard<std::mutex> lock(state_mutex);
     current_state = *rocket_state;
     received_state = true;
@@ -147,14 +157,13 @@ void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory
     int i = 0;
     for (auto waypoint: target->trajectory) {
         guidance_state_trajectory.col(i)
-                << waypoint.state.pose.position.x, waypoint.state.pose.position.y, waypoint.state.pose.position.z,
-                waypoint.state.twist.linear.x, waypoint.state.twist.linear.y, waypoint.state.twist.linear.z,
-                waypoint.state.pose.orientation.x, waypoint.state.pose.orientation.y, waypoint.state.pose.orientation.z, waypoint.state.pose.orientation.w,
-                waypoint.state.twist.angular.x, waypoint.state.twist.angular.y, waypoint.state.twist.angular.z;
+                << waypoint.state.state.pose.position.x, waypoint.state.state.pose.position.y, waypoint.state.state.pose.position.z,
+                waypoint.state.state.twist.linear.x, waypoint.state.state.twist.linear.y, waypoint.state.state.twist.linear.z,
+                waypoint.state.state.pose.orientation.x, waypoint.state.state.pose.orientation.y, waypoint.state.state.pose.orientation.z, waypoint.state.state.pose.orientation.w,
+                waypoint.state.state.twist.angular.x, waypoint.state.state.twist.angular.y, waypoint.state.state.twist.angular.z;
 
         guidance_control_trajectory.col(i)
-                << 0, 0,
-                0.5 * (waypoint.control.bottom + waypoint.control.top), 0;
+                << 0, 0, drone->getAverageSpeed(waypoint.gimbal_control.thrust), 0;
         i++;
     }
 }
@@ -224,10 +233,10 @@ void DroneControlNode::computeControl() {
 
     Drone::state x0;
 //    state_mutex.lock();
-    x0 << current_state.pose.position.x, current_state.pose.position.y, current_state.pose.position.z,
-            current_state.twist.linear.x, current_state.twist.linear.y, current_state.twist.linear.z,
-            current_state.pose.orientation.x, current_state.pose.orientation.y, current_state.pose.orientation.z, current_state.pose.orientation.w,
-            current_state.twist.angular.x, current_state.twist.angular.y, current_state.twist.angular.z;
+    x0 << current_state.state.pose.position.x, current_state.state.pose.position.y, current_state.state.pose.position.z,
+            current_state.state.twist.linear.x, current_state.state.twist.linear.y, current_state.state.twist.linear.z,
+            current_state.state.pose.orientation.x, current_state.state.pose.orientation.y, current_state.state.pose.orientation.z, current_state.state.pose.orientation.w,
+            current_state.state.twist.angular.x, current_state.state.twist.angular.y, current_state.state.twist.angular.z;
 //    state_mutex.unlock();
     double attitude_angle_cos = x0(9) * x0(9) - x0(6) * x0(6) - x0(7) * x0(7) + x0(8) * x0(8);
     if (attitude_angle_cos < cos(0.5) || abs(x0(10)) > 4 || abs(x0(11)) > 4 || abs(x0(12)) > 4) {
@@ -251,70 +260,86 @@ void DroneControlNode::computeControl() {
 
 }
 
-void DroneControlNode::publishControl() {
-    Drone::control interpolated_control = drone_mpc.solution_u_at(0.0);
+void DroneControlNode::toROS(const Drone::control &control, rocket_utils::GimbalControl &gimbal_control,
+                             rocket_utils::ControlMomentGyro &roll_control) {
+    double servo1 = control(0);
+    double servo2 = control(1);
+    double prop_av = control(2);
+    double prop_delta = control(3);
 
-    drone_gnc::DroneControl control_msg;
-    control_msg.servo1 = interpolated_control(0);
-    control_msg.servo2 = interpolated_control(1);
-    control_msg.bottom = interpolated_control(2) - interpolated_control(3) / 2;
-    control_msg.top = interpolated_control(2) + interpolated_control(3) / 2;
+    // saturation
+    servo1 = std::min(std::max(servo1, -drone->props.max_servo1_angle), drone->props.max_servo1_angle);
+    servo2 = std::min(std::max(servo2, -drone->props.max_servo2_angle), drone->props.max_servo2_angle);
+    double bottom = prop_av - prop_delta / 2;
+    double top = prop_av + prop_delta / 2;
+    bottom = std::min(std::max(bottom, drone->props.min_propeller_speed), drone->props.max_propeller_speed);
+    top = std::min(std::max(top, drone->props.min_propeller_speed), drone->props.max_propeller_speed);
+    prop_av = 0.5 * (bottom + top);
+    prop_delta = top - bottom;
 
-    control_msg.servo1 = std::min(std::max(control_msg.servo1, -drone->props.max_servo1_angle),
-                                  drone->props.max_servo1_angle);
-    control_msg.servo2 = std::min(std::max(control_msg.servo2, -drone->props.max_servo2_angle),
-                                  drone->props.max_servo2_angle);
-    control_msg.top = std::min(std::max(control_msg.top, drone->props.min_propeller_speed),
-                               drone->props.max_propeller_speed);
-    control_msg.bottom = std::min(std::max(control_msg.bottom, drone->props.min_propeller_speed),
-                                  drone->props.max_propeller_speed);
-    control_msg.header.stamp = ros::Time::now();
+    gimbal_control.outer_angle = control(0);
+    gimbal_control.inner_angle = control(1);
+    gimbal_control.thrust = drone->getThrust(prop_av);
 
-    drone_control_pub.publish(control_msg);
+    roll_control.outer_angle = control(0);
+    roll_control.inner_angle = control(1);
+    roll_control.torque = drone->getTorque(prop_delta);
+}
+
+void DroneControlNode::publishControl(Drone::control &control) {
+    rocket_utils::GimbalControl gimbal_control;
+    rocket_utils::ControlMomentGyro roll_control;
+    toROS(control, gimbal_control, roll_control);
+
+    ros::Time time_now = ros::Time::now();
+    gimbal_control.header.stamp = time_now;
+    roll_control.header.stamp = time_now;
+
+    gimbal_control_pub.publish(gimbal_control);
+    roll_control_pub.publish(roll_control);
 }
 
 void DroneControlNode::publishTrajectory() {
     // Send optimal trajectory computed by control for debugging purpose
-    drone_gnc::Trajectory trajectory_msg;
+    rocket_utils::Trajectory trajectory_msg;
     drone_gnc::DroneTrajectory horizon_msg;
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
         Drone::state state_val = drone_mpc.solution_x_at(i);
 
-        drone_gnc::Waypoint point;
+        rocket_utils::Waypoint point;
         point.time = drone_mpc.node_time(i);
         point.position.x = state_val(0);
         point.position.y = state_val(1);
         point.position.z = state_val(2);
         trajectory_msg.trajectory.push_back(point);
 
-        drone_gnc::DroneState state_msg;
-        state_msg.pose.position.x = state_val(0);
-        state_msg.pose.position.y = state_val(1);
-        state_msg.pose.position.z = state_val(2);
+        drone_gnc::DroneExtendedState state_msg;
+        state_msg.state.pose.position.x = state_val(0);
+        state_msg.state.pose.position.y = state_val(1);
+        state_msg.state.pose.position.z = state_val(2);
 
-        state_msg.twist.linear.x = state_val(3);
-        state_msg.twist.linear.y = state_val(4);
-        state_msg.twist.linear.z = state_val(5);
+        state_msg.state.twist.linear.x = state_val(3);
+        state_msg.state.twist.linear.y = state_val(4);
+        state_msg.state.twist.linear.z = state_val(5);
 
-        state_msg.pose.orientation.x = state_val(6);
-        state_msg.pose.orientation.y = state_val(7);
-        state_msg.pose.orientation.z = state_val(8);
-        state_msg.pose.orientation.w = state_val(9);
+        state_msg.state.pose.orientation.x = state_val(6);
+        state_msg.state.pose.orientation.y = state_val(7);
+        state_msg.state.pose.orientation.z = state_val(8);
+        state_msg.state.pose.orientation.w = state_val(9);
 
-        state_msg.twist.angular.x = state_val(10);
-        state_msg.twist.angular.y = state_val(11);
-        state_msg.twist.angular.z = state_val(12);
+        state_msg.state.twist.angular.x = state_val(10);
+        state_msg.state.twist.angular.y = state_val(11);
+        state_msg.state.twist.angular.z = state_val(12);
 
         Drone::control control_val = drone_mpc.solution_u_at(i);
-        drone_gnc::DroneControl control_msg;
-        control_msg.servo1 = control_val(0);
-        control_msg.servo2 = control_val(1);
-        control_msg.bottom = control_val(2) - control_val(3) / 2;
-        control_msg.top = control_val(2) + control_val(3) / 2;
+        rocket_utils::GimbalControl gimbal_control_msg;
+        rocket_utils::ControlMomentGyro roll_control_msg;
+        toROS(control_val, gimbal_control_msg, roll_control_msg);
 
         drone_gnc::DroneWaypointStamped state_msg_stamped;
         state_msg_stamped.state = state_msg;
-        state_msg_stamped.control = control_msg;
+        state_msg_stamped.gimbal_control = gimbal_control_msg;
+        state_msg_stamped.roll_control = roll_control_msg;
         state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(drone_mpc.node_time(i));
         state_msg_stamped.header.frame_id = ' ';
 

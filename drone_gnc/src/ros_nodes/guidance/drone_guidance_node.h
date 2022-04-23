@@ -10,19 +10,18 @@
 #include "ros/ros.h"
 
 #include "drone_gnc/FSM.h"
-#include "drone_gnc/DroneState.h"
+#include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneWaypointStamped.h"
 #include "drone_gnc/Waypoint.h"
-#include "drone_gnc/Trajectory.h"
+#include "rocket_utils/Trajectory.h"
 #include "drone_gnc/DroneTrajectory.h"
 
-#include "drone_gnc/DroneControl.h"
+#include "rocket_utils/GimbalControl.h"
+#include "rocket_utils/ControlMomentGyro.h"
 #include "geometry_msgs/Vector3.h"
 
 #include "std_msgs/Int32.h"
 #include "std_msgs/Float64.h"
-
-#include "drone_gnc/GetFSM.h"
 
 #include <time.h>
 
@@ -40,7 +39,9 @@ public:
 
     void run();
 
-    void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state);
+    void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
+
+    void stateCallback(const drone_gnc::DroneExtendedState::ConstPtr &rocket_state);
 
     void targetCallback(const geometry_msgs::Vector3 &target);
 
@@ -62,7 +63,7 @@ private:
     DroneGuidance drone_guidance;
 
     bool received_state = false;
-    drone_gnc::DroneState current_state;
+    drone_gnc::DroneExtendedState current_state;
     drone_gnc::FSM current_fsm;
     Drone::state target_state;
     Drone::control target_control;

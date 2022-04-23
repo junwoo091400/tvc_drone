@@ -9,24 +9,23 @@
 
 #include "ros/ros.h"
 #include "drone_gnc/FSM.h"
-#include "drone_gnc/DroneState.h"
+#include "drone_gnc/DroneExtendedState.h"
 #include <time.h>
 
 #include <sstream>
 #include <string>
 
-#include "drone_gnc/GetFSM.h"
 #include "drone_gnc/SetFSM.h"
 #include "std_msgs/String.h"
 
 // global variable with time and state machine
 drone_gnc::FSM current_fsm;
 double time_zero;
-drone_gnc::DroneState current_state;
+drone_gnc::DroneExtendedState current_state;
 bool received_state = false;
 geometry_msgs::Vector3 target_apogee;
 
-void stateCallback(const drone_gnc::DroneState::ConstPtr &rocket_state) {
+void stateCallback(const drone_gnc::DroneExtendedState::ConstPtr &rocket_state) {
 //    const std::lock_guard<std::mutex> lock(state_mutex);
     current_state = *rocket_state;
     received_state = true;
@@ -66,7 +65,6 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh("drone_fsm");
 
     // Initialize fsm
-    current_fsm.time_now = 0;
     std::string initial_state;
     nh.param<std::string>("initial_state", initial_state, "Idle");
     if (initial_state == "Idle") current_fsm.state_machine = drone_gnc::FSM::IDLE;
@@ -108,9 +106,6 @@ int main(int argc, char **argv) {
         // Update FSM
         if (current_fsm.state_machine == drone_gnc::FSM::IDLE) {
         } else {
-            // Update current time
-            current_fsm.time_now = ros::Time::now().toSec() - time_zero;
-
             if (current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
 //                if ((abs(current_state.pose.position.z - target_apogee.z) < 0.1 || current_state.twist.linear.z < 0) && land_after_apogee && target_apogee.z != 0){
 //                    current_fsm.state_machine = "Descent";

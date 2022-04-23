@@ -53,6 +53,7 @@ if(BUILD_ROS)
         genmsg
         visualization_msgs
         tf2_ros
+        rocket_utils
         )
 endif()
 
@@ -94,23 +95,18 @@ find_package(Eigen3 REQUIRED)
 if(BUILD_ROS)
     add_message_files(
             FILES
-            FSM.msg
             Waypoint.msg
-            Sensor.msg
             Trajectory.msg
             DroneTrajectory.msg
-            DroneControl.msg
-            DroneState.msg
+            DroneExtendedState.msg
             DroneWaypointStamped.msg
+            FSM.msg
     )
 
     ## Generate services in the 'srv' folder
     add_service_files(
             FILES
-            GetFSM.srv
             SetFSM.srv
-            InterpolateControlSpline.srv
-            KalmanSimu.srv
     )
     ## Generate actions in the 'action' folder
     # add_action_files(
@@ -125,6 +121,7 @@ if(BUILD_ROS)
             DEPENDENCIES
             std_msgs
             geometry_msgs
+            rocket_utils
             ${MESSAGE_DEPENDENCIES}
     )
 
@@ -161,7 +158,7 @@ endif()
 ## DEPENDS: system dependencies of this project that dependent projects also need
 if(BUILD_ROS)
     catkin_package(
-            CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs #polympc-ros
+            CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs rocket_utils
             INCLUDE_DIRS src/ros_nodes src/models src/ros_nodes/utils src/control src/guidance
             #LIBRARIES ${PROJECT_NAME}
             #  DEPENDS system_lib

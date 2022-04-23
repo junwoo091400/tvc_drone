@@ -9,7 +9,7 @@
 
 #include <ros/ros.h>
 #include "drone_gnc/DroneControl.h"
-#include "drone_gnc/DroneState.h"
+#include "drone_gnc/DroneExtendedState.h"
 #include "geometry_msgs/Vector3.h"
 
 #include <Eigen/Eigen>
@@ -45,7 +45,7 @@ public:
     }
 
 
-    drone_gnc::DroneControl getControl(drone_gnc::DroneState &x_msg, geometry_msgs::Vector3 target_apogee) {
+    drone_gnc::DroneControl getControl(drone_gnc::DroneExtendedState &x_msg, geometry_msgs::Vector3 target_apogee) {
         Drone::state x;
         x << x_msg.pose.position.x, x_msg.pose.position.y, x_msg.pose.position.z,
                 x_msg.twist.linear.x, x_msg.twist.linear.y, x_msg.twist.linear.z,
