@@ -144,8 +144,3 @@ Each package contains its own readme file with more information.
     roscd drone_utils/bash_scripts
     ./remote_drone_launch.sh
     ```
-
-
-## Authors
-
-Raphaël Linsen (raphael.linsen@epfl.ch)
