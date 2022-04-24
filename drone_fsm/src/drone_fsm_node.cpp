@@ -8,114 +8,128 @@
  */
 
 #include "ros/ros.h"
-#include "rocket_utils/FSM.h"
-#include "drone_gnc/DroneExtendedState.h"
-#include <time.h>
 
+#include "rocket_utils/FSM.h"
 #include <sstream>
 #include <string>
+#include "rocket_types/rocket_types.h"
+#include "rocket_types/ros_conversions.h"
 
 #include "std_msgs/String.h"
 
-// global variable with time and state machine
-rocket_utils::FSM current_fsm;
-double time_zero;
-drone_gnc::DroneExtendedState current_state;
-bool received_state = false;
-geometry_msgs::Vector3 target_apogee;
+using namespace rocket;
 
-void stateCallback(const drone_gnc::DroneExtendedState::ConstPtr &rocket_state) {
-//    const std::lock_guard<std::mutex> lock(state_mutex);
-    current_state = *rocket_state;
-    received_state = true;
-}
+class FsmNode {
+private:
+    RocketFSMState current_fsm;
 
-void targetCallback(const geometry_msgs::Vector3::ConstPtr &target) {
-//    const std::lock_guard<std::mutex> lock(target_mutex);
-    target_apogee = *target;
-}
+    ros::Subscriber command_sub;
+    ros::Subscriber target_sub;
+    ros::Subscriber state_sub;
 
+    ros::Publisher fsm_pub;
+    ros::Publisher target_pub;
 
-void processCommand(const std_msgs::String &command) {
-    if (command.data == "stop" || command.data == "Stop") {
-        current_fsm.state_machine = rocket_utils::FSM::STOP;
-    } else if (current_fsm.state_machine == rocket_utils::FSM::IDLE) {
-        //received launch command
+    double time_zero;
+    RocketState current_state;
+    Vector3 target_apogee;
+
+    bool land_after_apogee;
+
+public:
+    FsmNode() : current_fsm(RocketFSMState::IDLE) {
+        ros::NodeHandle nh("~");
+
         time_zero = ros::Time::now().toSec();
-        current_fsm.state_machine = rocket_utils::FSM::ASCENT;
+
+        nh.param<bool>("land_after_apogee", land_after_apogee, false);
+
+        // Create timer publisher and associated thread (100Hz)
+        fsm_pub = nh.advertise<rocket_utils::FSM>("/gnc_fsm_pub", 10);
+
+        command_sub = nh.subscribe("/commands", 10, &FsmNode::processCommand, this);
+        target_sub = nh.subscribe("/target_apogee", 1, &FsmNode::targetCallback, this);
+        target_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
+
+        std::vector<double> initial_target_apogee;
+        if (nh.getParam("/guidance/target_apogee", initial_target_apogee) ||
+            nh.getParam("/control/target_apogee", initial_target_apogee)) {
+            target_apogee.x = initial_target_apogee.at(0);
+            target_apogee.y = initial_target_apogee.at(1);
+            target_apogee.z = initial_target_apogee.at(2);
+        }
+
+
+        // Subscribe to commands
+        state_sub = nh.subscribe("/rocket_state", 1, &FsmNode::stateCallback, this);
     }
-}
 
-ros::Publisher timer_pub;
+    void run() {
+        switch (current_fsm) {
+            case IDLE: {
+                // Do nothing
+                break;
+            }
+            case ASCENT: {
+                if (land_after_apogee &&
+                    current_state.position.z > 1 &&
+                    (current_state.velocity.z <= 0 || current_state.position.z >= target_apogee.z)) {
+                    current_fsm = RocketFSMState::DESCENT;
+                }
+                break;
+            }
+            case DESCENT: {
+                if (current_state.velocity.z >= 0 &&
+                    current_state.position.z < 0.3) {
+                    current_fsm = RocketFSMState::STOP;
+                }
+            }
+            case STOP: {
+                // Do nothing
+                break;
+            }
+            default:
+                throw std::runtime_error("Invalid FSM");
+        }
 
-float rail_length = 0;
+        // Publish the current state machine
+        rocket_utils::FSM fsm_msg = toROS(current_fsm);
+        fsm_msg.header.stamp = ros::Time::now();
+        fsm_msg.launch_time = ros::Time(time_zero);
+        fsm_pub.publish(fsm_msg);
+    }
+private:
+    void stateCallback(const rocket_utils::State::ConstPtr &rocket_state) {
+        current_state = fromROS(*rocket_state);
+    }
+
+    void targetCallback(const geometry_msgs::Vector3::ConstPtr &target) {
+        target_apogee = fromROS(*target);
+    }
+
+    void processCommand(const std_msgs::String &command) {
+        if (command.data == "stop" || command.data == "Stop") {
+            current_fsm = RocketFSMState::STOP;
+        } else if (current_fsm == RocketFSMState::IDLE) {
+            //received launch command
+            time_zero = ros::Time::now().toSec();
+            current_fsm = RocketFSMState::ASCENT;
+        }
+    }
+};
 
 int main(int argc, char **argv) {
-
-    // Init ROS time keeper node
+    // Init ROS FSM node
     ros::init(argc, argv, "drone_fsm");
-    ros::NodeHandle nh("drone_fsm");
 
-    // Initialize fsm
-    std::string initial_state;
-    nh.param<std::string>("initial_state", initial_state, "Idle");
-    if (initial_state == "Idle") current_fsm.state_machine = rocket_utils::FSM::IDLE;
-    else if (initial_state == "Ascent") current_fsm.state_machine = rocket_utils::FSM::ASCENT;
-    bool land_after_apogee;
-    nh.param<bool>("land_after_apogee", land_after_apogee, false);
-
-    // Create timer publisher and associated thread (100Hz)
-    timer_pub = nh.advertise<rocket_utils::FSM>("/gnc_fsm_pub", 10);
-
-    // Subscribe to commands
-    ros::Subscriber command_sub = nh.subscribe("/commands", 10, processCommand);
-
-    // Subscribe to commands
-    ros::Subscriber target_sub = nh.subscribe("/target_apogee", 1, targetCallback);
-
-    ros::Publisher target_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
-
-    std::vector<double> initial_target_apogee;
-    if (nh.getParam("/guidance/target_apogee", initial_target_apogee) ||
-        nh.getParam("/control/target_apogee", initial_target_apogee)) {
-        target_apogee.x = initial_target_apogee.at(0);
-        target_apogee.y = initial_target_apogee.at(1);
-        target_apogee.z = initial_target_apogee.at(2);
-    }
-
-
-    // Subscribe to commands
-    ros::Subscriber state_sub = nh.subscribe("/drone_state", 1, stateCallback);
-
-    timer_pub.publish(current_fsm);
-
-    nh.getParam("/environment/rail_length", rail_length);
+    FsmNode fsm_node;
 
     ros::Rate loop_rate(200);
 
     while (ros::ok()) {
         ros::spinOnce();
+        fsm_node.run();
 
-        // Update FSM
-        if (current_fsm.state_machine == rocket_utils::FSM::IDLE) {
-
-        } else if (current_fsm.state_machine == rocket_utils::FSM::ASCENT) {
-            if (current_state.state.pose.position.z > 1) {
-                if (current_state.state.twist.linear.z <= 0 ||
-                    current_state.state.pose.position.z >= target_apogee.z) {
-                    current_fsm.state_machine = rocket_utils::FSM::DESCENT;
-                }
-            }
-
-        } else if (current_fsm.state_machine == rocket_utils::FSM::DESCENT) {
-            if (current_state.state.twist.linear.z >= 0 &&
-                current_state.state.pose.position.z < 0.3) {
-                current_fsm.state_machine = rocket_utils::FSM::STOP;
-            }
-        }
-        // Publish time + state machine
-        timer_pub.publish(current_fsm);
+        loop_rate.sleep();
     }
-
-    loop_rate.sleep();
 }

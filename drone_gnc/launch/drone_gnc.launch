@@ -53,6 +53,6 @@
     </node>
 
     <node name="drone_fsm" pkg="drone_fsm" type="drone_fsm_node" machine="gnc_machine" output="screen">
-        <rosparam param="initial_state">"Idle"</rosparam>
+        <rosparam param="land_after_apogee" subst_value="true">$(arg use_guidance)</rosparam>
     </node>
 </launch>
