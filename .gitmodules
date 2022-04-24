@@ -10,6 +10,3 @@
 [submodule "template_gnc"]
 	path = template_gnc
 	url = https://github.com/EPFLRocketTeam/template_gnc.git
-[submodule "rocket_utils"]
-	path = rocket_utils
-	url = https://github.com/EPFLRocketTeam/rocket_utils.git
