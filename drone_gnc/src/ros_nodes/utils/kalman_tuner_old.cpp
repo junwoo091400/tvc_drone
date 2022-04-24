@@ -9,7 +9,7 @@
 
 #include "ros/ros.h"
 
-#include "drone_gnc/FSM.h"
+#include "rocket_utils/FSM.h"
 #include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneControl.h"
 #include "drone_gnc/Sensor.h"
@@ -131,8 +131,8 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
             update_trigger = true;
         }
         else if (!started && m.getTopic() == "/gnc_fsm_pub") {
-            drone_gnc::FSM::ConstPtr fsm = m.instantiate<drone_gnc::FSM>();
-            if (fsm->state_machine == drone_gnc::FSM::ASCENT) started = true;
+            rocket_utils::FSM::ConstPtr fsm = m.instantiate<rocket_utils::FSM>();
+            if (fsm->state_machine == rocket_utils::FSM::ASCENT) started = true;
         }
         else if (m.getTopic() == "/drone_state") {
             drone_gnc::DroneExtendedState::ConstPtr state = m.instantiate<drone_gnc::DroneExtendedState>();

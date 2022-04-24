@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.13)
-project(drone_gnc)
+cmake_minimum_required(VERSION 3.0.2)
+project(drone_fsm)
 
 set(CMAKE_MODULE_PATH /usr/local/share/cmake/Modules/)
 
@@ -9,59 +9,27 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror")
 set(CMAKE_VERBOSE_MAKEFILE “ON”)
 
-
 option(BUILD_RELEASE "Build release version w/o debugging symbols" ON)
 if (BUILD_RELEASE)
-    set(CMAKE_BUILD_TYPE "Release")
+  set(CMAKE_BUILD_TYPE "Release")
 else ()
-    set(CMAKE_BUILD_TYPE "Debug")
+  set(CMAKE_BUILD_TYPE "Debug")
 endif ()
-
-# Check if ROS is setup
-find_package(roscpp QUIET)
-set(BUILD_ROS ${roscpp_FOUND})
-
-if("$ENV{BUILD_TVC_DRONE_TESTS}" STREQUAL "")
-    # Build tests by default
-    set(BUILD_TESTS True)
-else()
-    set(BUILD_TESTS $ENV{BUILD_TVC_DRONE_TESTS})
-endif()
-
-if(BUILD_TESTS)
-    message(STATUS "Building tests. Can be disabled using 'export BUILD_TVC_DRONE_TESTS=False'.")
-endif()
-
-if(NOT BUILD_ROS)
-    message(STATUS "Could not find roscpp, so not building ROS-specific functionality. Did you source the ROS setup.sh file?")
-endif()
-
-## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-if(BUILD_ROS)
-    find_package(catkin REQUIRED COMPONENTS
-        roscpp
-        rospy
-        roslib
-        std_msgs
-        message_generation
-        geometry_msgs
-        genmsg
-        visualization_msgs
-        tf2_ros
-        rocket_utils
-        drone_fsm
-        )
-endif()
+find_package(Eigen3 REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+  rocket_utils
+  )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
-find_package(Eigen3 REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -93,39 +61,29 @@ find_package(Eigen3 REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-if(BUILD_ROS)
-    add_message_files(
-            FILES
-            Waypoint.msg
-            Trajectory.msg
-            DroneTrajectory.msg
-            DroneExtendedState.msg
-            DroneWaypointStamped.msg
-    )
+#add_message_files(
+#  FILES
+#)
 
-    ## Generate services in the 'srv' folder
-    # add_service_files(
-    #         FILES
-    #         SetFSM.srv
-    # )
-    ## Generate actions in the 'action' folder
-    # add_action_files(
-    #   FILES
-    #   Action1.action
-    #   Action2.action
-    # )
+## Generate services in the 'srv' folder
+#add_service_files(
+#  FILES
+#  SetFSM.srv
+#)
 
+## Generate actions in the 'action' folder
+# add_action_files(
+#   FILES
+#   Action1.action
+#   Action2.action
+# )
 
-    ## Generate added messages and services with any dependencies listed here
-    generate_messages(
-            DEPENDENCIES
-            std_msgs
-            geometry_msgs
-            rocket_utils
-            ${MESSAGE_DEPENDENCIES}
-    )
-
-endif()
+## Generate added messages and services with any dependencies listed here
+#generate_messages(
+#  DEPENDENCIES
+#  std_msgs
+#  rocket_utils
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -156,14 +114,12 @@ endif()
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-if(BUILD_ROS)
-    catkin_package(
-            CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs rocket_utils drone_fsm
-            INCLUDE_DIRS src/ros_nodes src/models src/ros_nodes/utils src/control src/guidance
-            #LIBRARIES ${PROJECT_NAME}
-            #  DEPENDS system_lib
-    )
-endif()
+catkin_package(
+  #  INCLUDE_DIRS include
+  #  LIBRARIES template_navigation
+  CATKIN_DEPENDS roscpp rospy std_msgs rocket_utils
+  #  DEPENDS system_lib
+)
 
 ###########
 ## Build ##
@@ -171,14 +127,13 @@ endif()
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-#include_directories(
-#        include
-#        ${catkin_INCLUDE_DIRS}
-#)
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/tvc_simulator.cpp
+#   src/${PROJECT_NAME}/template_navigation.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -189,43 +144,10 @@ endif()
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/tvc_simulator_node.cpp)
 
-## Rename C++ executable without prefix
-## The above recommended prefix causes long target names, the following renames the
-## target back to the shorter version for ease of user use
-## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
-
-## Add cmake target dependencies of the executable
-## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
-
-include_directories(src/utils src/control src/models src/navigation src/guidance submodule/polympc/src src/ros_nodes
-        ${catkin_INCLUDE_DIRS}
-        ${VRPN_INCLUDE_DIR})
-
-add_subdirectory(src/control)
-add_subdirectory(src/guidance)
-add_subdirectory(src/models)
-if(BUILD_ROS)
-    add_subdirectory(src/ros_nodes)
-endif()
-if(BUILD_TESTS)
-    add_subdirectory(src/tests)
-endif()
-
-
-#set_source_files_properties(
-#        submodule/polympc
-#        PROPERTIES
-#        COMPILE_FLAGS "-w"
-#)
+add_executable(drone_fsm_node src/drone_fsm_node.cpp)
+target_link_libraries(drone_fsm_node Eigen3::Eigen ${catkin_LIBRARIES})
+add_dependencies(drone_fsm_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 #############
 ## Install ##
@@ -236,9 +158,10 @@ endif()
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-#catkin_install_python(PROGRAMS
-#        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#        )
+# catkin_install_python(PROGRAMS
+#   scripts/my_python_script
+#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -273,11 +196,10 @@ endif()
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_tvc_simulator.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_template_navigation.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
-
-
+# catkin_add_nosetests(test)

@@ -9,7 +9,7 @@
 
 #include "ros/ros.h"
 
-#include "drone_gnc/FSM.h"
+#include "rocket_utils/FSM.h"
 #include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneWaypointStamped.h"
 #include "drone_gnc/Waypoint.h"
@@ -27,7 +27,6 @@
 
 #include <iostream>
 #include "drone_guidance.h"
-#include <drone_gnc/SetFSM.h>
 #include "load_guidance_settings.hpp"
 #include "load_drone_props.hpp"
 
@@ -45,7 +44,7 @@ public:
 
     void targetCallback(const geometry_msgs::Vector3 &target);
 
-    void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm);
+    void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm);
 
     void computeTrajectory();
 
@@ -64,7 +63,7 @@ private:
 
     bool received_state = false;
     drone_gnc::DroneExtendedState current_state;
-    drone_gnc::FSM current_fsm;
+    rocket_utils::FSM current_fsm;
     Drone::state target_state;
     Drone::control target_control;
     Drone::state x0;
@@ -86,7 +85,6 @@ private:
     ros::Publisher horizon_pub;
     ros::Publisher computation_time_pub;
 
-    ros::ServiceClient set_fsm_client;
     // Variables to track performance over whole simulation
     ros::Time time_compute_start;
 };

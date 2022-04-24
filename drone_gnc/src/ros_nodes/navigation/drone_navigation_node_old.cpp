@@ -18,7 +18,7 @@ DroneNavigationNode::DroneNavigationNode(ros::NodeHandle &nh) :
 
     // Initialize fsm
     current_fsm.time_now = 0;
-    current_fsm.state_machine = drone_gnc::FSM::IDLE;
+    current_fsm.state_machine = rocket_utils::FSM::IDLE;
 
     measured_drone_state.setZero();
     measured_drone_state(9) = 1;
@@ -66,7 +66,7 @@ void DroneNavigationNode::initTopics(ros::NodeHandle &nh) {
 
 void DroneNavigationNode::kalmanStep() {
     if (received_pixhawk && initialized_orientation) {
-        if ((received_optitrack || use_gps) && current_fsm.state_machine == drone_gnc::FSM::IDLE) {
+        if ((received_optitrack || use_gps) && current_fsm.state_machine == rocket_utils::FSM::IDLE) {
             origin = measured_drone_state.segment(0, 3);
         }
 
@@ -100,7 +100,7 @@ void DroneNavigationNode::kalmanStep() {
 }
 
 // Callback function to store last received fsm
-void DroneNavigationNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
+void DroneNavigationNode::fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
     current_fsm.time_now = fsm->time_now;
     current_fsm.state_machine = fsm->state_machine;
 }

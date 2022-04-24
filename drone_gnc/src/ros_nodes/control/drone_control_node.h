@@ -9,7 +9,7 @@
 
 #include "ros/ros.h"
 
-#include "drone_gnc/FSM.h"
+#include "rocket_utils/FSM.h"
 #include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneWaypointStamped.h"
 #include "drone_gnc/Waypoint.h"
@@ -41,7 +41,7 @@ public:
 
     void run();
 
-    void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm);
+    void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm);
 
     void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
 
@@ -83,7 +83,7 @@ private:
     double time_compute_start;
     bool track_guidance;
 
-    drone_gnc::FSM current_fsm;
+    rocket_utils::FSM current_fsm;
     double emergency_stop = false;
 
     ros::Timer fsm_update_thread;

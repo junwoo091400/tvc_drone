@@ -12,7 +12,7 @@
 DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle &nh, Drone *drone) :
         drone(drone), drone_guidance(drone, (guidance_settings = loadGuidanceSettings(nh), guidance_settings)) {
     // Initialize fsm
-    current_fsm.state_machine = drone_gnc::FSM::IDLE;
+    current_fsm.state_machine = rocket_utils::FSM::IDLE;
 
     if (nh.getParam("mpc/descent_trigger_time", descent_trigger_time)) {
     } else {
@@ -39,16 +39,13 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     if (control_track_guidance) {
         target_sub = nh.subscribe("/target_apogee", 1, &DroneGuidanceNode::targetCallback, this);
     }
-    if (use_simulation_state){
+    if (use_simulation_state) {
         state_sub = nh.subscribe("/rocket_state", 1, &DroneGuidanceNode::simulationStateCallback, this);
-    }
-    else{
+    } else {
         state_sub = nh.subscribe("/drone_state", 1, &DroneGuidanceNode::stateCallback, this);
     }
 
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneGuidanceNode::fsmCallback, this);
-
-    set_fsm_client = nh.serviceClient<drone_gnc::SetFSM>("/drone_fsm/set_fsm", true);
 
     // Publishers
     horizon_viz_pub = nh.advertise<rocket_utils::Trajectory>("/target_trajectory", 10);
@@ -63,42 +60,31 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
 void DroneGuidanceNode::run() {
     time_compute_start = ros::Time::now();
 
-    if (received_state && current_fsm.state_machine != drone_gnc::FSM::STOP) {
-        x0 << current_state.state.pose.position.x, current_state.state.pose.position.y, current_state.state.pose.position.z,
+    if (received_state && current_fsm.state_machine != rocket_utils::FSM::STOP) {
+        x0
+                << current_state.state.pose.position.x, current_state.state.pose.position.y, current_state.state.pose.position.z,
                 current_state.state.twist.linear.x, current_state.state.twist.linear.y, current_state.state.twist.linear.z,
                 current_state.state.pose.orientation.x, current_state.state.pose.orientation.y, current_state.state.pose.orientation.z, current_state.state.pose.orientation.w,
                 current_state.state.twist.angular.x, current_state.state.twist.angular.y, current_state.state.twist.angular.z;
 
-        if (current_fsm.state_machine == drone_gnc::FSM::ASCENT &&
-            (current_state.state.twist.linear.z <= 0 || current_state.state.pose.position.z >= drone_guidance.target_apogee.z()) &&
-            current_state.state.pose.position.z > 1) {
+        double time_until_apogee = drone_guidance.solution_p()(0);
+        if (current_fsm.state_machine == rocket_utils::FSM::DESCENT || time_until_apogee < descent_trigger_time) {
             startDescent();
-        } else if (current_fsm.state_machine == drone_gnc::FSM::DESCENT && current_state.state.twist.linear.z >= 0 &&
-                   current_state.state.pose.position.z < 0.3) {
-            drone_gnc::SetFSM srv;
-            srv.request.fsm.state_machine = drone_gnc::FSM::STOP;
-            set_fsm_client.call(srv);
         } else {
-            double p_sol = drone_guidance.solution_p()(0);
-            if (current_fsm.state_machine == drone_gnc::FSM::ASCENT && p_sol < descent_trigger_time) {
-                startDescent();
-            } else {
-                double time_now = ros::Time::now().toSec();
-                computeTrajectory();
-                last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
+            double time_now = ros::Time::now().toSec();
+            computeTrajectory();
+            last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
 
-                double p_sol = drone_guidance.solution_p()(0);
-                if (isnan(drone_guidance.solution_x_at(0)(0)) || abs(p_sol) > 1000 || isnan(p_sol)) {
-                    ROS_ERROR_STREAM("Guidance MPC computation failed");
-                    drone_guidance.initGuess(x0, target_state);
-                } else {
-                    publishTrajectory();
-                }
+            if (isnan(drone_guidance.solution_x_at(0)(0)) || abs(time_until_apogee) > 1000 ||
+                isnan(time_until_apogee)) {
+                ROS_ERROR_STREAM("Guidance MPC computation failed");
+                drone_guidance.initGuess(x0, target_state);
+            } else {
+                publishTrajectory();
             }
         }
-
     }
-    publishDebugInfo();
+
 }
 
 void DroneGuidanceNode::startDescent() {
@@ -107,15 +93,11 @@ void DroneGuidanceNode::startDescent() {
     drone_guidance.setTargetState(drone_guidance.target_land);
     drone_guidance.warmStartDescent(x0);
     drone_guidance.setDescentConstraints();
-    drone_gnc::SetFSM srv;
-    srv.request.fsm.state_machine = drone_gnc::FSM::DESCENT;
-    current_fsm.state_machine = drone_gnc::FSM::DESCENT;
     computeTrajectory();
     publishTrajectory();
-    set_fsm_client.call(srv);
 }
 
-void DroneGuidanceNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
+void DroneGuidanceNode::fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
     current_fsm = *fsm;
 }
 
@@ -143,7 +125,8 @@ void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
 
     // recompute a new guess if sudden target change
     if ((target_state.head(3) - new_target_state.head(3)).norm() > 1) {
-        x0 << current_state.state.pose.position.x, current_state.state.pose.position.y, current_state.state.pose.position.z,
+        x0
+                << current_state.state.pose.position.x, current_state.state.pose.position.y, current_state.state.pose.position.z,
                 current_state.state.twist.linear.x, current_state.state.twist.linear.y, current_state.state.twist.linear.z,
                 current_state.state.pose.orientation.x, current_state.state.pose.orientation.y, current_state.state.pose.orientation.z, current_state.state.pose.orientation.w,
                 current_state.state.twist.angular.x, current_state.state.twist.angular.y, current_state.state.twist.angular.z;

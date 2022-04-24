@@ -9,7 +9,7 @@
 
 #include "ros/ros.h"
 
-#include "drone_gnc/FSM.h"
+#include "rocket_utils/FSM.h"
 #include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneWaypointStamped.h"
 #include "rocket_utils/Waypoint.h"
@@ -40,7 +40,7 @@ using namespace Eigen;
 class DroneFixedGuidanceNode {
 public:
     double speed;
-    drone_gnc::FSM current_fsm;
+    rocket_utils::FSM current_fsm;
 
     double scaling = 1;
 
@@ -68,7 +68,7 @@ public:
     }
 
     void run() {
-        if (current_fsm.state_machine != drone_gnc::FSM::ASCENT) {
+        if (current_fsm.state_machine != rocket_utils::FSM::ASCENT) {
             publishTrajectory();
         }
     }
@@ -81,7 +81,7 @@ public:
         horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("horizon", 10);
     }
 
-    void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
+    void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
         current_fsm = *fsm;
     }
 

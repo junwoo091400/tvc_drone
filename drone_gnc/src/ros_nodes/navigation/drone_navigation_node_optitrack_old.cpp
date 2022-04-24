@@ -9,7 +9,7 @@
 
 #include "ros/ros.h"
 
-#include "drone_gnc/FSM.h"
+#include "rocket_utils/FSM.h"
 #include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneControl.h"
 
@@ -23,7 +23,7 @@ class DroneNavigationNodeOptitrack {
 private:
     DroneEKFOptitrack kalman;
 
-    drone_gnc::FSM current_fsm;
+    rocket_utils::FSM current_fsm;
     drone_gnc::DroneControl current_control;
     drone_gnc::DroneControl previous_control;
     geometry_msgs::PoseStamped optitrack_pose;
@@ -48,7 +48,7 @@ public:
 
         // Initialize fsm
         current_fsm.time_now = 0;
-        current_fsm.state_machine = drone_gnc::FSM::IDLE;
+        current_fsm.state_machine = rocket_utils::FSM::IDLE;
 
         nh.getParam("period", period);
 
@@ -121,7 +121,7 @@ public:
     }
 
     // Callback function to store last received fsm
-    void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
+    void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
         current_fsm.time_now = fsm->time_now;
         current_fsm.state_machine = fsm->state_machine;
     }

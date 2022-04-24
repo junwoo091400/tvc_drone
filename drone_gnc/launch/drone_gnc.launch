@@ -52,9 +52,7 @@
         <rosparam param="track_guidance" subst_value="true">$(arg use_guidance)</rosparam>
     </node>
 
-    <node name="drone_fsm" pkg="drone_gnc" type="drone_fsm" machine="gnc_machine" output="screen">
+    <node name="drone_fsm" pkg="drone_fsm" type="drone_fsm_node" machine="gnc_machine" output="screen">
         <rosparam param="initial_state">"Idle"</rosparam>
     </node>
 </launch>
-
-

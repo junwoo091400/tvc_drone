@@ -24,7 +24,7 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, Drone *drone) :
     period = mpc_settings.period;
 
     // Initialize fsm
-    current_fsm.state_machine = drone_gnc::FSM::IDLE;
+    current_fsm.state_machine = rocket_utils::FSM::IDLE;
 }
 
 void DroneControlNode::initTopics(ros::NodeHandle &nh) {
@@ -78,13 +78,13 @@ void DroneControlNode::run() {
             stall_time = loop_start_time + period * 0.93 - ros::Time::now().toSec();
             if (stall_time > 0) ros::Duration(stall_time).sleep();
 
-            if (current_fsm.state_machine == drone_gnc::FSM::IDLE) {
+            if (current_fsm.state_machine == rocket_utils::FSM::IDLE) {
                 start_time = ros::Time::now().toSec();
-            } else if (current_fsm.state_machine == drone_gnc::FSM::ASCENT ||
-                       current_fsm.state_machine == drone_gnc::FSM::DESCENT) {
+            } else if (current_fsm.state_machine == rocket_utils::FSM::ASCENT ||
+                       current_fsm.state_machine == rocket_utils::FSM::DESCENT) {
                 Drone::control interpolated_control = drone_mpc.solution_u_at(0.0);
                 publishControl(interpolated_control);
-            } else if (current_fsm.state_machine == drone_gnc::FSM::STOP) {
+            } else if (current_fsm.state_machine == rocket_utils::FSM::STOP) {
                 Drone::control control;
                 control.setZero();
                 publishControl(control);
@@ -97,7 +97,7 @@ void DroneControlNode::run() {
 
 }
 
-void DroneControlNode::fsmCallback(const drone_gnc::FSM::ConstPtr &fsm) {
+void DroneControlNode::fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
     current_fsm = *fsm;
 }
 

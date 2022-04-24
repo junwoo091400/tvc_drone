@@ -8,18 +8,17 @@
  */
 
 #include "ros/ros.h"
-#include "drone_gnc/FSM.h"
+#include "rocket_utils/FSM.h"
 #include "drone_gnc/DroneExtendedState.h"
 #include <time.h>
 
 #include <sstream>
 #include <string>
 
-#include "drone_gnc/SetFSM.h"
 #include "std_msgs/String.h"
 
 // global variable with time and state machine
-drone_gnc::FSM current_fsm;
+rocket_utils::FSM current_fsm;
 double time_zero;
 drone_gnc::DroneExtendedState current_state;
 bool received_state = false;
@@ -39,22 +38,15 @@ void targetCallback(const geometry_msgs::Vector3::ConstPtr &target) {
 
 void processCommand(const std_msgs::String &command) {
     if (command.data == "stop" || command.data == "Stop") {
-        current_fsm.state_machine = drone_gnc::FSM::STOP;
-    } else if (current_fsm.state_machine == drone_gnc::FSM::IDLE) {
+        current_fsm.state_machine = rocket_utils::FSM::STOP;
+    } else if (current_fsm.state_machine == rocket_utils::FSM::IDLE) {
         //received launch command
         time_zero = ros::Time::now().toSec();
-        current_fsm.state_machine = drone_gnc::FSM::ASCENT;
+        current_fsm.state_machine = rocket_utils::FSM::ASCENT;
     }
 }
 
 ros::Publisher timer_pub;
-
-bool set_fsm(drone_gnc::SetFSM::Request &req,
-             drone_gnc::SetFSM::Response &res) {
-    current_fsm.state_machine = req.fsm.state_machine;
-    timer_pub.publish(current_fsm);
-    return true;
-}
 
 float rail_length = 0;
 
@@ -67,13 +59,13 @@ int main(int argc, char **argv) {
     // Initialize fsm
     std::string initial_state;
     nh.param<std::string>("initial_state", initial_state, "Idle");
-    if (initial_state == "Idle") current_fsm.state_machine = drone_gnc::FSM::IDLE;
-    else if (initial_state == "Ascent") current_fsm.state_machine = drone_gnc::FSM::ASCENT;
+    if (initial_state == "Idle") current_fsm.state_machine = rocket_utils::FSM::IDLE;
+    else if (initial_state == "Ascent") current_fsm.state_machine = rocket_utils::FSM::ASCENT;
     bool land_after_apogee;
     nh.param<bool>("land_after_apogee", land_after_apogee, false);
 
     // Create timer publisher and associated thread (100Hz)
-    timer_pub = nh.advertise<drone_gnc::FSM>("/gnc_fsm_pub", 10);
+    timer_pub = nh.advertise<rocket_utils::FSM>("/gnc_fsm_pub", 10);
 
     // Subscribe to commands
     ros::Subscriber command_sub = nh.subscribe("/commands", 10, processCommand);
@@ -82,8 +74,6 @@ int main(int argc, char **argv) {
     ros::Subscriber target_sub = nh.subscribe("/target_apogee", 1, targetCallback);
 
     ros::Publisher target_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
-
-    ros::ServiceServer service = nh.advertiseService("set_fsm", set_fsm);
 
     std::vector<double> initial_target_apogee;
     if (nh.getParam("/guidance/target_apogee", initial_target_apogee) ||
@@ -101,27 +91,31 @@ int main(int argc, char **argv) {
 
     nh.getParam("/environment/rail_length", rail_length);
 
+    ros::Rate loop_rate(200);
 
-    ros::Timer FSM_thread = nh.createTimer(ros::Duration(0.02), [&](const ros::TimerEvent &) {
+    while (ros::ok()) {
+        ros::spinOnce();
+
         // Update FSM
-        if (current_fsm.state_machine == drone_gnc::FSM::IDLE) {
-        } else {
-            if (current_fsm.state_machine == drone_gnc::FSM::ASCENT) {
-//                if ((abs(current_state.pose.position.z - target_apogee.z) < 0.1 || current_state.twist.linear.z < 0) && land_after_apogee && target_apogee.z != 0){
-//                    current_fsm.state_machine = "Descent";
-//                }
-            } else if (current_fsm.state_machine == drone_gnc::FSM::DESCENT) {
-//                if (current_state.pose.position.z < 0){
-////                    current_fsm.state_machine = "Stop";
-//                }
+        if (current_fsm.state_machine == rocket_utils::FSM::IDLE) {
+
+        } else if (current_fsm.state_machine == rocket_utils::FSM::ASCENT) {
+            if (current_state.state.pose.position.z > 1) {
+                if (current_state.state.twist.linear.z <= 0 ||
+                    current_state.state.pose.position.z >= target_apogee.z) {
+                    current_fsm.state_machine = rocket_utils::FSM::DESCENT;
+                }
             }
 
-            // Publish time + state machine
-            timer_pub.publish(current_fsm);
+        } else if (current_fsm.state_machine == rocket_utils::FSM::DESCENT) {
+            if (current_state.state.twist.linear.z >= 0 &&
+                current_state.state.pose.position.z < 0.3) {
+                current_fsm.state_machine = rocket_utils::FSM::STOP;
+            }
         }
+        // Publish time + state machine
+        timer_pub.publish(current_fsm);
+    }
 
-    });
-
-    // Automatic callback of service and publisher from here
-    ros::spin();
+    loop_rate.sleep();
 }

@@ -9,7 +9,7 @@
 
 #include "ros/ros.h"
 
-#include "drone_gnc/FSM.h"
+#include "rocket_utils/FSM.h"
 #include "drone_gnc/DroneExtendedState.h"
 #include "drone_gnc/DroneControl.h"
 
@@ -33,7 +33,7 @@ private:
     NavigationSettings<double> navigation_settings;
     DroneEKF kalman;
 
-    drone_gnc::FSM current_fsm;
+    rocket_utils::FSM current_fsm;
     drone_gnc::DroneControl current_control;
     drone_gnc::DroneControl previous_control;
     bool received_pixhawk = false;
@@ -67,7 +67,7 @@ public:
 
     void kalmanStep();
 
-    void fsmCallback(const drone_gnc::FSM::ConstPtr &fsm);
+    void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm);
 
     void pixhawkEKFCallback(const nav_msgs::Odometry::ConstPtr &state);
 

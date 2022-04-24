@@ -11,7 +11,7 @@
 #include <random>
 #include <chrono>
 #include <nav_msgs/Odometry.h>
-#include <drone_gnc/FSM.h>
+#include <rocket_utils/FSM.h>
 #include <real_time_simulator/FSM.h>
 #include "drone_model.hpp"
 #include "load_drone_props.hpp"
@@ -242,8 +242,8 @@ public:
         }
     }
 
-    void fsmCallback(drone_gnc::FSM::ConstPtr fsm) {
-//    if (fsm->state_machine == drone_gnc::FSM::STOP) {
+    void fsmCallback(rocket_utils::FSM::ConstPtr fsm) {
+//    if (fsm->state_machine == rocket_utils::FSM::STOP) {
 //        std_msgs::String command;
 //        command.data = "Idle";
 //        command_pub.publish(command);
