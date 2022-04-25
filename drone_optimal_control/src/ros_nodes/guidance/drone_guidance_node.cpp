@@ -53,7 +53,7 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     // Debug
     sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
     qp_iter_pub = nh.advertise<std_msgs::Int32>("debug/qp_iter", 10);
-    horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("horizon", 10);
+    horizon_pub = nh.advertise<drone_optimal_control::DroneTrajectory>("horizon", 10);
     computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 }
 
@@ -108,7 +108,7 @@ void DroneGuidanceNode::simulationStateCallback(const rocket_utils::State::Const
     received_state = true;
 }
 
-void DroneGuidanceNode::stateCallback(const drone_gnc::DroneExtendedState::ConstPtr &rocket_state) {
+void DroneGuidanceNode::stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state) {
     current_state = *rocket_state;
     received_state = true;
 }
@@ -147,7 +147,7 @@ void DroneGuidanceNode::computeTrajectory() {
 void DroneGuidanceNode::publishTrajectory() {
     // Send optimal trajectory computed by control. Send only position for now
     rocket_utils::Trajectory trajectory_msg;
-    drone_gnc::DroneTrajectory horizon_msg;
+    drone_optimal_control::DroneTrajectory horizon_msg;
 
     for (int i = 0; i < DroneGuidance::num_nodes; i++) {
         Drone::state state_val = drone_guidance.solution_x_at(i);
@@ -182,7 +182,7 @@ void DroneGuidanceNode::publishTrajectory() {
         rocket_utils::GimbalControl gimbal_control_msg{};
         rocket_utils::ControlMomentGyro roll_control_msg{};
 
-        drone_gnc::DroneWaypointStamped state_msg_stamped;
+        drone_optimal_control::DroneWaypointStamped state_msg_stamped;
         state_msg_stamped.state.state = state_msg;
         state_msg_stamped.gimbal_control = gimbal_control_msg;
         state_msg_stamped.roll_control = roll_control_msg;

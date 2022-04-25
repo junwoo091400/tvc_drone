@@ -10,11 +10,11 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_gnc/DroneExtendedState.h"
-#include "drone_gnc/DroneWaypointStamped.h"
+#include "drone_optimal_control/DroneExtendedState.h"
+#include "drone_optimal_control/DroneWaypointStamped.h"
 #include "rocket_utils/Waypoint.h"
 #include "rocket_utils/Trajectory.h"
-#include "drone_gnc/DroneTrajectory.h"
+#include "drone_optimal_control/DroneTrajectory.h"
 
 #include "rocket_utils/GimbalControl.h"
 #include "rocket_utils/ControlMomentGyro.h"
@@ -78,7 +78,7 @@ public:
         fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneFixedGuidanceNode::fsmCallback, this);
         // Publishers
         horizon_viz_pub = nh.advertise<rocket_utils::Trajectory>("/target_trajectory", 10);
-        horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("horizon", 10);
+        horizon_pub = nh.advertise<drone_optimal_control::DroneTrajectory>("horizon", 10);
     }
 
     void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
@@ -271,7 +271,7 @@ public:
     void publishTrajectory() {
         // Send optimal trajectory computed by control. Send only position for now
         rocket_utils::Trajectory trajectory_msg;
-        drone_gnc::DroneTrajectory horizon_msg;
+        drone_optimal_control::DroneTrajectory horizon_msg;
 
         int NUM_POINTS = 800;
         ros::Time time_compute_start = ros::Time::now();
@@ -291,7 +291,7 @@ public:
             roll_control_msg.inner_angle = 0;
             roll_control_msg.torque = 0;
 
-            drone_gnc::DroneWaypointStamped state_msg_stamped;
+            drone_optimal_control::DroneWaypointStamped state_msg_stamped;
             state_msg_stamped.state.state = state_msg;
             state_msg_stamped.gimbal_control = gimbal_control_msg;
             state_msg_stamped.roll_control = roll_control_msg;

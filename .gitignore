@@ -11,16 +11,16 @@ venv/
 
 drone_utils/log/log.orig.bag
 
-drone_gnc/src/cmake-build-debug/
+drone_optimal_control/src/cmake-build-debug/
 drone_utils/scripts/.vscode/
 
 drone_simulator_interface/GUI/drone_GUI.perspective
 
-drone_gnc/src/cmake-build-release/
+drone_optimal_control/src/cmake-build-release/
 
 
-drone_gnc/src/tests/test_results/sim_control.csv
+drone_optimal_control/src/tests/test_results/sim_control.csv
 
-drone_gnc/src/tests/test_results/sim_state.csv
+drone_optimal_control/src/tests/test_results/sim_state.csv
 
-drone_gnc/cmake-build-release/
+drone_optimal_control/cmake-build-release/

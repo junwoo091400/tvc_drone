@@ -10,11 +10,11 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_gnc/DroneExtendedState.h"
-#include "drone_gnc/DroneWaypointStamped.h"
-#include "drone_gnc/Waypoint.h"
+#include "drone_optimal_control/DroneExtendedState.h"
+#include "drone_optimal_control/DroneWaypointStamped.h"
+#include "drone_optimal_control/Waypoint.h"
 #include "rocket_utils/Trajectory.h"
-#include "drone_gnc/DroneTrajectory.h"
+#include "drone_optimal_control/DroneTrajectory.h"
 
 #include "rocket_utils/GimbalControl.h"
 #include "rocket_utils/ControlMomentGyro.h"
@@ -46,7 +46,7 @@ public:
     void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
 
     // Callback function to store last received state
-    void stateCallback(const drone_gnc::DroneExtendedState::ConstPtr &rocket_state);
+    void stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state);
 
     // Callback function to store last received state
     void targetCallback(const geometry_msgs::Vector3 &target);
@@ -61,7 +61,7 @@ public:
 
     void fetchNewTarget();
 
-    void targetTrajectoryCallback(const drone_gnc::DroneTrajectory::ConstPtr &target);
+    void targetTrajectoryCallback(const drone_optimal_control::DroneTrajectory::ConstPtr &target);
 
     void sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
                                 Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj);
@@ -78,7 +78,7 @@ private:
     ControlMPCSettings<double> mpc_settings;
 
     bool received_state = false;
-    drone_gnc::DroneExtendedState current_state;
+    drone_optimal_control::DroneExtendedState current_state;
     geometry_msgs::Vector3 target_apogee;
     double time_compute_start;
     bool track_guidance;

@@ -34,7 +34,7 @@ find_package(catkin REQUIRED COMPONENTS
         visualization_msgs
         tf2_ros
         real_time_simulator
-        drone_gnc
+        drone_optimal_control
         #polympc-ros
         )
 
@@ -123,7 +123,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-        CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs real_time_simulator drone_gnc #polympc-ros
+        CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs real_time_simulator drone_optimal_control #polympc-ros
         INCLUDE_DIRS src
         #  LIBRARIES tvc_simulator
         #  DEPENDS system_lib

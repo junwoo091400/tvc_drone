@@ -4,8 +4,8 @@
 [submodule "rqt_ez_publisher"]
 	path = rqt_ez_publisher
 	url = https://github.com/OTL/rqt_ez_publisher
-[submodule "drone_gnc/submodule/polympc"]
-	path = drone_gnc/submodule/polympc
+[submodule "drone_optimal_control/submodule/polympc"]
+	path = drone_optimal_control/submodule/polympc
 	url = https://gitlab.epfl.ch/listov/polympc.git
 [submodule "template_gnc"]
 	path = template_gnc

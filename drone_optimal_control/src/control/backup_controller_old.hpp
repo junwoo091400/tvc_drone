@@ -8,8 +8,8 @@
  */
 
 #include <ros/ros.h>
-#include "drone_gnc/DroneControl.h"
-#include "drone_gnc/DroneExtendedState.h"
+#include "drone_optimal_control/DroneControl.h"
+#include "drone_optimal_control/DroneExtendedState.h"
 #include "geometry_msgs/Vector3.h"
 
 #include <Eigen/Eigen>
@@ -45,7 +45,7 @@ public:
     }
 
 
-    drone_gnc::DroneControl getControl(drone_gnc::DroneExtendedState &x_msg, geometry_msgs::Vector3 target_apogee) {
+    drone_optimal_control::DroneControl getControl(drone_optimal_control::DroneExtendedState &x_msg, geometry_msgs::Vector3 target_apogee) {
         Drone::state x;
         x << x_msg.pose.position.x, x_msg.pose.position.y, x_msg.pose.position.z,
                 x_msg.twist.linear.x, x_msg.twist.linear.y, x_msg.twist.linear.z,
@@ -68,7 +68,7 @@ public:
         control u_tilde = -K * x_error2;
         control u = u_tilde + us;
 
-        drone_gnc::DroneControl drone_control;
+        drone_optimal_control::DroneControl drone_control;
         drone_control.servo1 = u(0);
         drone_control.servo2 = u(1);
         drone_control.bottom = u(2) - u(3) / 2;

@@ -10,10 +10,10 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_gnc/DroneExtendedState.h"
-#include "drone_gnc/DroneControl.h"
-#include "drone_gnc/Sensor.h"
-#include "drone_gnc/KalmanSimu.h"
+#include "drone_optimal_control/DroneExtendedState.h"
+#include "drone_optimal_control/DroneControl.h"
+#include "drone_optimal_control/Sensor.h"
+#include "drone_optimal_control/KalmanSimu.h"
 
 #include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/TwistStamped.h"
@@ -37,7 +37,7 @@ bool use_gps ;
 double period;
 std::string log_file_path;
 
-bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Response &res) {
+bool kalmanSimu(drone_optimal_control::KalmanSimu::Request &req, drone_optimal_control::KalmanSimu::Response &res) {
     kalman->estimate_params = req.estimate_params;
 
     DroneEKFPixhawk::state Q(Map<DroneEKFPixhawk::state>(req.Q.data()));
@@ -46,7 +46,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
     kalman->setRdiagonal(R);
     kalman->reset();
 
-    drone_gnc::DroneTrajectory state_history;
+    drone_optimal_control::DroneTrajectory state_history;
     rosbag::Bag bag;
     bag.open(ros::package::getPath("drone_utils") + "/" + log_file_path, rosbag::bagmode::Read);
 
@@ -62,7 +62,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
-    drone_gnc::DroneControl current_control, previous_control;
+    drone_optimal_control::DroneControl current_control, previous_control;
     Vector3d origin;
     double last_predict_time = 0;
 
@@ -78,7 +78,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
     bool update_trigger = false;
     for (rosbag::MessageInstance const &m: view) {
 
-        drone_gnc::DroneControl::ConstPtr current_control_ptr = m.instantiate<drone_gnc::DroneControl>();
+        drone_optimal_control::DroneControl::ConstPtr current_control_ptr = m.instantiate<drone_optimal_control::DroneControl>();
         if (current_control_ptr != NULL) {
             current_control = *current_control_ptr;
             if(!kalman->received_control){
@@ -135,7 +135,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
             if (fsm->state_machine == rocket_utils::FSM::ASCENT) started = true;
         }
         else if (m.getTopic() == "/drone_state") {
-            drone_gnc::DroneExtendedState::ConstPtr state = m.instantiate<drone_gnc::DroneExtendedState>();
+            drone_optimal_control::DroneExtendedState::ConstPtr state = m.instantiate<drone_optimal_control::DroneExtendedState>();
             current_time = state->header.stamp.toSec();
             if (t0 == 0) {
                 t0 = current_time;
@@ -166,7 +166,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
                 update_trigger = false;
             }
 
-            drone_gnc::DroneExtendedState kalman_state;
+            drone_optimal_control::DroneExtendedState kalman_state;
 
             kalman_state.pose.position.x = kalman->getState(0);
             kalman_state.pose.position.y = kalman->getState(1);
@@ -196,7 +196,7 @@ bool kalmanSimu(drone_gnc::KalmanSimu::Request &req, drone_gnc::KalmanSimu::Resp
 
             kalman_state.header.stamp = ros::Time(current_time);
 
-            drone_gnc::DroneWaypointStamped waypoint;
+            drone_optimal_control::DroneWaypointStamped waypoint;
             waypoint.state = kalman_state;
             state_history.trajectory.push_back(waypoint);
         }

@@ -2,19 +2,19 @@
     <arg name="path" default="log/log.bag" />
 
     <group ns="rocket">
-        <rosparam file=$(find drone_gnc)/config/drone_properties.yaml"/>
+        <rosparam file=$(find drone_optimal_control)/config/drone_properties.yaml"/>
     </group>
 
     <group ns="navigation">
-        <rosparam file="$(find drone_gnc)/config/ekf_config.yaml"/>
+        <rosparam file="$(find drone_optimal_control)/config/ekf_config.yaml"/>
     </group>
 
     <group ns="control/mpc">
-        <rosparam file="$(find drone_gnc)/config/mpc_config.yaml"/>
+        <rosparam file="$(find drone_optimal_control)/config/mpc_config.yaml"/>
     </group>
 
     <group ns="guidance/mpc">
-        <rosparam file="$(find drone_gnc)/config/guidance_config.yaml"/>
+        <rosparam file="$(find drone_optimal_control)/config/guidance_config.yaml"/>
     </group>
 
     <param name="log_file" value="$(arg path)" />

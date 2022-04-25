@@ -3,16 +3,16 @@
     <rosparam param="/is_simu">false</rosparam>
 
     <group ns="rocket">
-        <rosparam file="$(find drone_gnc)/config/drone_properties.yaml"/>
+        <rosparam file="$(find drone_optimal_control)/config/drone_properties.yaml"/>
     </group>
 
     <group ns="filter">
-        <rosparam file="$(find drone_gnc)/config/ekf_config.yaml"/>
+        <rosparam file="$(find drone_optimal_control)/config/ekf_config.yaml"/>
     </group>
 
     <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
 
-<!--    <node name="navigation" pkg="drone_gnc" type="drone_navigation_optitrack" machine="gnc_machine" cwd="node" output="screen">-->
+<!--    <node name="navigation" pkg="drone_optimal_control" type="drone_navigation_optitrack" machine="gnc_machine" cwd="node" output="screen">-->
 <!--        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0, 1.04, 1.005,0.01,-0.02]</rosparam>-->
 <!--&lt;!&ndash;        <rosparam param="initial_state">[0,0,0, 0,0,0, 0,0,0,1, 0,0,0, 1.04, 1.005,0,0]</rosparam>&ndash;&gt;-->
 <!--        <rosparam param="drone_dome">true</rosparam>-->

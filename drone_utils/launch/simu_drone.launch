@@ -3,7 +3,7 @@
     <arg name="use_fixed_guidance" default="false"/>
 
     <machine name="gnc_machine" address="localhost"/>
-    <include file="$(find drone_gnc)/launch/drone_gnc.launch" pass_all_args="true"/>
+    <include file="$(find drone_optimal_control)/launch/drone_optimal_control.launch" pass_all_args="true"/>
     <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
     <include file="$(find drone_utils)/launch/gui.launch"/>
     <rosparam param="/is_simu">true</rosparam>

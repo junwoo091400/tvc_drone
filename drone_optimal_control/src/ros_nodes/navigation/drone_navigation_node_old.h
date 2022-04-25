@@ -10,8 +10,8 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_gnc/DroneExtendedState.h"
-#include "drone_gnc/DroneControl.h"
+#include "drone_optimal_control/DroneExtendedState.h"
+#include "drone_optimal_control/DroneControl.h"
 
 #include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/TwistStamped.h"
@@ -34,8 +34,8 @@ private:
     DroneEKF kalman;
 
     rocket_utils::FSM current_fsm;
-    drone_gnc::DroneControl current_control;
-    drone_gnc::DroneControl previous_control;
+    drone_optimal_control::DroneControl current_control;
+    drone_optimal_control::DroneControl previous_control;
     bool received_pixhawk = false;
     bool received_optitrack = false;
     bool initialized_orientation = false;
@@ -79,7 +79,7 @@ public:
 
     void optitrackCallback(const geometry_msgs::PoseStamped::ConstPtr &pose);
 
-    void controlCallback(const drone_gnc::DroneControl::ConstPtr &control);
+    void controlCallback(const drone_optimal_control::DroneControl::ConstPtr &control);
 
     void publishDroneState();
 };

@@ -9,9 +9,9 @@
     <group>
         <machine name="gnc_machine" address="ert.local" user="drone" password="ert2021" timeout="10"
                  env-loader="/home/drone/drone_ws/devel/remote_env_loader.sh"/>
-<!--        <node machine="gnc_machine" name="optitrack_client" pkg="drone_gnc" type="optitrack_client"/>-->
-        <include file="$(find drone_gnc)/launch/drone_gnc.launch"/>
-        <include file="$(find drone_gnc)/launch/drone_mavros_interface.launch"/>
+<!--        <node machine="gnc_machine" name="optitrack_client" pkg="drone_optimal_control" type="optitrack_client"/>-->
+        <include file="$(find drone_optimal_control)/launch/drone_optimal_control.launch"/>
+        <include file="$(find drone_optimal_control)/launch/drone_mavros_interface.launch"/>
         <node name="recorder_pi" pkg="rosbag" type="record" machine="gnc_machine"
               args="record /drone_state -O /home/drone/drone_ws/log.bag"/>
     </group>

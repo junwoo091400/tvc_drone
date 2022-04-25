@@ -33,7 +33,7 @@ DroneNavigationNode::DroneNavigationNode(ros::NodeHandle &nh) :
 
 void DroneNavigationNode::initTopics(ros::NodeHandle &nh) {
     // Create filtered rocket state publisher
-    kalman_pub = nh.advertise<drone_gnc::DroneExtendedState>("/drone_state", 1);
+    kalman_pub = nh.advertise<drone_optimal_control::DroneExtendedState>("/drone_state", 1);
 
     // Subscribe to time_keeper for fsm and time
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneNavigationNode::fsmCallback, this);
@@ -155,7 +155,7 @@ void DroneNavigationNode::optitrackCallback(const geometry_msgs::PoseStamped::Co
     received_optitrack = true;
 }
 
-void DroneNavigationNode::controlCallback(const drone_gnc::DroneControl::ConstPtr &control) {
+void DroneNavigationNode::controlCallback(const drone_optimal_control::DroneControl::ConstPtr &control) {
     current_control = *control;
     if (!kalman.received_control) {
         kalman.startParamEstimation();
@@ -163,7 +163,7 @@ void DroneNavigationNode::controlCallback(const drone_gnc::DroneControl::ConstPt
 }
 
 void DroneNavigationNode::publishDroneState() {
-    drone_gnc::DroneExtendedState kalman_state;
+    drone_optimal_control::DroneExtendedState kalman_state;
 
     kalman_state.pose.position.x = kalman.getState(0);
     kalman_state.pose.position.y = kalman.getState(1);

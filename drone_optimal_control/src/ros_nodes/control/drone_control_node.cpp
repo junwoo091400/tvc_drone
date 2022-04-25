@@ -52,7 +52,7 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
     // Debug
     sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
     qp_iter_pub = nh.advertise<std_msgs::Int32>("debug/qp_iter", 10);
-    horizon_pub = nh.advertise<drone_gnc::DroneTrajectory>("debug/horizon", 10);
+    horizon_pub = nh.advertise<drone_optimal_control::DroneTrajectory>("debug/horizon", 10);
     computation_time_pub = nh.advertise<std_msgs::Float64>("debug/computation_time", 10);
 }
 
@@ -109,7 +109,7 @@ void DroneControlNode::simulationStateCallback(const rocket_utils::State::ConstP
 }
 
 // Callback function to store last received state
-void DroneControlNode::stateCallback(const drone_gnc::DroneExtendedState::ConstPtr &rocket_state) {
+void DroneControlNode::stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state) {
 //    const std::lock_guard<std::mutex> lock(state_mutex);
     current_state = *rocket_state;
     received_state = true;
@@ -122,7 +122,7 @@ void DroneControlNode::targetCallback(const geometry_msgs::Vector3 &target) {
 }
 
 
-void DroneControlNode::targetTrajectoryCallback(const drone_gnc::DroneTrajectory::ConstPtr &target) {
+void DroneControlNode::targetTrajectoryCallback(const drone_optimal_control::DroneTrajectory::ConstPtr &target) {
     if (!received_trajectory) {
         GUIDANCE_NUM_SEG = target->num_segment;
         GUIDANCE_NUM_NODE = target->num_node;
@@ -302,7 +302,7 @@ void DroneControlNode::publishControl(Drone::control &control) {
 void DroneControlNode::publishTrajectory() {
     // Send optimal trajectory computed by control for debugging purpose
     rocket_utils::Trajectory trajectory_msg;
-    drone_gnc::DroneTrajectory horizon_msg;
+    drone_optimal_control::DroneTrajectory horizon_msg;
     for (int i = 0; i < DroneMPC::num_nodes; i++) {
         Drone::state state_val = drone_mpc.solution_x_at(i);
 
@@ -313,7 +313,7 @@ void DroneControlNode::publishTrajectory() {
         point.position.z = state_val(2);
         trajectory_msg.trajectory.push_back(point);
 
-        drone_gnc::DroneExtendedState state_msg;
+        drone_optimal_control::DroneExtendedState state_msg;
         state_msg.state.pose.position.x = state_val(0);
         state_msg.state.pose.position.y = state_val(1);
         state_msg.state.pose.position.z = state_val(2);
@@ -336,7 +336,7 @@ void DroneControlNode::publishTrajectory() {
         rocket_utils::ControlMomentGyro roll_control_msg;
         toROS(control_val, gimbal_control_msg, roll_control_msg);
 
-        drone_gnc::DroneWaypointStamped state_msg_stamped;
+        drone_optimal_control::DroneWaypointStamped state_msg_stamped;
         state_msg_stamped.state = state_msg;
         state_msg_stamped.gimbal_control = gimbal_control_msg;
         state_msg_stamped.roll_control = roll_control_msg;

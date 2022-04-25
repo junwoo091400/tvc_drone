@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(drone_gnc)
+project(drone_optimal_control)
 
 set(CMAKE_MODULE_PATH /usr/local/share/cmake/Modules/)
 

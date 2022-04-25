@@ -7,9 +7,9 @@ import serial
 import pigpio 
 import time
 
-from drone_gnc.msg import DroneControl
-from drone_gnc.msg import DroneState
-from drone_gnc.msg import Sensor
+from drone_optimal_control.msg import DroneControl
+from drone_optimal_control.msg import DroneState
+from drone_optimal_control.msg import Sensor
 
 def control_callback(control):
     top_motor_cmd = control.top

@@ -1,8 +1,8 @@
 #include "ros/ros.h"
 
-#include "drone_gnc/DroneControl.h"
+#include "drone_optimal_control/DroneControl.h"
 #include "real_time_simulator/State.h"
-#include "drone_gnc/DroneState.h"
+#include "drone_optimal_control/DroneState.h"
 #include "real_time_simulator/Control.h"
 #include <Eigen/Eigen>
 #include <std_msgs/String.h>
@@ -110,11 +110,11 @@ public:
         fake_pixhawk_twist_body_pub = nh.advertise<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_body",
                                                                                 10);
         fake_gps_pub = nh.advertise<nav_msgs::Odometry>("/mavros/global_position/local", 10);
-        drone_state_pub = nh.advertise<drone_gnc::DroneState>("/simu_drone_state", 10);
+        drone_state_pub = nh.advertise<drone_optimal_control::DroneState>("/simu_drone_state", 10);
         command_pub = nh.advertise<std_msgs::String>("/commands", 10);
     }
 
-    void publishConvertedControl(const drone_gnc::DroneControl::ConstPtr &drone_control) {
+    void publishConvertedControl(const drone_optimal_control::DroneControl::ConstPtr &drone_control) {
         double time_now = ros::Time::now().toSec();
         double delta_t = time_now - last_control_time;
         delta_t = 0.02;
@@ -194,7 +194,7 @@ public:
         omega_body_msg.z = omega_body(2);
 
         ros::Time now = ros::Time::now();
-        drone_gnc::DroneState converted_state;
+        drone_optimal_control::DroneState converted_state;
         converted_state.twist.angular = omega_body_msg;
         converted_state.twist.linear = rocket_state->twist.linear;
         converted_state.pose = rocket_state->pose;
