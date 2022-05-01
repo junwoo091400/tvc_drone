@@ -1,5 +1,11 @@
 #!/bin/bash
-# copy the drone_optimal_control package
-rsync -avuzh $(rospack find drone_optimal_control) drone@ert.local:~/drone_ws/src
-# copy the environment loader
-rsync -avuzh $(rospack find drone_utils)/raspberrypi_interface/raspberrypi_files/remote_env_loader.sh  drone@ert.local:~/drone_ws/devel
+# copy all the necessary files to the raspberry pi
+rsync -avuzh \
+    "$(rospack find drone_fsm)" \
+    "$(rospack find drone_navigation)" \
+    "$(rospack find drone_optimal_control)" \
+    "$(rospack find drone_utils)" \
+    "$(rospack find mavros_interface)" \
+    "$(rospack find optitrack_ekf)" \
+    "$(rospack find rocket_utils)" \
+    drone@ert.local:~/drone_ws/src
