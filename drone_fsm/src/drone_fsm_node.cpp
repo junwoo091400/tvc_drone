@@ -83,6 +83,7 @@ public:
                     current_state.position.z < 0.3) {
                     current_fsm = RocketFSMState::STOP;
                 }
+                break;
             }
             case STOP: {
                 // Do nothing

@@ -1,19 +1,14 @@
-<!-- -*- mode: XML -*- -->
 <launch>
-  <node name="optitrack_client" pkg="optitrack_ekf" type="optitrack_client" output="screen">
-    <rosparam param="server">192.168.1.57</rosparam>
-  </node>
-
   <node name="optitrack_ekf" pkg="optitrack_ekf" type="optitrack_ekf" output="screen">
     <rosparam subst_value="true">
       predict_std:
-      position: 1
-      orientation: 0.1
-      vel: 20
-      angular_vel: 2
+      - position: 1
+      - orientation: 0.1
+      - vel: 20
+      - angular_vel: 2
       update_std:
-      position: 0.005
-      orientation: 0.001
+      - position: 0.005
+      - orientation: 0.001
     </rosparam>
     <rosparam param="frequency">100</rosparam>
   </node>

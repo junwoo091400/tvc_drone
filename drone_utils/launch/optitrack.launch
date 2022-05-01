@@ -1,0 +1,6 @@
+<launch>
+  <node name="optitrack_client" pkg="optitrack_ekf" type="optitrack_client" output="screen">
+    <rosparam param="server">192.168.0.215</rosparam>
+    <rosparam param="trackers">Drone</rosparam>
+  </node>
+</launch>

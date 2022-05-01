@@ -30,11 +30,3 @@ install(DIRECTORY launch
 )
 
 add_subdirectory(src)
-
-if(CATKIN_ENABLE_TESTING)
-  find_package(roslaunch REQUIRED)
-  find_package(roslint REQUIRED)
-  roslint_cpp()
-  roslint_add_test()
-  roslaunch_add_file_check(launch)
-endif()
