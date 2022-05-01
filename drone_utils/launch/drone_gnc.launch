@@ -1,0 +1,14 @@
+<launch>
+    <arg name="use_guidance" default="false"/>
+    <arg name="use_fixed_guidance" default="false"/>
+
+    <group ns="rocket">
+        <rosparam file="$(find drone_utils)/config/drone_properties.yaml"/>
+    </group>
+
+    <include file="$(find drone_optimal_control)/launch/drone_optimal_control.launch" pass_all_args="true"/>
+
+    <node name="drone_fsm" pkg="drone_fsm" type="drone_fsm_node" output="screen">
+        <rosparam param="land_after_apogee" subst_value="true">$(arg use_guidance)</rosparam>
+    </node>
+</launch>

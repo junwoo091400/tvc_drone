@@ -5,48 +5,10 @@
       "keys": {
         "running-plugins": {
           "type": "repr",
-          "repr": "{u'rqt_rviz/RViz': [1], u'rqt_ez_publisher/EzPublisher': [1], u'rqt_plot/Plot': [3, 6, 5, 4, 2, 1], u'rqt_console/Console': [1]}"
+          "repr": "{u'rqt_rviz/RViz': [1], u'rqt_ez_publisher/EzPublisher': [1], u'rqt_plot/Plot': [6, 4, 1]}"
         }
       },
       "groups": {
-        "plugin____DockWidgetContainer__1": {
-          "keys": {},
-          "groups": {
-            "dock_widget": {
-              "keys": {
-                "dockable": {
-                  "type": "repr",
-                  "repr": "u'true'"
-                },
-                "parent": {
-                  "type": "repr",
-                  "repr": "None"
-                },
-                "dock_widget_title": {
-                  "type": "repr",
-                  "repr": "u'Container'"
-                }
-              },
-              "groups": {
-                "mainwindow": {
-                  "keys": {
-                    "geometry": {
-                      "type": "repr(QByteArray.hex)",
-                      "repr(QByteArray.hex)": "QtCore.QByteArray('01d9d0cb0002000000000000000000150000013e000001bc00000000000000150000013e000001bc00000000000000000a00')",
-                      "pretty-print": "         >       >       "
-                    },
-                    "state": {
-                      "type": "repr(QByteArray.hex)",
-                      "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff00000000fd00000001000000020000013f000001a8fc0100000001fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0032005f005f00440061007400610050006c006f007400570069006400670065007401000000000000013f0000013f00ffffff0000013f0000000000000004000000040000000800000008fc00000000')",
-                      "pretty-print": "                 Brqt_plot__Plot__2__DataPlotWidget                       "
-                    }
-                  },
-                  "groups": {}
-                }
-              }
-            }
-          }
-        },
         "plugin__rqt_rviz__RViz__1": {
           "keys": {},
           "groups": {
@@ -71,7 +33,7 @@
               "keys": {
                 "rviz_config_file": {
                   "type": "repr",
-                  "repr": "u'/home/raphlins/drone_ws/src/drone_simulator_interface/GUI/rocket_config.rviz'"
+                  "repr": "u'*your ROS workspace absolute path*/src/drone_utils/GUI/rviz_config.rviz'"
                 },
                 "hide_menu": {
                   "type": "repr",
@@ -79,44 +41,6 @@
                 }
               },
               "groups": {}
-            }
-          }
-        },
-        "plugin____DockWidgetContainer__2": {
-          "keys": {},
-          "groups": {
-            "dock_widget": {
-              "keys": {
-                "dockable": {
-                  "type": "repr",
-                  "repr": "u'true'"
-                },
-                "parent": {
-                  "type": "repr",
-                  "repr": "None"
-                },
-                "dock_widget_title": {
-                  "type": "repr",
-                  "repr": "u'Container (2)'"
-                }
-              },
-              "groups": {
-                "mainwindow": {
-                  "keys": {
-                    "geometry": {
-                      "type": "repr(QByteArray.hex)",
-                      "repr(QByteArray.hex)": "QtCore.QByteArray('01d9d0cb0002000000000000000000150000013e0000036d00000000000000150000013e0000036d00000000000000000a00')",
-                      "pretty-print": "         > m     > m     "
-                    },
-                    "state": {
-                      "type": "repr(QByteArray.hex)",
-                      "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff00000000fd00000001000000020000013f00000359fc0100000001fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0033005f005f00440061007400610050006c006f007400570069006400670065007401000000000000013f0000013f00ffffff0000013f0000000000000004000000040000000800000008fc00000000')",
-                      "pretty-print": "                 Brqt_plot__Plot__3__DataPlotWidget                       "
-                    }
-                  },
-                  "groups": {}
-                }
-              }
             }
           }
         },
@@ -135,7 +59,7 @@
                 },
                 "dock_widget_title": {
                   "type": "repr",
-                  "repr": "u'MatPlot'"
+                  "repr": "u'PyQtGraph'"
                 }
               },
               "groups": {}
@@ -152,15 +76,15 @@
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "u''"
+                  "repr": "u'/rocket_state/twist/linear/z'"
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[-0.8, 0.8]"
+                  "repr": "[-2.562797888576225, 2.6320376475649816]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[0.0, 1.0]"
+                  "repr": "[47.72496581077576, 48.72496581077576]"
                 }
               },
               "groups": {}
@@ -195,19 +119,19 @@
                 },
                 "plot_type": {
                   "type": "repr",
-                  "repr": "0"
+                  "repr": "1"
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "u''"
+                  "repr": "[u'/drone_control/top', u'/drone_control/bottom']"
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[-0.5, 16.85047149658203]"
+                  "repr": "[-1.3953981685536504e-09, 69.25301631899688]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[56.131755113601685, 57.131755113601685]"
+                  "repr": "[25.027112007141113, 26.027112007141113]"
                 }
               },
               "groups": {}
@@ -242,7 +166,7 @@
                 },
                 "plot_type": {
                   "type": "repr",
-                  "repr": "0"
+                  "repr": "1"
                 },
                 "topics": {
                   "type": "repr",
@@ -250,11 +174,11 @@
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[-1.0, 19.358158111572266]"
+                  "repr": "[2.004515124097006, 14.866828918457031]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[81.00466418266296, 82.00466418266296]"
+                  "repr": "[10.483312431497886, 12.393035173416138]"
                 }
               },
               "groups": {}
@@ -293,15 +217,15 @@
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "u''"
+                  "repr": "u'/gimbal_command_0/thrust'"
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[-0.4387930188886141, 0.5770174168344236]"
+                  "repr": "[-0.00039519081302674355, 1.0]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[48.60677336510548, 57.50504755973816]"
+                  "repr": "[0.0, 1.0]"
                 }
               },
               "groups": {}
@@ -336,19 +260,19 @@
                 },
                 "plot_type": {
                   "type": "repr",
-                  "repr": "0"
+                  "repr": "1"
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "u'/navigation/debug/computation_time/data'"
+                  "repr": "[u'/drone_state/disturbance_torque/y', u'/drone_state/disturbance_torque/x', u'/drone_state/disturbance_torque/z']"
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[-5.0, 5.0]"
+                  "repr": "[-0.05057419288455683, 3.0]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[81.21896505355835, 82.21896505355835]"
+                  "repr": "[11.524044036865234, 12.524044036865234]"
                 }
               },
               "groups": {}
@@ -387,15 +311,66 @@
                 },
                 "topics": {
                   "type": "repr",
-                  "repr": "u'/guidance/debug/computation_time/data'"
+                  "repr": "u'/gimbal_command_0/outer_angle'"
                 },
                 "y_limits": {
                   "type": "repr",
-                  "repr": "[-2.0, 130.61094284057617]"
+                  "repr": "[-0.5088898932142746, 1.880189705982873]"
                 },
                 "x_limits": {
                   "type": "repr",
-                  "repr": "[81.26698803901672, 82.26698803901672]"
+                  "repr": "[48.12348818778992, 49.12348818778992]"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_bag__Bag__1": {
+          "keys": {},
+          "groups": {
+            "dock_widget__BagWidget": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'Bag'"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_publisher__Publisher__1": {
+          "keys": {},
+          "groups": {
+            "plugin": {
+              "keys": {
+                "publishers": {
+                  "type": "repr",
+                  "repr": "u'[]'"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_topic__TopicPlugin__1": {
+          "keys": {},
+          "groups": {
+            "plugin": {
+              "keys": {
+                "tree_widget_header_state": {
+                  "type": "repr(QByteArray.hex)",
+                  "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff0000000000000001000000000000000001000000000000000000000000000000000000031e000000050101000100000000000000000500000064ffffffff000000810000000300000005000000d80000000100000003000001410000000100000003000000680000000100000003000000390000000100000003000000640000000100000003000003e80000000064')",
+                  "pretty-print": "                              d               A     h     9     d        "
                 }
               },
               "groups": {}
@@ -451,6 +426,69 @@
                   },
                   "groups": {}
                 },
+                "disturbance_pub": {
+                  "keys": {},
+                  "groups": {
+                    "torque": {
+                      "keys": {
+                        "x_range": {
+                          "type": "repr",
+                          "repr": "(-1.0, 1.0)"
+                        },
+                        "z_is_repeat": {
+                          "type": "repr",
+                          "repr": "False"
+                        },
+                        "y_is_repeat": {
+                          "type": "repr",
+                          "repr": "False"
+                        },
+                        "x_is_repeat": {
+                          "type": "repr",
+                          "repr": "False"
+                        },
+                        "y_range": {
+                          "type": "repr",
+                          "repr": "(-1.0, 1.0)"
+                        },
+                        "z_range": {
+                          "type": "repr",
+                          "repr": "(0.0, 0.1)"
+                        }
+                      },
+                      "groups": {}
+                    },
+                    "force": {
+                      "keys": {
+                        "x_range": {
+                          "type": "repr",
+                          "repr": "(-1.0, 1.0)"
+                        },
+                        "z_is_repeat": {
+                          "type": "repr",
+                          "repr": "False"
+                        },
+                        "y_is_repeat": {
+                          "type": "repr",
+                          "repr": "False"
+                        },
+                        "x_is_repeat": {
+                          "type": "repr",
+                          "repr": "False"
+                        },
+                        "y_range": {
+                          "type": "repr",
+                          "repr": "(-1.0, 1.0)"
+                        },
+                        "z_range": {
+                          "type": "repr",
+                          "repr": "(-1.0, 1.0)"
+                        }
+                      },
+                      "groups": {}
+                    }
+                  }
+                },
                 "target_apogee": {
                   "keys": {
                     "x_range": {
@@ -475,105 +513,7 @@
                     },
                     "z_range": {
                       "type": "repr",
-                      "repr": "(-1.0, 1.0)"
-                    }
-                  },
-                  "groups": {}
-                },
-                "drone_control": {
-                  "keys": {
-                    "servo2_range": {
-                      "type": "repr",
-                      "repr": "(-1.0, 1.0)"
-                    },
-                    "servo1_range": {
-                      "type": "repr",
-                      "repr": "(-1.0, 1.0)"
-                    },
-                    "servo1_is_repeat": {
-                      "type": "repr",
-                      "repr": "False"
-                    },
-                    "servo2_is_repeat": {
-                      "type": "repr",
-                      "repr": "False"
-                    }
-                  },
-                  "groups": {}
-                },
-                "rocket_state": {
-                  "keys": {},
-                  "groups": {
-                    "pose": {
-                      "keys": {
-                        "orientation_is_repeat": {
-                          "type": "repr",
-                          "repr": "False"
-                        },
-                        "orientation_range": {
-                          "type": "repr",
-                          "repr": "(-3.14, 3.14)"
-                        }
-                      },
-                      "groups": {
-                        "position": {
-                          "keys": {
-                            "z_is_repeat": {
-                              "type": "repr",
-                              "repr": "False"
-                            },
-                            "z_range": {
-                              "type": "repr",
-                              "repr": "(0.0, 100.0)"
-                            }
-                          },
-                          "groups": {}
-                        }
-                      }
-                    }
-                  }
-                },
-                "drone_control_pub": {
-                  "keys": {
-                    "thrust_range": {
-                      "type": "repr",
-                      "repr": "(0.0, 30.0)"
-                    },
-                    "servo2_range": {
-                      "type": "repr",
-                      "repr": "(-1.5, 1.5)"
-                    },
-                    "top_range": {
-                      "type": "repr",
-                      "repr": "(0.0, 100.0)"
-                    },
-                    "thrust_is_repeat": {
-                      "type": "repr",
-                      "repr": "False"
-                    },
-                    "servo1_range": {
-                      "type": "repr",
-                      "repr": "(-1.5, 1.5)"
-                    },
-                    "servo1_is_repeat": {
-                      "type": "repr",
-                      "repr": "False"
-                    },
-                    "bottom_range": {
-                      "type": "repr",
-                      "repr": "(0.0, 100.0)"
-                    },
-                    "bottom_is_repeat": {
-                      "type": "repr",
-                      "repr": "False"
-                    },
-                    "top_is_repeat": {
-                      "type": "repr",
-                      "repr": "False"
-                    },
-                    "servo2_is_repeat": {
-                      "type": "repr",
-                      "repr": "False"
+                      "repr": "(0.0, 3.0)"
                     }
                   },
                   "groups": {}
@@ -618,8 +558,8 @@
                 },
                 "table_splitter": {
                   "type": "repr(QByteArray.hex)",
-                  "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff000000010000000200000329000000000100000009010000000200')",
-                  "pretty-print": "       )       "
+                  "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff000000010000000200000476000000000100000009010000000200')",
+                  "pretty-print": "       v       "
                 },
                 "highlight_filters": {
                   "type": "repr",
@@ -627,7 +567,7 @@
                 },
                 "paused": {
                   "type": "repr",
-                  "repr": "False"
+                  "repr": "True"
                 },
                 "settings_exist": {
                   "type": "repr",
@@ -635,8 +575,8 @@
                 },
                 "filter_splitter": {
                   "type": "repr(QByteArray.hex)",
-                  "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff000000010000000200000072000000720100000009010000000200')",
-                  "pretty-print": "       r r     "
+                  "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff0000000100000002000002c0000000a90100000009010000000200')",
+                  "pretty-print": "               "
                 }
               },
               "groups": {
@@ -685,8 +625,8 @@
         },
         "state": {
           "type": "repr(QByteArray.hex)",
-          "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff00000000fd00000001000000030000073d000003d5fc0100000003fc00000000000003db0000034600fffffffc0200000002fc00000016000002390000017800fffffffc0100000002fb0000004c007200710074005f0063006f006e0073006f006c0065005f005f0043006f006e0073006f006c0065005f005f0031005f005f0043006f006e0073006f006c00650057006900640067006500740100000000000002010000017f00fffffffb00000026007200710074005f007200760069007a005f005f005200560069007a005f005f0031005f005f0100000207000001d40000013c00fffffffb0000006a007200710074005f0065007a005f007000750062006c00690073006800650072005f005f0045007a005000750062006c00690073006800650072005f005f0031005f005f0045007a005000750062006c006900730068006500720050006c007500670069006e005500690100000255000001960000010700fffffffc000003e10000035c0000028400fffffffc0200000003fb00000030005f005f0044006f0063006b0057006900640067006500740043006f006e007400610069006e00650072005f005f00310100000016000001a90000000000000000fc00000016000002a50000014600fffffffc0100000002fc000003e1000001ab0000013f00fffffffc0200000002fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0031005f005f00440061007400610050006c006f007400570069006400670065007401000000160000014d000000a000fffffffb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0032005f005f00440061007400610050006c006f0074005700690064006700650074010000016900000152000000a000fffffffc00000592000001ab0000013f00fffffffc0200000002fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0034005f005f00440061007400610050006c006f0074005700690064006700650074010000001600000149000000a000fffffffb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0035005f005f00440061007400610050006c006f0074005700690064006700650074010000016500000156000000a000fffffffc000002c10000012a000000a000fffffffc0100000002fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0033005f005f00440061007400610050006c006f007400570069006400670065007401000003e1000001ab0000013f00fffffffb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0036005f005f00440061007400610050006c006f00740057006900640067006500740100000592000001ab0000013f00fffffffb00000030005f005f0044006f0063006b0057006900640067006500740043006f006e007400610069006e00650072005f005f003201000004360000013f00000000000000000000073d0000000000000004000000040000000800000008fc00000001000000030000000100000036004d0069006e0069006d0069007a006500640044006f0063006b00570069006400670065007400730054006f006f006c0062006100720000000000ffffffff0000000000000000')",
-          "pretty-print": "                     F                  Lrqt_console__Console__1__ConsoleWidget          &rqt_rviz__RViz__1__          jrqt_ez_publisher__EzPublisher__1__EzPublisherPluginUi            \\                                                           ?                                            M                                         i R                 Brqt_plot__Plot__4__DataPlotWidget          Brqt_plot__Plot__5__DataPlotWidget            *                                                ?                                           ?                              6 ?     =                                                      "
+          "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff00000000fd00000001000000030000073d000003d5fc0100000008fc000000000000045f0000034600fffffffc0200000003fb00000026007200710074005f007200760069007a005f005f005200560069007a005f005f0031005f005f0100000016000002650000008600fffffffb0000006a007200710074005f0065007a005f007000750062006c00690073006800650072005f005f0045007a005000750062006c00690073006800650072005f005f0031005f005f0045007a005000750062006c006900730068006500720050006c007500670069006e0055006901000002810000016a0000010700fffffffb00000058007200710074005f007000750062006c00690073006800650072005f005f005000750062006c00690073006800650072005f005f0031005f005f005000750062006c00690073006800650072005700690064006700650074010000032b000001a60000000000000000fb0000004c007200710074005f0074006f007000690063005f005f0054006f0070006900630050006c007500670069006e005f005f0031005f005f0054006f00700069006300570069006400670065007401000008c7000000f60000000000000000fc00000465000002d80000013f00fffffffc0200000003fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0031005f005f00440061007400610050006c006f0074005700690064006700650074010000001600000143000000a000fffffffb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0036005f005f00440061007400610050006c006f0074005700690064006700650074010000015f00000143000000a000fffffffb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0034005f005f00440061007400610050006c006f007400570069006400670065007401000002a800000143000000a000fffffffc0000063e0000013f0000000000fffffffc0200000003fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0032005f005f00440061007400610050006c006f00740057006900640067006500740100000016000001090000000000000000fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0035005f005f00440061007400610050006c006f007400570069006400670065007401000000160000031a0000000000000000fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0033005f005f00440061007400610050006c006f007400570069006400670065007401000001960000019a0000000000000000fb0000004c007200710074005f0063006f006e0073006f006c0065005f005f0043006f006e0073006f006c0065005f005f0031005f005f0043006f006e0073006f006c0065005700690064006700650074010000059e0000019f0000000000000000fb00000034007200710074005f006200610067005f005f004200610067005f005f0031005f005f0042006100670057006900640067006500740100000801000001bc0000000000000000fb00000066007200710074005f006c006f0067006700650072005f006c006500760065006c005f005f004c006f0067006700650072004c006500760065006c005f005f0031005f005f004c006f0067006700650072004c006500760065006c00570069006400670065007401000007620000025b0000000000000000fb00000046007200710074005f006200610067005f005f004200610067005f005f0031005f005f002f0063006f006e00740072006f006c005f007000750062005f005f0050006c006f0074010000096f0000017e00000000000000000000073d0000000000000004000000040000000800000008fc00000001000000030000000100000036004d0069006e0069006d0069007a006500640044006f0063006b00570069006400670065007400730054006f006f006c0062006100720000000000ffffffff0000000000000000')",
+          "pretty-print": "                   _ F                              e                                                               j                                                    +                                                                    Brqt_plot__Plot__1__DataPlotWidget          Brqt_plot__Plot__6__DataPlotWidget          Brqt_plot__Plot__4__DataPlotWidget          > ?                                                                                                                                                                                                                                                                                        b [                                           o ~     =                                                      "
         }
       },
       "groups": {

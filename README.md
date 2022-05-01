@@ -7,7 +7,6 @@ ROS workspace containing the packages and tools for the drone TVC prototype
 - **drone_gnc**: Contains the GNC algorithms to control the drone. This is the only package that needs to be copied on the Raspberry Pi for real tests.
 - **drone_utils**: Provides many utilities, as well as the launch files to run the code.
 - **real_time_simulator**: Real-time rocket simulator and GUI. See original repo for more information.
-- **drone_simulator_interface**: Interface to use the real time simulator with the drone. Transforms drone topics to rocket topics and vice versa.
 - **rqt_ez_publisher**: External tool used in the GUI.
 
 Each package contains its own readme file with more information.
@@ -88,9 +87,9 @@ Each package contains its own readme file with more information.
   cd ~ && mkdir drone_ws && cd drone_ws
   git clone --recurse-submodules https://github.com/EPFLRocketTeam/tvc_drone.git src
   ```
-* Rviz config issue: The config of the rviz plugin in rqt will not load properly because it only stores the absolute path in the .perspective file. This is fixed by writing your absolute ROS workspace path in _drone_simulator_interface/drone_GUI.perspective_ at the line:
+* Rviz config issue: The config of the rviz plugin in rqt will not load properly because it only stores the absolute path in the .perspective file. This is fixed by writing your absolute ROS workspace path in _drone_utils/drone_GUI.perspective_ at the line:
     ```
-    "repr": "u'*your ROS workspace absolute path*/src/drone_simulator_interface/GUI/rocket_config.rviz'"
+    "repr": "u'*your ROS workspace absolute path*/src/drone_utils/GUI/rviz_config.rviz'"
     ```
 
 * Build the project

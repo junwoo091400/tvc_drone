@@ -1,0 +1,26 @@
+<launch>
+    <group ns="rocket">
+        <rosparam file="$(find drone_utils)/config/drone_properties.yaml"/>
+    </group>
+
+    <group ns="actuator">
+        <rosparam file="$(find drone_utils)/config/drone_actuator_parameters.yaml" />
+    </group>
+
+    <group ns="environment">
+        <rosparam file="$(find drone_utils)/config/environment_parameters.yaml"/>
+    </group>
+
+    <group ns="perturbation">
+        <rosparam file="$(find drone_utils)/config/perturbations_parameters.yaml"/>
+    </group>
+
+    <group ns="visualization">
+        <rosparam file="$(find drone_utils)/config/visualization_parameters.yaml" />
+    </group>
+
+    <node name="integrator" pkg="real_time_simulator" type="integrator" output ="screen">
+    </node>
+</launch>
+
+

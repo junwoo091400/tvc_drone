@@ -2,21 +2,16 @@
     <arg name="use_guidance" default="false"/>
     <arg name="use_fixed_guidance" default="false"/>
 
-    <machine name="gnc_machine" address="localhost"/>
-    <include file="$(find drone_optimal_control)/launch/drone_optimal_control.launch" pass_all_args="true"/>
-    <include file="$(find drone_simulator_interface)/launch/simulator_interface.launch"/>
-    <include file="$(find drone_utils)/launch/gui.launch"/>
     <rosparam param="/is_simu">true</rosparam>
-    <!--    <rosparam param="/use_sim_time">true</rosparam>-->
+<!--    <rosparam param="/use_sim_time">true</rosparam>-->
 
-    <!--    <node name="quaternion_tests" pkg="topic_tools" type="transform" args="/kalman_rocket_state /quat geometry_msgs/Vector3-->
-    <!--              'geometry_msgs.msg.Vector3(m.pose.orientation.w*m.pose.orientation.x - m.pose.orientation.y*m.pose.orientation.z, m.pose.orientation.w*m.pose.orientation.y + m.pose.orientation.x*m.pose.orientation.z, 0)'-->
-    <!--              &#45;&#45;import real_time_simulator geometry_msgs"/>-->
+    <include file="$(find drone_utils)/launch/simulator.launch"/>
+
+    <include file="$(find drone_utils)/launch/drone_gnc.launch" pass_all_args="true"/>
+
+    <include file="$(find drone_utils)/launch/gui.launch"/>
 
     <node pkg="rosbag" type="record" name="recorder" args="record -a -O $(find drone_utils)/log/log.bag"/>
-
-
-    <!--    <node name ="benchmark" pkg="drone_utils" type="send_command_apogees.py" output="screen"/>-->
 </launch>
 
 

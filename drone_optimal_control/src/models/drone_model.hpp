@@ -146,7 +146,7 @@ public:
         // the difference in speed between the two propellers creates a torque
         T torque = getTorque(prop_delta) * torque_scaling;
 
-        // servomotors thrust vector rotation (see drone_simulator_interface for equivalent quaternion implementation)
+        // servomotors thrust vector rotation
         Eigen::Matrix<T, 3, 1> thrust_direction;
         thrust_direction << sin(servo2),
                 -cos(servo2) * sin(servo1),
