@@ -283,7 +283,7 @@ void DroneControlNode::toROS(const Drone::control &control, rocket_utils::Gimbal
 
     roll_control.outer_angle = control(0);
     roll_control.inner_angle = control(1);
-    roll_control.torque = drone->getTorque(prop_delta);
+    roll_control.torque = - drone->getTorque(prop_delta); //TODO
 }
 
 void DroneControlNode::publishControl(Drone::control &control) {

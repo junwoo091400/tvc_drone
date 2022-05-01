@@ -12,10 +12,10 @@
 # TODO random values, needs to be figured out
 gimbal:
  - id: 0
-   inertia: 0.001
-   damping: 0.0
+   inertia: 0.01
+   damping: 0.01
    stiffness: 200.0
-   reactivity: 10.0
+   reactivity: 100.0
    sensorFrequency: 50.0
    minRange: [-15.0,-15.0,0.0]
    maxRange: [15.0,15.0,17.77]
@@ -24,10 +24,10 @@ gimbal:
 # TODO random values, needs to be figured out
 CMG:
  - id: 0
-   inertia: 0.001
-   damping: 0.0
+   inertia: 0.01
+   damping: 0.01
    stiffness: 200.0
-   reactivity: 10.0
+   reactivity: 100.0
    sensorFrequency: 50.0
    minRange: [-15.0,-15.0,-0.1]
    maxRange: [15.0,15.0,0.1]
