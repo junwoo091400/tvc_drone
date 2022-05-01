@@ -28,28 +28,44 @@ dry_I:
 propellant_mass: 1.0e-40
 propellant_CM: 0.1
 #set Isp to -1 for constant propellant mass
-Isp: -1
+Isp: 1.0e+99
 
-CM_to_thrust_distance:  0.215
+CM_to_thrust_distance: 0.215
+
 Cd:
   - 2
   - 2
   - 0.7
-CM_offset_x: 0
-initial_speed: 0
+throttling: True
+input_delay: 34.0e-3 # Mean delay between external actions and its reception
+output_delay: 80.0e-3 # Mean delay between output command and its effect
 
 min_propeller_speed: 50
 max_propeller_speed: 80
 
 max_propeller_delta: 40
 
+max_gimbal_angle: 15
 max_servo1_angle: 15
 max_servo2_angle: 15
 
 max_servo_rate: 100
+max_gimbal_rate: 300
 
 estimated:
   thrust_scaling: 1.05 #1.05 when close to ground, else 1
   torque_scaling: 1
   servo1_offset: 0
   servo2_offset: 0
+
+#Adapted to drone
+maxThrust:
+  - 100
+  - 100
+  - 19.031
+minThrust:
+  - -100
+  - -100
+  - 0
+minTorque: -50
+maxTorque: 50
