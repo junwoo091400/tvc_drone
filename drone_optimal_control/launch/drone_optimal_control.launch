@@ -29,27 +29,25 @@
 <!--    valgrind &#45;&#45;track-origins=yes &#45;&#45;leak-check=full-->
 
     <group if="$(arg use_guidance)">
-        <group unless="$(arg use_fixed_guidance)">
-            <node name="guidance" pkg="drone_optimal_control" type="drone_guidance" machine="gnc_machine" output="screen"
-                  launch-prefix="taskset -c 2">
-                <rosparam param="target_apogee">[0, 0, 4]</rosparam>
-                <rosparam param="target_land">[0, 1, 0]</rosparam>
-            </node>
-        </group>
+        <node name="guidance" pkg="drone_optimal_control" type="drone_guidance" machine="gnc_machine" output="screen"
+              launch-prefix="taskset -c 2">
+            <rosparam param="target_apogee">[0, 0, 4]</rosparam>
+            <rosparam param="target_land">[0, 1, 0]</rosparam>
+        </node>
+    </group>
 
-        <group if="$(arg use_fixed_guidance)">
-            <node name="guidance" pkg="drone_optimal_control" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">
-                <rosparam param="speed">0.35</rosparam>
-                <rosparam param="scaling">1</rosparam>
-                <rosparam param="rotation_angle">0</rosparam>
-            </node>
-        </group>
+    <group if="$(arg use_fixed_guidance)">
+        <node name="guidance" pkg="drone_optimal_control" type="fixed_guidance" machine="gnc_machine" cwd="node" output="screen">
+            <rosparam param="speed">0.35</rosparam>
+            <rosparam param="scaling">1</rosparam>
+            <rosparam param="rotation_angle">0</rosparam>
+        </node>
     </group>
 
     <node name="control" pkg="drone_optimal_control" type="drone_control" machine="gnc_machine" output="screen"
           launch-prefix="taskset -c 3">
         <rosparam param="target_apogee">[0,0,1]</rosparam>
-        <rosparam param="track_guidance" subst_value="true">$(arg use_guidance)</rosparam>
+        <rosparam param="track_guidance" subst_value="true">$(eval arg('use_guidance') or arg('use_fixed_guidance'))</rosparam>
     </node>
 
     <node name="drone_fsm" pkg="drone_fsm" type="drone_fsm_node" machine="gnc_machine" output="screen">
