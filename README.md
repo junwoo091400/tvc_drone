@@ -85,7 +85,7 @@ Each package contains its own readme file with more information.
 * Clone the content of the repository into ~/drone_ws/src
   ```
   cd ~ && mkdir drone_ws && cd drone_ws
-  git clone --recurse-submodules https://github.com/EPFLRocketTeam/tvc_drone.git src
+  git clone --recurse-submodules git@github.com:EPFLRocketTeam/tvc_drone.git src
   ```
 * Rviz config issue: The config of the rviz plugin in rqt will not load properly because it only stores the absolute path in the .perspective file. This is fixed by writing your absolute ROS workspace path in _drone_utils/drone_GUI.perspective_ at the line:
     ```

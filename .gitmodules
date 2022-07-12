@@ -1,6 +1,6 @@
 [submodule "real_time_simulator"]
 	path = real_time_simulator
-	url = https://github.com/EPFLRocketTeam/real_time_simulator
+	url = git@github.com:EPFLRocketTeam/real_time_simulator
 [submodule "rqt_ez_publisher"]
 	path = rqt_ez_publisher
 	url = https://github.com/OTL/rqt_ez_publisher
@@ -9,10 +9,10 @@
 	url = https://gitlab.epfl.ch/listov/polympc.git
 [submodule "template_gnc"]
 	path = template_gnc
-	url = https://github.com/EPFLRocketTeam/template_gnc.git
+	url = git@github.com:EPFLRocketTeam/template_gnc.git
 [submodule "rocket_utils"]
 	path = rocket_utils
-	url = https://github.com/EPFLRocketTeam/rocket_utils
+	url = git@github.com:EPFLRocketTeam/rocket_utils
 [submodule "drone_navigation"]
 	path = drone_navigation
 	url = git@github.com:alexandreguerradeoliveira/drone_navigation.git
