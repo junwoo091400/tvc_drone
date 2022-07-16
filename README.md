@@ -15,22 +15,22 @@ Each package contains its own readme file with more information.
 
 ### Dependencies installation
 
-* Install ROS Melodic (Ubuntu 18.04 required)
+* Install ROS Noetic (Ubuntu 20.04 required)
   ```
   sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
   sudo apt install curl
   curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
   sudo apt update
-  sudo apt install ros-melodic-desktop-full
-  echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
-  sudo apt install python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential
+  sudo apt install ros-noetic-desktop-full
+  echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+  sudo apt install python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
   sudo rosdep init
   rosdep update
   ```
 
 * Install Eigen
   ```
-  cd ~ && git clone --single-branch --branch 3.4-rc1 https://gitlab.com/libeigen/eigen
+  cd ~ && git clone --single-branch --branch 3.4 https://gitlab.com/libeigen/eigen
   cd eigen && mkdir build && cd build
   cmake ..
   sudo make install
@@ -62,12 +62,12 @@ Each package contains its own readme file with more information.
 
 * Install VRPN (for optitrack)
   ```
-  sudo apt-get install ros-melodic-vrpn-client-ros
+  sudo apt-get install ros-noetic-vrpn-client-ros
   ```
 
 * Install MAVROS (for pixhawk)
   ```
-  sudo apt-get install ros-melodic-mavros ros-melodic-mavros-extras
+  sudo apt-get install ros-noetic-mavros ros-noetic-mavros-extras
   wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
   sudo bash ./install_geographiclib_datasets.sh
   ```
@@ -76,8 +76,6 @@ Each package contains its own readme file with more information.
   ```
   sudo apt install python3-pip
   pip3 install rospkg matplotlib pyqtgraph scipy dataclasses pycryptodomex gnupg seaborn
-  sudo apt install python-pip
-  pip install pyqtgraph
   ```
 
 ### Setup and first build
@@ -87,7 +85,7 @@ Each package contains its own readme file with more information.
   cd ~ && mkdir drone_ws && cd drone_ws
   git clone --recurse-submodules git@github.com:EPFLRocketTeam/tvc_drone.git src
   ```
-* Rviz config issue: The config of the rviz plugin in rqt will not load properly because it only stores the absolute path in the .perspective file. This is fixed by writing your absolute ROS workspace path in _drone_utils/drone_GUI.perspective_ at the line:
+* Rviz config issue: The config of the rviz plugin in rqt will not load properly because it only stores the absolute path in the .perspective file. This is fixed by writing your absolute ROS workspace path in _drone_utils/GUI/drone_GUI.perspective_ at the line:
     ```
     "repr": "u'*your ROS workspace absolute path*/src/drone_utils/GUI/rviz_config.rviz'"
     ```
