@@ -1,4 +1,5 @@
 <launch>
+    <arg name="use_ground_truth_state" default="false"/>
     <arg name="use_guidance" default="false"/>
     <arg name="use_fixed_guidance" default="false"/>
 
@@ -40,5 +41,6 @@
           launch-prefix="taskset -c 3">
         <rosparam param="target_apogee">[0,0,1]</rosparam>
         <rosparam param="track_guidance" subst_value="true">$(eval arg('use_guidance') or arg('use_fixed_guidance'))</rosparam>
+        <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>
     </node>
 </launch>

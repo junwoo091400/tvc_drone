@@ -1,6 +1,0 @@
-Header header
-rocket_utils/State state
-float64 thrust_scaling
-float64 torque_scaling
-geometry_msgs/Vector3 disturbance_force
-geometry_msgs/Vector3 disturbance_torque

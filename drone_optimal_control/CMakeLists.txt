@@ -98,9 +98,8 @@ if(BUILD_ROS)
             FILES
             Waypoint.msg
             Trajectory.msg
-            DroneTrajectory.msg
-            DroneExtendedState.msg
             DroneWaypointStamped.msg
+            DroneTrajectory.msg
     )
 
     ## Generate services in the 'srv' folder

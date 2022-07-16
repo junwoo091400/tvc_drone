@@ -29,14 +29,13 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, Drone *drone) :
 
 void DroneControlNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
-    bool use_simulation_state;
-    nh.param<bool>("/control/use_simulation_state", use_simulation_state, true);
-    if (use_simulation_state){
+    bool use_ground_truth_state;
+    nh.param<bool>("use_ground_truth_state", use_ground_truth_state, true);
+    if (use_ground_truth_state) {
         drone_state_sub = nh.subscribe("/rocket_state", 1, &DroneControlNode::simulationStateCallback, this,
-                     ros::TransportHints().tcpNoDelay());
-    }
-    else{
-        drone_state_sub = nh.subscribe("/drone_state", 1, &DroneControlNode::stateCallback, this,
+                                       ros::TransportHints().tcpNoDelay());
+    } else {
+        drone_state_sub = nh.subscribe("/extended_kalman_rocket_state", 1, &DroneControlNode::stateCallback, this,
                                        ros::TransportHints().tcpNoDelay());
     }
     target_sub = nh.subscribe("/target_apogee", 1, &DroneControlNode::targetCallback, this);
@@ -81,7 +80,7 @@ void DroneControlNode::run() {
             if (current_fsm.state_machine == rocket_utils::FSM::IDLE) {
                 start_time = ros::Time::now().toSec();
             } else if (current_fsm.state_machine == rocket_utils::FSM::ASCENT ||
-                       current_fsm.state_machine == rocket_utils::FSM::DESCENT) {
+                       current_fsm.state_machine == rocket_utils::FSM::LANDING) {
                 Drone::control interpolated_control = drone_mpc.solution_u_at(0.0);
                 publishControl(interpolated_control);
             } else if (current_fsm.state_machine == rocket_utils::FSM::STOP) {
@@ -103,15 +102,13 @@ void DroneControlNode::fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
 
 void DroneControlNode::simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state) {
     current_state.state = *rocket_state;
-    current_state.thrust_scaling = 1;
-    current_state.torque_scaling = 1;
     received_state = true;
 }
 
 // Callback function to store last received state
-void DroneControlNode::stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state) {
+void DroneControlNode::stateCallback(const rocket_utils::ExtendedState::ConstPtr &extended_state) {
 //    const std::lock_guard<std::mutex> lock(state_mutex);
-    current_state = *rocket_state;
+    current_state = *extended_state;
     received_state = true;
 }
 
@@ -243,8 +240,8 @@ void DroneControlNode::computeControl() {
         emergency_stop = true;
     }
 
-    drone->setParams(current_state.thrust_scaling,
-                     current_state.torque_scaling,
+    drone->setParams(1.0, //TODO
+                     1.0, //TODO
                      current_state.disturbance_force.x, current_state.disturbance_force.y,
                      current_state.disturbance_force.z,
                      current_state.disturbance_torque.x, current_state.disturbance_torque.y,
@@ -283,7 +280,7 @@ void DroneControlNode::toROS(const Drone::control &control, rocket_utils::Gimbal
 
     roll_control.outer_angle = control(0);
     roll_control.inner_angle = control(1);
-    roll_control.torque = - drone->getTorque(prop_delta); //TODO
+    roll_control.torque = -drone->getTorque(prop_delta); //TODO
 }
 
 void DroneControlNode::publishControl(Drone::control &control) {
@@ -313,7 +310,7 @@ void DroneControlNode::publishTrajectory() {
         point.position.z = state_val(2);
         trajectory_msg.trajectory.push_back(point);
 
-        drone_optimal_control::DroneExtendedState state_msg;
+        rocket_utils::ExtendedState state_msg;
         state_msg.state.pose.position.x = state_val(0);
         state_msg.state.pose.position.y = state_val(1);
         state_msg.state.pose.position.z = state_val(2);

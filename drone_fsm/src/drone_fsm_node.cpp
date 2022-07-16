@@ -12,6 +12,7 @@
 #include "rocket_utils/FSM.h"
 #include <sstream>
 #include <string>
+#include <rocket_utils/ExtendedState.h>
 #include "rocket_types/rocket_types.h"
 #include "rocket_types/ros_conversions.h"
 
@@ -26,12 +27,14 @@ private:
     ros::Subscriber command_sub;
     ros::Subscriber target_sub;
     ros::Subscriber state_sub;
+    ros::Subscriber extended_state_sub;
 
     ros::Publisher fsm_pub;
     ros::Publisher target_pub;
 
     double time_zero;
     RocketState current_state;
+    bool is_calibration_done = false;
     Vector3 target_apogee;
 
     bool land_after_apogee;
@@ -61,11 +64,17 @@ public:
 
 
         // Subscribe to commands
-        state_sub = nh.subscribe("/rocket_state", 1, &FsmNode::stateCallback, this);
+        extended_state_sub = nh.subscribe("/extended_kalman_rocket_state", 1, &FsmNode::extendedStateCallback, this);
     }
 
     void run() {
         switch (current_fsm) {
+            case CALIBRATION: {
+                if (is_calibration_done) {
+                    current_fsm = RocketFSMState::IDLE;
+                }
+                break;
+            }
             case IDLE: {
                 // Do nothing
                 break;
@@ -74,11 +83,11 @@ public:
                 if (land_after_apogee &&
                     current_state.position.z > 1 &&
                     (current_state.velocity.z <= 0 || current_state.position.z >= target_apogee.z)) {
-                    current_fsm = RocketFSMState::DESCENT;
+                    current_fsm = RocketFSMState::LANDING;
                 }
                 break;
             }
-            case DESCENT: {
+            case LANDING: {
                 if (current_state.velocity.z >= 0 &&
                     current_state.position.z < 0.3) {
                     current_fsm = RocketFSMState::STOP;
@@ -100,8 +109,9 @@ public:
         fsm_pub.publish(fsm_msg);
     }
 private:
-    void stateCallback(const rocket_utils::State::ConstPtr &rocket_state) {
-        current_state = fromROS(*rocket_state);
+    void extendedStateCallback(const rocket_utils::ExtendedState::ConstPtr &extended_rocket_state) {
+        current_state = fromROS(extended_rocket_state->state);
+        is_calibration_done = extended_rocket_state->is_calibrated;
     }
 
     void targetCallback(const geometry_msgs::Vector3::ConstPtr &target) {

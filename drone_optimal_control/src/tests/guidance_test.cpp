@@ -14,7 +14,7 @@ using namespace Eigen;
 namespace plt = matplotlibcpp;
 
 int main(int argc, char *argv[]) {
-    bool DESCENT = false;
+    bool LANDING = false;
 
     DroneProps<double> drone_props = getDroneProps();
     GuidanceSettings<double> guidance_settings = getGuidanceSettings();
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
     drone_guidance.solve(x0);
 
     // Descent
-    if (DESCENT) {
+    if (LANDING) {
         x0
                 << guidance_settings.target_apogee_vec[0], guidance_settings.target_apogee_vec[1], guidance_settings.target_apogee_vec[2],
                 0, 0, 0,

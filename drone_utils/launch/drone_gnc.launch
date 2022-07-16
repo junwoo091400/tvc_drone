@@ -1,12 +1,25 @@
 <launch>
+    <arg name="controller" default="optimal_control"/>
+    <arg name="use_ground_truth_state" default="true"/>
     <arg name="use_guidance" default="false"/>
     <arg name="use_fixed_guidance" default="false"/>
+    <arg name="is_simulation" default="true"/>
 
     <group ns="rocket">
         <rosparam file="$(find drone_utils)/config/drone_properties.yaml"/>
     </group>
 
-    <include file="$(find drone_optimal_control)/launch/drone_optimal_control.launch" pass_all_args="true"/>
+    <group if="$(eval arg('controller') == 'optimal_control')">
+        <include file="$(find drone_optimal_control)/launch/drone_optimal_control.launch">
+            <arg name="use_ground_truth_state" default="$(arg use_ground_truth_state)"/>
+            <arg name="use_guidance" default="$(arg use_guidance)"/>
+            <arg name="use_fixed_guidance" default="$(arg use_fixed_guidance)"/>
+        </include>
+    </group>
+
+    <include file="$(find drone_navigation)/launch/drone_navigation.launch">
+        <arg name="is_simulation" value="$(arg is_simulation)"/>
+    </include>
 
     <node name="drone_fsm" pkg="drone_fsm" type="drone_fsm_node" output="screen">
         <rosparam param="land_after_apogee" subst_value="true">$(arg use_guidance)</rosparam>

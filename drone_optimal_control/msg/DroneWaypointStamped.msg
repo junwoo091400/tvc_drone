@@ -1,4 +1,4 @@
-DroneExtendedState state
+rocket_utils/ExtendedState state
 rocket_utils/GimbalControl gimbal_control
 rocket_utils/ControlMomentGyro roll_control
 std_msgs/Header header

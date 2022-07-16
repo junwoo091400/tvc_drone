@@ -68,7 +68,7 @@ void DroneGuidanceNode::run() {
                 current_state.state.twist.angular.x, current_state.state.twist.angular.y, current_state.state.twist.angular.z;
 
         double time_until_apogee = drone_guidance.solution_p()(0);
-        if ((current_fsm.state_machine == rocket_utils::FSM::DESCENT || time_until_apogee < descent_trigger_time)
+        if ((current_fsm.state_machine == rocket_utils::FSM::LANDING || time_until_apogee < descent_trigger_time)
             && !started_descent) {
             startDescent();
         }

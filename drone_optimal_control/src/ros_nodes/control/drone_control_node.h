@@ -10,7 +10,7 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_optimal_control/DroneExtendedState.h"
+#include <rocket_utils/ExtendedState.h>
 #include "drone_optimal_control/DroneWaypointStamped.h"
 #include "drone_optimal_control/Waypoint.h"
 #include "rocket_utils/Trajectory.h"
@@ -46,7 +46,7 @@ public:
     void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
 
     // Callback function to store last received state
-    void stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state);
+    void stateCallback(const rocket_utils::ExtendedState::ConstPtr &extended_state);
 
     // Callback function to store last received state
     void targetCallback(const geometry_msgs::Vector3 &target);
@@ -78,7 +78,7 @@ private:
     ControlMPCSettings<double> mpc_settings;
 
     bool received_state = false;
-    drone_optimal_control::DroneExtendedState current_state;
+    rocket_utils::ExtendedState current_state;
     geometry_msgs::Vector3 target_apogee;
     double time_compute_start;
     bool track_guidance;
