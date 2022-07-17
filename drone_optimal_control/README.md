@@ -1,13 +1,9 @@
-# Drone GNC
-GNC algorithms for controlling the drone TVC prototype
+# Drone Optimal Control
+Optimal control-based algorithms for controlling the drone TVC prototype
 
 ## Modules
-- **guidance**: Nonlinear MPC to find the optimal trajectory to the target apogee
-- **navigation**: Extended Kalman Filter
+- **guidance**: Free terminal time, minimal-energy optimization to find the optimal trajectory to the target apogee
 - **control**: Nonlinear MPC controller that tracks the guidance trajectory
 - **models**: Contains the drone model used by the MPC controller and the kalman filter
-- **ros_nodes**: ROS interfaces for the different modules
-  - **utils/drone_fsm_node**: State machine
-  - **utils/drone_mavros_interface**: Interface to communicate with the Pixhawk using MAVROS (uses MAVLink over serial)
-  - **utils/drone_dome**: Contains the VPRN interface to access the Optitrack pose data in the drone dome
+- **ros_nodes**: ROS wrappers for the different modules
 - **tests**: Contains tests to debug the code without ROS.

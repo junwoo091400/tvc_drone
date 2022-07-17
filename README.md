@@ -1,12 +1,17 @@
-# TVC Drone
-ROS workspace containing the packages and tools for the drone TVC prototype
+#  Drone Thrust Vector Control
+ROS workspace containing the packages and tools for EPFL Rocket Team's "drone", a thrust-vector-controlled electric small-scale rocket prototype.
 
 ## Description
 
 ### Packages
-- **drone_gnc**: Contains the GNC algorithms to control the drone. This is the only package that needs to be copied on the Raspberry Pi for real tests.
-- **drone_utils**: Provides many utilities, as well as the launch files to run the code.
+- **drone_optimal_control**: Minimal-energy guidance and Nonlinear MPC algorithms to control the drone.
+- **drone_navigation**: Extended Kalman Filter to estimate the drone's state.
+- **drone_utils**: Contains the launch files to run the code, utilities, or more generally anything that is shared between drone-related packages.
+- **rocket_utils**: Code that is shared between all rocket-related packages.
 - **real_time_simulator**: Real-time rocket simulator and GUI. See original repo for more information.
+- **drone_fsm**: Finite-state machine.
+- **mavros_interface**: Interface to communicate with the Pixhawk via the MAVLink/MAVROS protocol.
+- **optitrack_ekf**: \[Unused\] Extended Kalman Filter to estimate velocities and augmented state from Optitrack's pose data.
 - **rqt_ez_publisher**: External tool used in the GUI.
 
 Each package contains its own readme file with more information.
@@ -134,10 +139,4 @@ Each package contains its own readme file with more information.
     To enable the guidance algorithm, run instead:
     ```
     roslaunch drone_utils simu_drone.launch use_guidance:=true
-    ```
-
-* Run remotely on the Raspberry Pi over Wi-Fi:
-    ```
-    roscd drone_utils/bash_scripts
-    ./remote_drone_launch.sh
     ```

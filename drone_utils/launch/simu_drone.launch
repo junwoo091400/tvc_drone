@@ -2,6 +2,7 @@
     <arg name="use_guidance" default="false"/>
     <arg name="use_fixed_guidance" default="false"/>
     <arg name="use_ground_truth_state" default="true"/>
+    <arg name="controller" default="optimal_control"/>
 
     <rosparam param="/is_simu">true</rosparam>
 <!--    <rosparam param="/use_sim_time">true</rosparam>-->
