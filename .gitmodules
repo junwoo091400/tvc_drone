@@ -13,6 +13,7 @@
 [submodule "rocket_utils"]
 	path = rocket_utils
 	url = git@github.com:EPFLRocketTeam/rocket_utils
+	branch = controller_innovation
 [submodule "drone_navigation"]
 	path = drone_navigation
 	url = git@github.com:alexandreguerradeoliveira/drone_navigation.git
