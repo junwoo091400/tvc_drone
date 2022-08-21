@@ -8,27 +8,44 @@
 
 # BE CAREFUL TO USE EXACTLY THE CORRECT FORMATTING OR YOU WILL RECEIVE 
 # AN ERROR "XmlRpc::XmlRpcException" WHEN LOADING THE FILE
-
-# TODO random values, needs to be figured out
 gimbal:
  - id: 0
-   inertia: 0.01
-   damping: 0.01
-   stiffness: 200.0
-   reactivity: 100.0
+   inertia: 0.1
+   damping: 1.0 
+   stiffness: 2.0
+   reactivity: 20.
    sensorFrequency: 50.0
    minRange: [-15.0,-15.0,0.0]
-   maxRange: [15.0,15.0,17.77]
+   maxRange: [15.0,15.0,19.031]
    positionCM: [0.0,0.0,-0.215]
 
-# TODO random values, needs to be figured out
+drone_gimbal:
+ - id: 0
+   sensorFrequency: 1000.
+   minRange: [-15.0,-15.0,0.0,-0.05408]
+   maxRange: [15.0,15.0,19.031,0.05408]
+   minVel: [-300.0,-300.0]
+   maxVel: [300.0,300.0]
+   reactivity: 
+    thrust: 15.
+    torque: 15.
+   propellerRadius: 0.0635
+   positionCM: [0.0,0.0,-0.215]
+   K:
+    outer: 2777.57
+    inner: 2777.57
+   inertia:
+    outer: [973885.e-9, 22.e-9, -6948.e-9, 22.e-9, 538747.e-9, 42610.e-9, -6948.e-9, 42610.e-9, 1459634.e-9]
+    inner: [62820.e-9, 0., 0., 0., 39982.e-9, 0., 0., 0.,28542.e-9]
+    propeller: [5.175625000000000e-06, 0., 0., 0., 5.175625000000000e-06, 0.,0.,0.,1.035125000000000e-05]
+
 CMG:
  - id: 0
-   inertia: 0.01
-   damping: 0.01
-   stiffness: 200.0
-   reactivity: 100.0
+   inertia: 0.1
+   damping: 1.0 
+   stiffness: 2.0
+   reactivity: 15.0
    sensorFrequency: 50.0
-   minRange: [-15.0,-15.0,-0.1]
-   maxRange: [15.0,15.0,0.1]
-   positionCM: [0.0,0.0,-0.215]
+   minRange: [-2.0,-2.0,-10.0]
+   maxRange: [2.0,2.0,10.0]
+   positionCM: [0.0,0.0,-2.0]
