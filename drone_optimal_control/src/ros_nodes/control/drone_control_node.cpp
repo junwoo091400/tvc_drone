@@ -31,14 +31,13 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, Drone *drone) :
 
 void DroneControlNode::initTopics(ros::NodeHandle &nh) {
     // Subscribers
-    bool use_simulation_state;
-    nh.param<bool>("/control/use_simulation_state", use_simulation_state, true);
-    if (use_simulation_state){
+    bool use_ground_truth_state;
+    nh.param<bool>("use_ground_truth_state", use_ground_truth_state, true);
+    if (use_ground_truth_state) {
         drone_state_sub = nh.subscribe("/rocket_state", 1, &DroneControlNode::simulationStateCallback, this,
-                     ros::TransportHints().tcpNoDelay());
-    }
-    else{
-        drone_state_sub = nh.subscribe("/drone_state", 1, &DroneControlNode::stateCallback, this,
+                                       ros::TransportHints().tcpNoDelay());
+    } else {
+        drone_state_sub = nh.subscribe("/extended_kalman_rocket_state", 1, &DroneControlNode::stateCallback, this,
                                        ros::TransportHints().tcpNoDelay());
     }
     target_sub = nh.subscribe("/target_apogee", 1, &DroneControlNode::targetCallback, this);
