@@ -95,7 +95,6 @@ private:
     MatrixXd guidance_control_trajectory;
     MatrixXd m_basis;
     bool received_trajectory = false;
-    bool tracking_controller_available = false;
     double guidance_t0;
     double guidance_tf;
     double start_time = 0;

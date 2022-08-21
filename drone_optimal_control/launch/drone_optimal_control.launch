@@ -2,6 +2,8 @@
     <arg name="use_ground_truth_state" default="false"/>
     <arg name="use_guidance" default="false"/>
     <arg name="use_fixed_guidance" default="false"/>
+    <arg name="use_tracking_controller" default="NONE"/>
+    <arg name="tracking_type" default="state"/>
 
     <group ns="control/mpc" unless="$(arg use_guidance)">
         <rosparam file="$(find drone_optimal_control)/config/mpc_config.yaml"/>
@@ -39,6 +41,8 @@
 
     <node name="control" pkg="drone_optimal_control" type="drone_control" output="screen"
           launch-prefix="taskset -c 3">
+        <param name="use_fixed_guidance" value="$(arg use_fixed_guidance)"/>
+        <param name="use_tracking_controller" value="$(eval arg('use_tracking_controller')!='NONE')"/>
         <rosparam param="target_apogee">[0,0,1]</rosparam>
         <rosparam param="track_guidance" subst_value="true">$(eval arg('use_guidance') or arg('use_fixed_guidance'))</rosparam>
         <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>

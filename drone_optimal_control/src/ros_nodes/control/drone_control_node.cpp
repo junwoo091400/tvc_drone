@@ -11,6 +11,7 @@
 
 DroneControlNode::DroneControlNode(ros::NodeHandle &nh, Drone *drone) :
         drone(drone), drone_mpc(drone, (mpc_settings = loadMPCSettings(nh), mpc_settings)) {
+    
     initTopics(nh);
 
     std::vector<double> initial_target_apogee;
@@ -20,7 +21,7 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, Drone *drone) :
     target_apogee.z = initial_target_apogee.at(2);
 
     nh.param("track_guidance", track_guidance, false);
-    nh.param("use_tracking_controller", tracking_controller_available, false);
+    
     
 
     period = mpc_settings.period;
@@ -47,6 +48,8 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
 
     // Publishers
     horizon_viz_pub = nh.advertise<rocket_utils::Trajectory>("/mpc_horizon", 10);
+    bool tracking_controller_available;
+    nh.param("use_tracking_controller", tracking_controller_available, true);
     if(!tracking_controller_available) gimbal_control_pub = nh.advertise<rocket_utils::DroneGimbalControl>("/drone_gimbal_command_0", 10);
     else gimbal_control_pub = nh.advertise<rocket_utils::DroneGimbalControl>("/MPC_output_drone_gimbal_command_0", 10);
 
