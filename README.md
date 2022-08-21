@@ -94,7 +94,16 @@ Each package contains its own readme file with more information.
     ```
     "repr": "u'*your ROS workspace absolute path*/src/drone_utils/GUI/rviz_config.rviz'"
     ```
-
+* **IMPORTANT**: Add to `drone_optimal_control/submodule/polympc/src/control/mpc_wrapper.hpp` following method to the class body:
+ ```
+ inline void final_control_bounds(const Eigen::Ref<const control_t>& lb,
+                                     const Eigen::Ref<const control_t>& ub) noexcept
+    {
+        m_solver.lower_bound_x().template head<nu>(varx_size) = lb;
+        m_solver.upper_bound_x().template head<nu>(varx_size) = ub;
+    }
+  ```
+    
 * Build the project
   ```
   source ~/.bashrc
