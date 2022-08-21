@@ -26,6 +26,8 @@
 #include "ros_config_loader.h"
 #include "ros/package.h"
 #include "drone_optimal_control/DroneTrajectory.h"
+#include "drone_optimal_control/DroneExtendedState.h"
+
 
 
 class RocketControlNode {
@@ -55,7 +57,13 @@ public:
    
 
         // Subscribe to state message from basic_gnc
-        rocket_state_sub = nh.subscribe("/rocket_state", 1, &RocketControlNode::rocketStateCallback, this);
+        bool use_ground_truth_state;
+        nh.param<bool>("use_ground_truth_state", use_ground_truth_state, true);
+        if (use_ground_truth_state) {
+            rocket_state_sub = nh.subscribe("/rocket_state", 1, &RocketControlNode::rocketStateCallback, this);
+        } else {
+            rocket_state_sub = nh.subscribe("/extended_kalman_rocket_state", 1, &RocketControlNode::kalmanStateCallback, this);
+        }
 
         // Subscribe to state message from basic_gnc
         set_point_sub = nh.subscribe("/set_point", 1, &RocketControlNode::setPointCallback, this);
@@ -91,7 +99,9 @@ public:
         switch (rocket_fsm) {
             case IDLE: break;
             
-            case RAIL: 
+            case RAIL:
+            case ASCENT:
+
             // Compute roll control and send control message
             // in both LAUNCH and COAST mode
             case LAUNCH:{
@@ -143,10 +153,14 @@ private:
         launch_time = fsm->launch_time;
     }
     // Callback function to store last received state
-    void rocketStateCallback(const rocket_utils::State::ConstPtr &rocket_state_msg) {
+    void rocketStateCallback(const rocket_utils::State::ConstPtr rocket_state_msg) {
         
         rocket_state = fromROS(*rocket_state_msg);
         
+    }
+
+    void kalmanStateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr rocket_state_msg) {
+        rocket_state = fromROS(rocket_state_msg->state);
     }
     // Callback function to store last received state
     void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg) {
