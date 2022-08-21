@@ -68,25 +68,24 @@ void DroneGuidanceNode::run() {
                 current_state.state.twist.angular.x, current_state.state.twist.angular.y, current_state.state.twist.angular.z;
 
         double time_until_apogee = drone_guidance.solution_p()(0);
-        if ((current_fsm.state_machine == rocket_utils::FSM::LANDING || time_until_apogee < descent_trigger_time)
-            && !started_descent) {
+        if (current_fsm.state_machine == rocket_utils::FSM::DESCENT || time_until_apogee < descent_trigger_time) {
             startDescent();
-        }
-
-        double time_now = ros::Time::now().toSec();
-        computeTrajectory();
-        last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
-
-        if (isnan(drone_guidance.solution_x_at(0)(0)) || abs(time_until_apogee) > 1000 ||
-            isnan(time_until_apogee)) {
-            ROS_ERROR_STREAM("Guidance MPC computation failed");
-            drone_guidance.initGuess(x0, target_state);
         } else {
-            publishTrajectory();
+            double time_now = ros::Time::now().toSec();
+            computeTrajectory();
+            last_computation_time = (ros::Time::now().toSec() - time_now) * 1000;
+
+            if (isnan(drone_guidance.solution_x_at(0)(0)) || abs(time_until_apogee) > 1000 ||
+                isnan(time_until_apogee)) {
+                ROS_ERROR_STREAM("Guidance MPC computation failed");
+                drone_guidance.initGuess(x0, target_state);
+            } else {
+                publishTrajectory();
+            }
         }
     }
-}
 
+}
 
 void DroneGuidanceNode::startDescent() {
     if (started_descent) return;
@@ -180,13 +179,11 @@ void DroneGuidanceNode::publishTrajectory() {
 
         Drone::control control_val = drone_guidance.solution_u_at(i);
         //TODO
-        rocket_utils::GimbalControl gimbal_control_msg{};
-        rocket_utils::ControlMomentGyro roll_control_msg{};
+        rocket_utils::DroneGimbalControl gimbal_control_msg{};
 
         drone_optimal_control::DroneWaypointStamped state_msg_stamped;
         state_msg_stamped.state.state = state_msg;
         state_msg_stamped.gimbal_control = gimbal_control_msg;
-        state_msg_stamped.roll_control = roll_control_msg;
         state_msg_stamped.header.stamp = time_compute_start + ros::Duration(drone_guidance.node_time(i));
         state_msg_stamped.header.frame_id = ' ';
 

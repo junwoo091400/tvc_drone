@@ -10,14 +10,13 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_optimal_control/DroneExtendedState.h"
+#include "rocket_utils/ExtendedState.h"
 #include "drone_optimal_control/DroneWaypointStamped.h"
 #include "drone_optimal_control/Waypoint.h"
 #include "rocket_utils/Trajectory.h"
 #include "drone_optimal_control/DroneTrajectory.h"
 
-#include "rocket_utils/GimbalControl.h"
-#include "rocket_utils/ControlMomentGyro.h"
+#include "rocket_utils/DroneGimbalControl.h"
 #include "geometry_msgs/Vector3.h"
 
 #include "std_msgs/Int32.h"

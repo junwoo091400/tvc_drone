@@ -12,7 +12,7 @@
 #include "rocket_utils/FSM.h"
 #include <sstream>
 #include <string>
-#include <rocket_utils/ExtendedState.h>
+#include "rocket_utils/ExtendedState.h"
 #include "rocket_types/rocket_types.h"
 #include "rocket_types/ros_conversions.h"
 

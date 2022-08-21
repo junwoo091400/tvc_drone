@@ -9,7 +9,7 @@
 
 #include <ros/ros.h>
 #include "drone_optimal_control/DroneControl.h"
-#include "drone_optimal_control/DroneExtendedState.h"
+#include "rocket_utils/ExtendedState.h"
 #include "geometry_msgs/Vector3.h"
 
 #include <Eigen/Eigen>

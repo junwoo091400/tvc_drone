@@ -10,7 +10,7 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_optimal_control/DroneExtendedState.h"
+#include "rocket_utils/ExtendedState.h"
 #include "drone_optimal_control/DroneControl.h"
 
 #include "geometry_msgs/PoseStamped.h"

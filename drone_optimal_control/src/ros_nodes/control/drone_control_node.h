@@ -10,14 +10,13 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include <rocket_utils/ExtendedState.h>
+#include "rocket_utils/ExtendedState.h"
 #include "drone_optimal_control/DroneWaypointStamped.h"
 #include "drone_optimal_control/Waypoint.h"
 #include "rocket_utils/Trajectory.h"
 #include "drone_optimal_control/DroneTrajectory.h"
 
-#include "rocket_utils/GimbalControl.h"
-#include "rocket_utils/ControlMomentGyro.h"
+#include "rocket_utils/DroneGimbalControl.h"
 #include "geometry_msgs/Vector3.h"
 
 #include "std_msgs/Int32.h"
@@ -46,14 +45,14 @@ public:
     void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
 
     // Callback function to store last received state
-    void stateCallback(const rocket_utils::ExtendedState::ConstPtr &extended_state);
+    void stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state);
 
     // Callback function to store last received state
     void targetCallback(const geometry_msgs::Vector3 &target);
 
     void computeControl();
 
-    void toROS(const Drone::control &control, rocket_utils::GimbalControl &gimbal_control, rocket_utils::ControlMomentGyro &roll_control);
+    void toROS(const Drone::control &control, rocket_utils::DroneGimbalControl &gimbal_control);
 
     void publishControl(Drone::control &control);
 
@@ -78,7 +77,7 @@ private:
     ControlMPCSettings<double> mpc_settings;
 
     bool received_state = false;
-    rocket_utils::ExtendedState current_state;
+    drone_optimal_control::DroneExtendedState current_state;
     geometry_msgs::Vector3 target_apogee;
     double time_compute_start;
     bool track_guidance;
@@ -96,6 +95,7 @@ private:
     MatrixXd guidance_control_trajectory;
     MatrixXd m_basis;
     bool received_trajectory = false;
+    bool tracking_controller_available = false;
     double guidance_t0;
     double guidance_tf;
     double start_time = 0;
