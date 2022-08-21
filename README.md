@@ -1,6 +1,9 @@
 #  Drone Thrust Vector Control
 ROS workspace containing the packages and tools for EPFL Rocket Team's "drone", a thrust-vector-controlled electric small-scale rocket prototype.
 
+<img src="docs/overview.jpg" alt="drawing" height="300"/><img src="docs/pid_demo.gif" alt="drawing" height="300"/>
+[1]
+
 ## Description
 
 ### Packages
@@ -149,3 +152,12 @@ Each package contains its own readme file with more information.
     ```
     roslaunch drone_utils simu_drone.launch use_guidance:=true
     ```
+## Sources
+[1]: Paper about whole GNC algorithm and MPC implementation
+
+```
+Raphaël Linsen, Petr Listov, Albéric de Lajarte, Roland Schwan, and Colin N. Jones. 2022. 
+Optimal Thrust Vector Control of an Electric Small-Scale Rocket Prototype. 
+In 2022 International Conference on Robotics and Automation (ICRA). IEEE Press, 1996–2002. https://doi.org/10.1109/ICRA46639.2022.9811938
+```
+[2]: [Report about PID, LQR, LQR with integrator (and more)](https://drive.google.com/file/d/1psKMbYIDg3n1MyOD7myFiBktjy46THxa/view?usp=sharing) (access currently restricted)
