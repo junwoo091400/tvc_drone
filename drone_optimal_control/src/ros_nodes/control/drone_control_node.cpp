@@ -299,8 +299,11 @@ void DroneControlNode::publishTrajectory() {
     // Send optimal trajectory computed by control for debugging purpose
     rocket_utils::Trajectory trajectory_msg;
     drone_optimal_control::DroneTrajectory horizon_msg;
-    
-    for (double t = 0.; t < mpc_settings.horizon_length; t+=0.05) {
+
+    int N_SAMPLES = 20;
+    for (int i = 0; i < N_SAMPLES; i++) {
+        double t = (double)i / (double)(N_SAMPLES-1) * drone_mpc.getMaximumHorizonLength();
+
         Drone::state state_val = drone_mpc.solution_x_at(t);
 
         rocket_utils::Waypoint point;

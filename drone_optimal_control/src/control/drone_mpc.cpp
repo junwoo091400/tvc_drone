@@ -141,6 +141,10 @@ void DroneMPC::setMaximumHorizonLength(double max_horizon_length) {
     ocp().horizon_length = max(1e-3, min(max_horizon_length, horizon_length));
 }
 
+double DroneMPC::getMaximumHorizonLength(){
+    return ocp().horizon_length;
+}
+
 void DroneMPC::setTargetStateTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> target_state_trajectory) {
     //assign while scaling
     ocp().target_state_trajectory = ocp().x_drone_scaling_vec.asDiagonal() * target_state_trajectory;
