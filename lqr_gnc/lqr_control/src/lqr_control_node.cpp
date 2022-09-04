@@ -44,10 +44,12 @@ public:
         // Instantiate the controller
          std::stringstream QR_file_path;
         QR_file_path << ros::package::getPath("lqr_control") << "/config/QR.yaml";
-        controller = std::unique_ptr<LqrController>(new LqrController(drone_props, 1/frequency, QR_file_path.str()));
+        nh.param("frequency", frequency, 20.0);
+        controller = std::unique_ptr<LqrController>(new LqrController(drone_props, 1.0/frequency, QR_file_path.str()));
         
         set_point.orientation.w = 1.0;
         nh.param("track_mpc", track_mpc, false);
+
         std::string tracking_type;
         nh.getParam("tracking_type", tracking_type);
         if(tracking_type == "state") track_state = true;
@@ -80,40 +82,20 @@ public:
 
     void run() {
         ros::Time time_now = ros::Time::now();
-
-        switch (rocket_fsm) {
-            case IDLE: {
-                // Do nothing
-                break;
-            }
-
-            // Compute attitude control and send control message
-            // in both RAIL and LAUNCH mode
-            case RAIL:
-            case LAUNCH: {
-                
-                break;
-            }
-
-            case COAST:
-            case STOP: {
-                // Do nothing
-                break;
-            }
-        }
-
         switch (rocket_fsm) {
             case IDLE: break;
-            
             case RAIL:
             case ASCENT:
             // Compute roll control and send control message
             // in both LAUNCH and COAST mode
             case LAUNCH:{
                 rocket_utils::DroneGimbalControl gimbal_ctrl;
+                // Track higher level (MP-)controller
                 if(track_mpc){
                     double time_diff(1e99), now(ros::Time::now().toSec());
                     size_t i=0;
+                    // MPC horizon = List of stamped states and control inputs
+                    // -> Extract index of list where stamp is closest to current time
                     for(; i < set_point_trajectory.trajectory.size(); i++){
                         double local_time_diff = fabs(set_point_trajectory.trajectory[i].header.stamp.toSec() - now);
                         
@@ -136,6 +118,7 @@ public:
                         gimbal_ctrl = toROS(controller->control(rocket_state, set_point, u));
                     }
                 }
+                // Standard case
                 else gimbal_ctrl = toROS(controller->control(rocket_state, set_point));
                 gimbal_ctrl.header.stamp = ros::Time::now();
                 gimbal_command_pub.publish(gimbal_ctrl);
@@ -202,6 +185,7 @@ private:
         set_point = fromROS(*set_point_msg);
         Eigen::Vector4d quat;
         quat << set_point.orientation.x, set_point.orientation.y, set_point.orientation.z, set_point.orientation.w;
+        // Check if wanted attitude is orientation-quaternion
         if(fabs(quat.norm() - 1.0) > 1e-3) 
         {
             ROS_WARN_STREAM("Received set-point contains orientation '" << quat << "' that is not quaternion. \nUsing unrotated quaternion (0,0,0,1) instead...");
@@ -213,34 +197,6 @@ private:
     }
     void setPointMPCCallback(const drone_optimal_control::DroneTrajectory::ConstPtr &target_trajectory) {
         this->set_point_trajectory = *target_trajectory;
-        // double time_diff(1e99), now(ros::Time::now().toSec());
-        // size_t i=0;
-        // for(; i < target_trajectory->trajectory.size(); i++){
-        //     double local_time_diff = fabs(target_trajectory->trajectory[i].header.stamp.toSec() - now);
-            
-        //     if(local_time_diff <= time_diff ) time_diff = local_time_diff;
-        //     else if (local_time_diff >= time_diff) break;
-        // }
-
-        // ROS_ERROR_STREAM("" << i);
-        // this->set_point = fromROS(target_trajectory->trajectory[i].state.state);
-        // return;        
-        // double now(ros::Time::now().toSec());
-        // size_t i=0;
-        // Eigen::Vector3d diff;
-        // for(; i < target_trajectory->trajectory.size()-1; i++){
-        //     diff <<     target_trajectory->trajectory[i].state.state.pose.position.x - this->rocket_state.position.x,
-        //                 target_trajectory->trajectory[i].state.state.pose.position.y - this->rocket_state.position.y,
-        //                 target_trajectory->trajectory[i].state.state.pose.position.z - this->rocket_state.position.z;
-            
-            
-        //     if(diff.norm() > 5e-3) break;
-           
-        // }
-
-        // ROS_ERROR_STREAM("" << i);
-        // this->set_point = fromROS(target_trajectory->trajectory[i].state.state);
-        // return;
     }
 };
 
