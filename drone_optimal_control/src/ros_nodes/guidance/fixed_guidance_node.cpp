@@ -44,7 +44,7 @@ public:
 
     double scaling = 1;
 
-    constexpr static double seg_lengths[] = {0.5, 1, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3,
+    const double seg_lengths[14] = {0.5, 1, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3,
                                              2.97/*ellipse*/ };
     double total_length;
     double total_duration;
