@@ -8,6 +8,9 @@ ROS workspace containing the packages and tools for EPFL Rocket Team's "drone", 
 
 ### Packages
 - **drone_optimal_control**: Minimal-energy guidance and Nonlinear MPC algorithms to control the drone.
+- **pid**: 4-stage cascaded PID controller adapted to unique actuation of drone (see chapter 4.3.1 of [2])
+- **lqr**: Standard Linear Quadratic Regulator for the drone's system dynamics (linearized around hovering state, see chapter 4.3.2 of [2])
+- **lqr_with_integrator**: Linear Quadratic Regulator with integrative action on part of the control error guaranteeing steady-state-error free tracking (see chapter 4.3.3 of [2])
 - **drone_navigation**: Extended Kalman Filter to estimate the drone's state.
 - **drone_utils**: Contains the launch files to run the code, utilities, or more generally anything that is shared between drone-related packages.
 - **rocket_utils**: Code that is shared between all rocket-related packages.
@@ -98,8 +101,8 @@ Each package contains its own readme file with more information.
     "repr": "u'*your ROS workspace absolute path*/src/drone_utils/GUI/rviz_config.rviz'"
     ```
 * **IMPORTANT**: Add to `drone_optimal_control/submodule/polympc/src/control/mpc_wrapper.hpp` following method to the class body:
- ```
- inline void final_control_bounds(const Eigen::Ref<const control_t>& lb,
+  ```
+  inline void final_control_bounds(const Eigen::Ref<const control_t>& lb,
                                      const Eigen::Ref<const control_t>& ub) noexcept
     {
         m_solver.lower_bound_x().template head<nu>(varx_size) = lb;
@@ -145,19 +148,25 @@ Each package contains its own readme file with more information.
     ```
     roslaunch drone_utils simu_drone.launch
     ```
-    Start the simulation by publishing an empty string on `/commands/data`, by pressing the "Publish" button.
-    You can then control the target apogee using the sliders.
+    Start the simulation by publishing an empty string on `/commands/data`, by pressing the "Publish" button. Following arguments are available for the launch file:
     
-    To enable the guidance algorithm, run instead:
-    ```
-    roslaunch drone_utils simu_drone.launch use_guidance:=true
-    ```
+    
+    | Argument | Type | Default | Description |
+    |---|---|---|---|
+    | use_guidance | bool | false | Enable the guidance algorithm |
+    | use_ground_truth_state | bool | true | True: Use perfect state from simulator, False: Use Kalman-output |
+    | controller_frequency | float | 20.0 | Frequency of control law evaluation (only for LQR, LQR+Integrator and PID) |
+    | main_controller | string | lqr | Name of the main controller (must be "lqr", "lqr_with_integrator", "pid" or "MPC"; case-sensitive!) |
+    | use_tracking_controller | string | NONE | Track output of MPC controller with low-level controller (must be "NONE"[-> main controller's output directly sent to actuators], "lqr" or "pid" as tracking controller selection). |
+    | tracking_type | string | state | Only active if use_tracking_controller is not "NONE". If "state": Current state on last MPC horizon is given to tracking controller as set-point; if "u": Current control-input is given to tracking controller as feedforward term. |
+    
+    
 ## Sources
-[1]: Paper about whole GNC algorithm and MPC implementation
+[1]: [Paper about whole GNC algorithm and MPC implementation](https://doi.org/10.1109/ICRA46639.2022.9811938)
 
 ```
 Raphaël Linsen, Petr Listov, Albéric de Lajarte, Roland Schwan, and Colin N. Jones. 2022. 
 Optimal Thrust Vector Control of an Electric Small-Scale Rocket Prototype. 
 In 2022 International Conference on Robotics and Automation (ICRA). IEEE Press, 1996–2002. https://doi.org/10.1109/ICRA46639.2022.9811938
 ```
-[2]: [Report about PID, LQR, LQR with integrator (and more)](https://drive.google.com/file/d/1psKMbYIDg3n1MyOD7myFiBktjy46THxa/view?usp=sharing) (access currently restricted)
+[2]: [Report about PID, LQR, LQR with integrator (and more)](https://drive.google.com/file/d/1psKMbYIDg3n1MyOD7myFiBktjy46THxa/view?usp=sharing)
