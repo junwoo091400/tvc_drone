@@ -42,6 +42,7 @@ public:
         DroneProps<double> drone_props = loadDroneProps(nh);
         std::stringstream QR_file_path;
         QR_file_path << ros::package::getPath("lqr_with_integrator_control") << "/config/QR.yaml";
+        nh.param("frequency", frequency, 20.0);
         // Instantiate the controller
         controller = std::unique_ptr<Lqr_with_integratorController>(new Lqr_with_integratorController(drone_props, 1/frequency, QR_file_path.str()));
 
@@ -74,27 +75,6 @@ public:
 
     void run() {
         ros::Time time_now = ros::Time::now();
-
-        switch (rocket_fsm) {
-            case IDLE: {
-                // Do nothing
-                break;
-            }
-
-            // Compute attitude control and send control message
-            // in both RAIL and LAUNCH mode
-            case RAIL:
-            case LAUNCH: {
-                
-                break;
-            }
-
-            case COAST:
-            case STOP: {
-                // Do nothing
-                break;
-            }
-        }
 
         switch (rocket_fsm) {
             case IDLE: break;
@@ -167,6 +147,7 @@ private:
         set_point = fromROS(*set_point_msg);
         Eigen::Vector4d quat;
         quat << set_point.orientation.x, set_point.orientation.y, set_point.orientation.z, set_point.orientation.w;
+        // Check if target attitude is orientation-quaternion
         if(fabs(quat.norm() - 1.0) > 1e-3) 
         {
             ROS_WARN_STREAM("Received set-point contains orientation '" << quat << "' that is not quaternion. \nUsing unrotated quaternion (0,0,0,1) instead...");

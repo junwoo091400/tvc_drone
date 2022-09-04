@@ -204,6 +204,7 @@ private:
                     set_point.orientation.y,
                     set_point.orientation.z
                     ).toRotationMatrix();
+        // R is the rotation matrix from is-orientation to target orientation
         Eigen::Matrix<double,3,3> R = (R2.transpose() * R1).transpose();
         error(6) = getContinuousAngle(atan2(-R(1,2),R(2,2)), error(6));
         error(7) = getContinuousAngle(atan2(R(0,2),sqrt(R(0,0) * R(0,0) + R(0,1) * R(0,1))),  error(7));

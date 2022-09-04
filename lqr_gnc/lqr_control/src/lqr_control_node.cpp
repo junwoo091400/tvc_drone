@@ -185,7 +185,7 @@ private:
         set_point = fromROS(*set_point_msg);
         Eigen::Vector4d quat;
         quat << set_point.orientation.x, set_point.orientation.y, set_point.orientation.z, set_point.orientation.w;
-        // Check if wanted attitude is orientation-quaternion
+        // Check if target attitude is orientation-quaternion
         if(fabs(quat.norm() - 1.0) > 1e-3) 
         {
             ROS_WARN_STREAM("Received set-point contains orientation '" << quat << "' that is not quaternion. \nUsing unrotated quaternion (0,0,0,1) instead...");

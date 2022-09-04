@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "rocket_types/rocket_types.h"
@@ -17,7 +18,13 @@ class Lqr_with_integratorController {
 
 public:
 
-
+    /**
+     * @brief Construct a new LQR with integrator module by computing the relevant state feedback matrix from config in file 
+     * 
+     * @param drone_props Properties of vehicle
+     * @param dt Controller evaluation period (inverse of frequency)
+     * @param QR_file_path Where to find diagonal entries for cost matrices
+     */
     Lqr_with_integratorController(DroneProps<double> &drone_props, double dt, std::string QR_file_path):
         dt(dt)
             {
@@ -30,6 +37,14 @@ public:
                 drone.init(drone_props);
                 updateLQRGain();
     }
+
+    /**
+     * @brief Perform control law evaluation with feedforward term
+     * 
+     * @param current Is-state
+     * @param set_point Target state
+     * @return DroneGimbalControl Actuation command for vehicle
+     */
     DroneGimbalControl control(RocketState current, RocketState set_point = {}){
         
         //updateLQRGain(state);
@@ -43,48 +58,73 @@ public:
         gimbal_ctrl.torque = u(3);
         return gimbal_ctrl;
     }
-    bool loadFromFile(std::string K_filename, std::string U_filename){
-        YAML::Node node;
-        try
-        {
-            node = YAML::LoadFile(K_filename);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << "Could not load K-file...\n" << e.what() << '\n';
-            return false;
-        }
-        for(size_t i=0; i < 4; i++) for (size_t j=0; j < 12; j++) K(i,j) = node[i][j].as<double>();
-        try
-        {
-            node = YAML::LoadFile(U_filename);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << "Could not load us-file...\n" << e.what() << '\n';
-            return false;
-        }
-        for(size_t i=0; i < 4; i++) u_steady_state(i) = node[i].as<double>();
-        return true;
-        
-    }
+    
+    //  LEGACY CODE where K and a steady state control input where computed beforehand in Matlab and not 'dynamically' in C++
+    //  bool loadFromFile(std::string K_filename, std::string U_filename){
+    //     YAML::Node node;
+    //     try
+    //     {
+    //         node = YAML::LoadFile(K_filename);
+    //     }
+    //     catch(const std::exception& e)
+    //     {
+    //         std::cerr << "Could not load K-file...\n" << e.what() << '\n';
+    //         return false;
+    //     }
+    //     for(size_t i=0; i < 4; i++) for (size_t j=0; j < 12; j++) K(i,j) = node[i][j].as<double>();
+    //     try
+    //     {
+    //         node = YAML::LoadFile(U_filename);
+    //     }
+    //     catch(const std::exception& e)
+    //     {
+    //         std::cerr << "Could not load us-file...\n" << e.what() << '\n';
+    //         return false;
+    //     }
+    //     for(size_t i=0; i < 4; i++) u_steady_state(i) = node[i].as<double>();
+    //     return true;       
+    // }
 
     
 
 
 private:
+    // State Feedback
     Eigen::Matrix<double, 4,16> K;
+    // Cost matrix on augmented 16D-state (12 geometrical state + 4 integrator states, see  https://drive.google.com/file/d/1psKMbYIDg3n1MyOD7myFiBktjy46THxa/view?usp=sharing)
     Matrix<double, 16,16> Q;
+    // Cost matrix on 4D-control-input
     Matrix<double, 4,4> R;
+
     Eigen::Matrix<double, 4, 1> u_steady_state, error;
+
     Eigen::Matrix<double, 16, 1> state;
+    
+    // Drone model with system equations formulated with Euler angles
     DroneEuler drone;
+
+    // Control Period
     double dt;
+
+    /**
+     * @brief Given 2 angles (old and new), gets representation for new angle that is the closest to the old one (2-pi "=" 0)
+     * 
+     * @param newAngle New angle
+     * @param prevAngle Old angle
+     * @return Representation for new angle that is the closest to the old one
+     */
     static double getContinuousAngle(double newAngle, double prevAngle){
         double d = newAngle - prevAngle;
         d = d > M_PI ? d - 2 * M_PI : (d < -M_PI ? d + 2 * M_PI : d);
         return prevAngle + d;
       }
+
+    /**
+     * @brief Load Q- and R-matrix from specified file path
+     *        file content = array that is put into the diagonal; rest = 0
+     * 
+     * @param QR_file_path Where to look for yaml file (is dict- Q: [16], R: [4])
+     */
     void loadQR(std::string QR_file_path){
         YAML::Node node;
         try {
@@ -102,7 +142,14 @@ private:
     }
 
     
-
+    /**
+     * @brief Update class attribute "state" based on newly measured RocketState and desired setpoint such that Euler angles of error representation are continuous
+     * @details The error is only considered for 4 selected geometric states (position + yaw angle). This error is integrated in the last 4 entries of the actual state vector.
+     *          See https://drive.google.com/file/d/1psKMbYIDg3n1MyOD7myFiBktjy46THxa/view?usp=sharing (chapter 5.3.3 for details)
+     * 
+     * @param current Is-state
+     * @param set_point Target state
+     */
     void update(RocketState current, RocketState set_point){
         state.segment(9,3) <<    current.angular_velocity.x, current.angular_velocity.y, current.angular_velocity.z;
         state.head(6) <<    current.position.x, current.position.y, current.position.z,
@@ -125,6 +172,7 @@ private:
                     set_point.orientation.y,
                     set_point.orientation.z
                     ).toRotationMatrix();
+        // R is the rotation matrix from is-orientation to target orientation
         R = (R2.transpose() * R);
         
         error <<    current.position.x - set_point.position.x, 
@@ -134,7 +182,11 @@ private:
         state.tail(4) += error;
     }
 
-
+    /**
+     * @brief Compute control feedback K by linearizing system at x and discretizing it, then solving DARE
+     * 
+     * @param x State around to linearize
+     */
     void updateLQRGain(Matrix<double, 12, 1>  x=Matrix<double, 12, 1>::Zero()){
         Matrix<double, 12, 12> A, Phi;
         Matrix<double, 12, 4>  B, Gamma;
@@ -163,6 +215,17 @@ private:
         //std::cout <<"K"<< K(0,0) << std::endl;        
     }
 
+    /**
+     * @brief Create time discrete representation of continuous linear system representation using integration
+     * 
+     * @tparam NX state dimension of system
+     * @tparam NU control input dimension of system
+     * @param A system matrix of continuous system (NX x xNX)
+     * @param Phi system matrix of discretized system (NX x NX)
+     * @param B input matrix of continuous system (NX x NU)
+     * @param Gamma input matrix of discretized system (NX x NU)
+     * @param dt discretization period
+     */
     template<int NX, int NU>
     void discretize(Eigen::Matrix<double, NX, NX> A,Eigen::Matrix<double, NX, NX> &Phi,  Eigen::Matrix<double, NX, NU> B,  Eigen::Matrix<double, NX, NU> &Gamma, double dt){
         Eigen::Matrix<double, 12, 12> A_T = A * dt;
