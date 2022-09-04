@@ -45,6 +45,8 @@ public:
 
     void setMaximumHorizonLength(double horizon_length);
 
+    double getMaximumHorizonLength();
+
     double node_time(int i);
 
     using MPC::info;

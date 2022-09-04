@@ -10,14 +10,13 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_optimal_control/DroneExtendedState.h"
+#include "rocket_utils/ExtendedState.h"
 #include "drone_optimal_control/DroneWaypointStamped.h"
 #include "drone_optimal_control/Waypoint.h"
 #include "rocket_utils/Trajectory.h"
 #include "drone_optimal_control/DroneTrajectory.h"
 
-#include "rocket_utils/GimbalControl.h"
-#include "rocket_utils/ControlMomentGyro.h"
+#include "rocket_utils/DroneGimbalControl.h"
 #include "geometry_msgs/Vector3.h"
 
 #include "std_msgs/Int32.h"
@@ -40,9 +39,9 @@ public:
 
     void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
 
-    void stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state);
+    void stateCallback(const rocket_utils::ExtendedState::ConstPtr &rocket_state);
 
-    void targetCallback(const geometry_msgs::Vector3 &target);
+    void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg);
 
     void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm);
 
@@ -62,7 +61,7 @@ private:
     DroneGuidance drone_guidance;
 
     bool received_state = false;
-    drone_optimal_control::DroneExtendedState current_state;
+    rocket_utils::ExtendedState current_state;
     rocket_utils::FSM current_fsm;
     Drone::state target_state;
     Drone::control target_control;

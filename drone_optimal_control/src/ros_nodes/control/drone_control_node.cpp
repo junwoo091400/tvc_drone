@@ -11,15 +11,18 @@
 
 DroneControlNode::DroneControlNode(ros::NodeHandle &nh, Drone *drone) :
         drone(drone), drone_mpc(drone, (mpc_settings = loadMPCSettings(nh), mpc_settings)) {
+    
     initTopics(nh);
 
     std::vector<double> initial_target_apogee;
     nh.getParam("target_apogee", initial_target_apogee);
-    target_apogee.x = initial_target_apogee.at(0);
-    target_apogee.y = initial_target_apogee.at(1);
-    target_apogee.z = initial_target_apogee.at(2);
+    target_set_point.pose.position.x = initial_target_apogee.at(0);
+    target_set_point.pose.position.y = initial_target_apogee.at(1);
+    target_set_point.pose.position.z = initial_target_apogee.at(2);
 
     nh.param("track_guidance", track_guidance, false);
+    
+    
 
     period = mpc_settings.period;
 
@@ -38,15 +41,17 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
         drone_state_sub = nh.subscribe("/extended_kalman_rocket_state", 1, &DroneControlNode::stateCallback, this,
                                        ros::TransportHints().tcpNoDelay());
     }
-    target_sub = nh.subscribe("/target_apogee", 1, &DroneControlNode::targetCallback, this);
+    target_sub = nh.subscribe("/set_point", 1, &DroneControlNode::setPointCallback, this);
     target_traj_sub = nh.subscribe("/guidance/horizon", 1, &DroneControlNode::targetTrajectoryCallback, this,
                                    ros::TransportHints().tcpNoDelay());
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneControlNode::fsmCallback, this);
 
     // Publishers
     horizon_viz_pub = nh.advertise<rocket_utils::Trajectory>("/mpc_horizon", 10);
-    gimbal_control_pub = nh.advertise<rocket_utils::GimbalControl>("/gimbal_command_0", 10);
-    roll_control_pub = nh.advertise<rocket_utils::ControlMomentGyro>("/cmg_command_0", 10);
+    bool tracking_controller_available;
+    nh.param("use_tracking_controller", tracking_controller_available, true);
+    if(!tracking_controller_available) gimbal_control_pub = nh.advertise<rocket_utils::DroneGimbalControl>("/drone_gimbal_command_0", 10);
+    else gimbal_control_pub = nh.advertise<rocket_utils::DroneGimbalControl>("/MPC_output_drone_gimbal_command_0", 10);
 
     // Debug
     sqp_iter_pub = nh.advertise<std_msgs::Int32>("debug/sqp_iter", 10);
@@ -106,16 +111,16 @@ void DroneControlNode::simulationStateCallback(const rocket_utils::State::ConstP
 }
 
 // Callback function to store last received state
-void DroneControlNode::stateCallback(const rocket_utils::ExtendedState::ConstPtr &extended_state) {
+void DroneControlNode::stateCallback(const rocket_utils::ExtendedState::ConstPtr &rocket_state) {
 //    const std::lock_guard<std::mutex> lock(state_mutex);
-    current_state = *extended_state;
+    current_state = *rocket_state;
     received_state = true;
 }
 
 // Callback function to store last received state
-void DroneControlNode::targetCallback(const geometry_msgs::Vector3 &target) {
+void DroneControlNode::setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg) {
 //    const std::lock_guard<std::mutex> lock(target_mutex);
-    target_apogee = target;
+    target_set_point = *set_point_msg;
 }
 
 
@@ -240,8 +245,8 @@ void DroneControlNode::computeControl() {
         emergency_stop = true;
     }
 
-    drone->setParams(1.0, //TODO
-                     1.0, //TODO
+    drone->setParams(1.0,
+                     1.0,
                      current_state.disturbance_force.x, current_state.disturbance_force.y,
                      current_state.disturbance_force.z,
                      current_state.disturbance_torque.x, current_state.disturbance_torque.y,
@@ -257,8 +262,7 @@ void DroneControlNode::computeControl() {
 
 }
 
-void DroneControlNode::toROS(const Drone::control &control, rocket_utils::GimbalControl &gimbal_control,
-                             rocket_utils::ControlMomentGyro &roll_control) {
+void DroneControlNode::toROS(const Drone::control &control, rocket_utils::DroneGimbalControl &gimbal_control) {
     double servo1 = control(0);
     double servo2 = control(1);
     double prop_av = control(2);
@@ -274,37 +278,36 @@ void DroneControlNode::toROS(const Drone::control &control, rocket_utils::Gimbal
     prop_av = 0.5 * (bottom + top);
     prop_delta = top - bottom;
 
-    gimbal_control.outer_angle = control(0);
-    gimbal_control.inner_angle = control(1);
+    gimbal_control.outer_angle = servo1;
+    gimbal_control.inner_angle = servo2;
     gimbal_control.thrust = drone->getThrust(prop_av);
+    gimbal_control.torque = drone->getTorque(prop_delta);
 
-    roll_control.outer_angle = control(0);
-    roll_control.inner_angle = control(1);
-    roll_control.torque = -drone->getTorque(prop_delta); //TODO
 }
 
 void DroneControlNode::publishControl(Drone::control &control) {
-    rocket_utils::GimbalControl gimbal_control;
-    rocket_utils::ControlMomentGyro roll_control;
-    toROS(control, gimbal_control, roll_control);
+    rocket_utils::DroneGimbalControl gimbal_control;
+    toROS(control, gimbal_control);
 
     ros::Time time_now = ros::Time::now();
     gimbal_control.header.stamp = time_now;
-    roll_control.header.stamp = time_now;
 
     gimbal_control_pub.publish(gimbal_control);
-    roll_control_pub.publish(roll_control);
 }
 
 void DroneControlNode::publishTrajectory() {
     // Send optimal trajectory computed by control for debugging purpose
     rocket_utils::Trajectory trajectory_msg;
     drone_optimal_control::DroneTrajectory horizon_msg;
-    for (int i = 0; i < DroneMPC::num_nodes; i++) {
-        Drone::state state_val = drone_mpc.solution_x_at(i);
+
+    int N_SAMPLES = 20;
+    for (int i = 0; i < N_SAMPLES; i++) {
+        double t = (double)i / (double)(N_SAMPLES-1) * drone_mpc.getMaximumHorizonLength();
+
+        Drone::state state_val = drone_mpc.solution_x_at(t);
 
         rocket_utils::Waypoint point;
-        point.time = drone_mpc.node_time(i);
+        point.time = t;
         point.position.x = state_val(0);
         point.position.y = state_val(1);
         point.position.z = state_val(2);
@@ -328,16 +331,14 @@ void DroneControlNode::publishTrajectory() {
         state_msg.state.twist.angular.y = state_val(11);
         state_msg.state.twist.angular.z = state_val(12);
 
-        Drone::control control_val = drone_mpc.solution_u_at(i);
-        rocket_utils::GimbalControl gimbal_control_msg;
-        rocket_utils::ControlMomentGyro roll_control_msg;
-        toROS(control_val, gimbal_control_msg, roll_control_msg);
+        Drone::control control_val = drone_mpc.solution_u_at(t);
+        rocket_utils::DroneGimbalControl gimbal_control_msg;
+        toROS(control_val, gimbal_control_msg);
 
         drone_optimal_control::DroneWaypointStamped state_msg_stamped;
         state_msg_stamped.state = state_msg;
         state_msg_stamped.gimbal_control = gimbal_control_msg;
-        state_msg_stamped.roll_control = roll_control_msg;
-        state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(drone_mpc.node_time(i));
+        state_msg_stamped.header.stamp = ros::Time::now() + ros::Duration(t);
         state_msg_stamped.header.frame_id = ' ';
 
         horizon_msg.trajectory.push_back(state_msg_stamped);
@@ -353,7 +354,8 @@ void DroneControlNode::fetchNewTarget() {
     Drone::control target_control;
 
 //    target_mutex.lock();
-    target_state << target_apogee.x, target_apogee.y, target_apogee.z,
+    // TODO
+    target_state << target_set_point.pose.position.x, target_set_point.pose.position.y, target_set_point.pose.position.z,
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;

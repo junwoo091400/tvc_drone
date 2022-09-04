@@ -3,8 +3,8 @@ project(optitrack_ekf)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/../../build)
 
+find_package(VRPN)
 find_package(catkin REQUIRED COMPONENTS geometry_msgs roscpp tf tf2_ros rocket_utils)
-find_package(VRPN REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS include

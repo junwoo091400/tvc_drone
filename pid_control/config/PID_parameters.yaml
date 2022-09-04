@@ -1,0 +1,106 @@
+position:
+  X:
+   gains:
+     - 0.6
+     - 0.001
+     - 0.1
+   limits:
+     - -3.0 # @6m/s work x- and y-controller simultaneously (otherwise: both do not offer offset-free tracking  because the force can't fight the drag)
+     - 3.0
+  Y:
+   gains:
+     - 0.6
+     - 0.001
+     - 0.1
+   limits:
+     - -3.0
+     - 3.0
+  Z:
+   gains:
+     - 0.7
+     - 0.002
+     - 0.0
+   limits:
+     - -3.0 # In theory:+/-24.88973 # sqrt(Thrust_max / (Cdz[experiment, 0.03073]) (maximum speed if only in z-direction, nominal case); but acc-loop only tuned for 5m/s
+     - 3.0
+velocity_linear:
+  X:
+   gains:
+     - 1.4
+     - 0.0
+     - 0.0
+   limits:
+     - -4.5745  # tan(25°) * (mass * g) / mass -> Maximum x (or y) acceleration possible if angle constraints apply and z-acceleration nominal (9.81); is smaller than if we consider force-limitation: ((max_thrust)^2 - (m*g)^2)^0.5 / 1.67 = 5.799
+     - 4.5745
+  Y:
+   gains:
+     - 1.4
+     - 0.0
+     - 0.0
+   limits:
+     - -4.5745
+     - 4.5745
+  Z:
+   gains:
+     - 2.3
+     - 0.0
+     - 0.0
+   limits:
+     - -9.81    # (0 - m*g) / m
+     - 1.58581 # (max_thrust - m*g) / m
+angle:
+  
+  X:
+   gains:
+     - 4.5
+     - 0.1
+     - 0.0
+
+   limits:
+     - -2.0 # Tuned for omega = 3. -> Stable behavior can be observed here
+     - 2.0
+  Y:
+   gains:
+     - 4.5
+     - 0.1
+     - 0.0
+   limits:
+     - -2.0
+     - 2.0
+  Z:
+   gains:
+     - 0.0
+     - 0.00
+     - 0.0
+   limits:
+     - -1.0 # Although tuned for omega = 3: Account for weak torque
+     - 1.0
+velocity_angular:
+  # XY: KU = 3.0, TU = 0.884s -> Ziegler-Nichols (PI): KP = 0.45KU = 1.35, KI = 0.54 * KU / TU = 1.8326
+  X:
+   gains:
+     - 0.7
+     - 0.05
+     - 0.0
+   limits:
+     - -2.082 # r_CM * (max_thrust^2 - (mass * g) ^ 2)^0.5 -> Maximum if we are only controlling in 1 direction with nominal z-force (no acceleration in z-direction except gravity)
+     - 2.082
+  Y:
+   gains:
+     - 0.7
+     - 0.05
+     - 0.0
+   limits:
+     - -2.082
+     - 2.082
+  Z:
+   gains:
+     - 0.09
+     - 0.00
+     - 0.0
+   limits:
+     - -0.05408  # -0.104 * Izz * Pdelta_max = 0.104 * 0.013 * 40
+     - 0.05408
+additional_limits:
+  alpha: 0.436332 #25°
+  beta: 0.436332 #25°

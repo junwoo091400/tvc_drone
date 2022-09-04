@@ -10,7 +10,7 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_optimal_control/DroneExtendedState.h"
+#include "rocket_utils/ExtendedState.h"
 #include "drone_optimal_control/DroneWaypointStamped.h"
 #include "rocket_utils/Waypoint.h"
 #include "rocket_utils/Trajectory.h"
@@ -44,7 +44,7 @@ public:
 
     double scaling = 1;
 
-    double seg_lengths[14] = {0.5, 1, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3,
+    const double seg_lengths[14] = {0.5, 1, 1, 1, 1, 0.64, 0.64, 1, 0.3, 1, 1.21/*ellipse*/, 0.5, 1.3,
                                              2.97/*ellipse*/ };
     double total_length;
     double total_duration;
@@ -281,20 +281,17 @@ public:
             rocket_utils::State state_msg;
             sample_traj(t, state_msg);
 
-            rocket_utils::GimbalControl gimbal_control_msg;
+            rocket_utils::DroneGimbalControl gimbal_control_msg;
             gimbal_control_msg.outer_angle = 0;
             gimbal_control_msg.inner_angle = 0;
             gimbal_control_msg.thrust = 0;
+            gimbal_control_msg.torque = 0;
 
-            rocket_utils::ControlMomentGyro roll_control_msg;
-            roll_control_msg.outer_angle = 0;
-            roll_control_msg.inner_angle = 0;
-            roll_control_msg.torque = 0;
+            
 
             drone_optimal_control::DroneWaypointStamped state_msg_stamped;
             state_msg_stamped.state.state = state_msg;
             state_msg_stamped.gimbal_control = gimbal_control_msg;
-            state_msg_stamped.roll_control = roll_control_msg;
             state_msg_stamped.header.stamp = time_compute_start + ros::Duration(t);
             state_msg_stamped.header.frame_id = ' ';
 

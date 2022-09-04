@@ -1,20 +1,50 @@
 <launch>
-    <arg name="controller" default="optimal_control"/>
+    <!-- Controller architecture -->
+    <arg name="main_controller" default="mpc"/>
+    <arg name="tracking_controller" default="none"/>
+    <arg name="tracking_type" default="state"/>
+    <arg name="controller_frequency" default="20.0"/>
+
+    <!-- Use true simulator value ('ground truth') or Kalman estimate -->
     <arg name="use_ground_truth_state" default="true"/>
+
+    <!-- Configuration for drone_optimal_control -->
     <arg name="use_guidance" default="false"/>
     <arg name="use_fixed_guidance" default="false"/>
+
+    <!-- Self-explanatory -->
     <arg name="is_simulation" default="true"/>
 
     <group ns="rocket">
         <rosparam file="$(find drone_utils)/config/drone_properties.yaml"/>
     </group>
 
-    <group if="$(eval arg('controller') == 'optimal_control')">
+    <group if="$(eval arg('main_controller') == 'mpc')">
         <include file="$(find drone_optimal_control)/launch/drone_optimal_control.launch">
+            <arg name="use_tracking_controller" value="$(eval arg('tracking_controller') != 'none')"/>
             <arg name="use_ground_truth_state" default="$(arg use_ground_truth_state)"/>
             <arg name="use_guidance" default="$(arg use_guidance)"/>
             <arg name="use_fixed_guidance" default="$(arg use_fixed_guidance)"/>
         </include>
+    </group>
+
+    <group if="$(eval arg('main_controller') != 'mpc')">
+        <node name="$(arg main_controller)_control" pkg="$(arg main_controller)_control"
+              type="$(arg main_controller)_control_node" output="screen" required="true">
+            <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>
+            <param name="frequency" value="$(arg controller_frequency)"/>
+            <param name="track_mpc" value="false"/>
+        </node>
+    </group>
+
+    <group if="$(eval arg('tracking_controller') != 'none')">
+        <node name="$(arg tracking_controller)_control" pkg="$(arg tracking_controller)_control"
+              type="$(arg tracking_controller)_control_node" output="screen" required="true">
+            <param name="track_mpc" value="true"/>
+            <param name="tracking_type" value="$(arg tracking_type)"/>
+            <param name="frequency" value="$(arg controller_frequency)"/>
+            <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>
+        </node>
     </group>
 
     <include file="$(find drone_navigation)/launch/drone_navigation.launch">

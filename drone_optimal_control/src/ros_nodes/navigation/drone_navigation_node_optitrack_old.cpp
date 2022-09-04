@@ -10,7 +10,7 @@
 #include "ros/ros.h"
 
 #include "rocket_utils/FSM.h"
-#include "drone_optimal_control/DroneExtendedState.h"
+#include "rocket_utils/ExtendedState.h"
 #include "drone_optimal_control/DroneControl.h"
 
 #include "geometry_msgs/PoseStamped.h"
@@ -61,7 +61,7 @@ public:
 
     void initTopics(ros::NodeHandle &nh) {
         // Create filtered rocket state publisher
-        kalman_pub = nh.advertise<drone_optimal_control::DroneExtendedState>("/drone_state", 1);
+        kalman_pub = nh.advertise<rocket_utils::ExtendedState>("/drone_state", 1);
 
         // Subscribe to time_keeper for fsm and time
         fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneNavigationNodeOptitrack::fsmCallback, this);
@@ -127,7 +127,7 @@ public:
     }
 
     // Callback function to store last received state
-    void rocket_stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state) {
+    void rocket_stateCallback(const rocket_utils::ExtendedState::ConstPtr &rocket_state) {
         optitrack_pose.pose = rocket_state->pose;
         optitrack_pose.header.stamp = rocket_state->header.stamp;
         received_optitrack = true;
@@ -149,7 +149,7 @@ public:
     }
 
     void publishDroneState() {
-        drone_optimal_control::DroneExtendedState kalman_state;
+        rocket_utils::ExtendedState kalman_state;
 
         kalman_state.pose.position.x = kalman.getState(0);
         kalman_state.pose.position.y = kalman.getState(1);
