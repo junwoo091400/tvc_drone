@@ -85,7 +85,7 @@ void DroneControlNode::run() {
             if (current_fsm.state_machine == rocket_utils::FSM::IDLE) {
                 start_time = ros::Time::now().toSec();
             } else if (current_fsm.state_machine == rocket_utils::FSM::ASCENT ||
-                       current_fsm.state_machine == rocket_utils::FSM::DESCENT) {
+                       current_fsm.state_machine == rocket_utils::FSM::LANDING) {
                 Drone::control interpolated_control = drone_mpc.solution_u_at(0.0);
                 publishControl(interpolated_control);
             } else if (current_fsm.state_machine == rocket_utils::FSM::STOP) {
@@ -107,13 +107,11 @@ void DroneControlNode::fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
 
 void DroneControlNode::simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state) {
     current_state.state = *rocket_state;
-    current_state.thrust_scaling = 1;
-    current_state.torque_scaling = 1;
     received_state = true;
 }
 
 // Callback function to store last received state
-void DroneControlNode::stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state) {
+void DroneControlNode::stateCallback(const rocket_utils::ExtendedState::ConstPtr &rocket_state) {
 //    const std::lock_guard<std::mutex> lock(state_mutex);
     current_state = *rocket_state;
     received_state = true;
@@ -247,8 +245,8 @@ void DroneControlNode::computeControl() {
         emergency_stop = true;
     }
 
-    drone->setParams(current_state.thrust_scaling,
-                     current_state.torque_scaling,
+    drone->setParams(1.0,
+                     1.0,
                      current_state.disturbance_force.x, current_state.disturbance_force.y,
                      current_state.disturbance_force.z,
                      current_state.disturbance_torque.x, current_state.disturbance_torque.y,
@@ -312,7 +310,7 @@ void DroneControlNode::publishTrajectory() {
         point.position.z = state_val(2);
         trajectory_msg.trajectory.push_back(point);
 
-        drone_optimal_control::DroneExtendedState state_msg;
+        rocket_utils::ExtendedState state_msg;
         state_msg.state.pose.position.x = state_val(0);
         state_msg.state.pose.position.y = state_val(1);
         state_msg.state.pose.position.z = state_val(2);

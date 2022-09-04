@@ -18,7 +18,7 @@
 #include "ros_config_loader.h"
 #include "ros/package.h"
 #include "drone_optimal_control/DroneTrajectory.h"
-#include "drone_optimal_control/DroneExtendedState.h"
+#include "rocket_utils/ExtendedState.h"
 
 
 
@@ -168,7 +168,7 @@ private:
         
     }
 
-    void kalmanStateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr rocket_state_msg) {
+    void kalmanStateCallback(const rocket_utils::ExtendedState::ConstPtr rocket_state_msg) {
         rocket_state = fromROS(rocket_state_msg->state);
     }
 

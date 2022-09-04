@@ -39,7 +39,7 @@ public:
 
     void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
 
-    void stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state);
+    void stateCallback(const rocket_utils::ExtendedState::ConstPtr &rocket_state);
 
     void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg);
 
@@ -61,7 +61,7 @@ private:
     DroneGuidance drone_guidance;
 
     bool received_state = false;
-    drone_optimal_control::DroneExtendedState current_state;
+    rocket_utils::ExtendedState current_state;
     rocket_utils::FSM current_fsm;
     Drone::state target_state;
     Drone::control target_control;

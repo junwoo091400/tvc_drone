@@ -135,7 +135,7 @@ bool kalmanSimu(drone_optimal_control::KalmanSimu::Request &req, drone_optimal_c
             if (fsm->state_machine == rocket_utils::FSM::ASCENT) started = true;
         }
         else if (m.getTopic() == "/drone_state") {
-            drone_optimal_control::DroneExtendedState::ConstPtr state = m.instantiate<drone_optimal_control::DroneExtendedState>();
+            rocket_utils::ExtendedState::ConstPtr state = m.instantiate<rocket_utils::ExtendedState>();
             current_time = state->header.stamp.toSec();
             if (t0 == 0) {
                 t0 = current_time;
@@ -166,7 +166,7 @@ bool kalmanSimu(drone_optimal_control::KalmanSimu::Request &req, drone_optimal_c
                 update_trigger = false;
             }
 
-            drone_optimal_control::DroneExtendedState kalman_state;
+            rocket_utils::ExtendedState kalman_state;
 
             kalman_state.pose.position.x = kalman->getState(0);
             kalman_state.pose.position.y = kalman->getState(1);

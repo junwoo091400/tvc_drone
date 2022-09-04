@@ -68,7 +68,7 @@ void DroneGuidanceNode::run() {
                 current_state.state.twist.angular.x, current_state.state.twist.angular.y, current_state.state.twist.angular.z;
 
         double time_until_apogee = drone_guidance.solution_p()(0);
-        if (current_fsm.state_machine == rocket_utils::FSM::DESCENT || time_until_apogee < descent_trigger_time) {
+        if ((current_fsm.state_machine == rocket_utils::FSM::LANDING || time_until_apogee < descent_trigger_time) && !started_descent) {
             startDescent();
         } else {
             double time_now = ros::Time::now().toSec();
@@ -103,12 +103,10 @@ void DroneGuidanceNode::fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
 
 void DroneGuidanceNode::simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state) {
     current_state.state = *rocket_state;
-    current_state.thrust_scaling = 1;
-    current_state.torque_scaling = 1;
     received_state = true;
 }
 
-void DroneGuidanceNode::stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state) {
+void DroneGuidanceNode::stateCallback(const rocket_utils::ExtendedState::ConstPtr &rocket_state) {
     current_state = *rocket_state;
     received_state = true;
 }
@@ -137,8 +135,8 @@ void DroneGuidanceNode::setPointCallback(const rocket_utils::State::ConstPtr &se
 }
 
 void DroneGuidanceNode::computeTrajectory() {
-    drone->setParams(current_state.thrust_scaling,
-                     current_state.torque_scaling,
+    drone->setParams(1.0,
+                     1.0,
                      0, 0, 0,
                      0, 0, 0);
 

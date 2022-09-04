@@ -1,3 +1,3 @@
-drone_optimal_control/DroneExtendedState state
+rocket_utils/ExtendedState state
 rocket_utils/DroneGimbalControl gimbal_control
 std_msgs/Header header
