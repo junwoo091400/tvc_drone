@@ -1,17 +1,17 @@
 <launch>
     <!-- Controller architecture -->
-    <arg name="use_tracking_controller" default="NONE"/>
-    <arg name="tracking_type" default="state"/>
     <arg name="main_controller" default="lqr"/>
+    <arg name="tracking_controller" default="none"/>
+    <arg name="tracking_type" default="state"/>
     <arg name="controller_frequency" default="20.0"/>
-    
-    <!-- Use true simulator value ('ground truth') or Kalman e-stimate -->
+
+    <!-- Use true simulator value ('ground truth') or Kalman estimate -->
     <arg name="use_ground_truth_state" default="true"/>
-    
+
     <!-- Configuration for drone_optimal_control -->
     <arg name="use_guidance" default="false"/>
     <arg name="use_fixed_guidance" default="false"/>
-    
+
     <!-- Self-explanatory -->
     <arg name="is_simulation" default="true"/>
 
@@ -19,33 +19,37 @@
         <rosparam file="$(find drone_utils)/config/drone_properties.yaml"/>
     </group>
 
-    <group if="$(eval arg('main_controller') == 'MPC')">
+    <group if="$(eval arg('main_controller') == 'mpc')">
         <include file="$(find drone_optimal_control)/launch/drone_optimal_control.launch">
-            <arg name="use_tracking_controller" value="$(arg use_tracking_controller)"/>
+            <arg name="use_tracking_controller" value="$(eval arg('tracking_controller') != 'none')"/>
             <arg name="use_ground_truth_state" default="$(arg use_ground_truth_state)"/>
             <arg name="use_guidance" default="$(arg use_guidance)"/>
             <arg name="use_fixed_guidance" default="$(arg use_fixed_guidance)"/>
         </include>
     </group>
 
-    <node name="$(arg main_controller)_control" pkg="$(arg main_controller)_control" type="$(arg main_controller)_control_node" output ="screen" required="true"  if="$(eval arg('main_controller')!='MPC')">
-        <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>
-        <param name="frequency" value="$(arg controller_frequency)"/>
-        <param name="track_mpc" value="false"/>
-    </node>
+    <group if="$(eval arg('main_controller') != 'mpc')">
+        <node name="$(arg main_controller)_control" pkg="$(arg main_controller)_control"
+              type="$(arg main_controller)_control_node" output="screen" required="true">
+            <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>
+            <param name="frequency" value="$(arg controller_frequency)"/>
+            <param name="track_mpc" value="false"/>
+        </node>
+    </group>
 
-    <node name="$(arg use_tracking_controller)_control" pkg="$(arg use_tracking_controller)_control" type="$(arg use_tracking_controller)_control_node" output ="screen" required="true"  if="$(eval (arg('use_tracking_controller')!='NONE'))">
-        <param name="track_mpc" value="true"/>
-        <param name="tracking_type" value="$(arg tracking_type)"/>
-        <param name="frequency" value="$(arg controller_frequency)"/>
-        <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>
-    </node>
+    <group if="$(eval arg('tracking_controller') != 'none')">
+        <node name="$(arg tracking_controller)_control" pkg="$(arg tracking_controller)_control"
+              type="$(arg tracking_controller)_control_node" output="screen" required="true">
+            <param name="track_mpc" value="true"/>
+            <param name="tracking_type" value="$(arg tracking_type)"/>
+            <param name="frequency" value="$(arg controller_frequency)"/>
+            <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>
+        </node>
+    </group>
 
     <include file="$(find drone_navigation)/launch/drone_navigation.launch">
         <arg name="is_simulation" value="$(arg is_simulation)"/>
     </include>
-
-    
 
     <node name="drone_fsm" pkg="drone_fsm" type="drone_fsm_node" output="screen">
         <rosparam param="land_after_apogee" subst_value="true">$(arg use_guidance)</rosparam>

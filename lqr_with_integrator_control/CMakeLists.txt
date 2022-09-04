@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(lqr_guidance)
+project(lqr_with_integrator_control)
 
 set(CMAKE_MODULE_PATH /usr/local/share/cmake/Modules/)
 
@@ -19,11 +19,15 @@ endif ()
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  rocket_utils
+  drone_optimal_control
   )
+find_package(yaml-cpp REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -115,9 +119,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  #  INCLUDE_DIRS include
-  #  LIBRARIES lqr_guidance
-  #  CATKIN_DEPENDS roscpp rospy std_msgs
+  INCLUDE_DIRS include
+  #  LIBRARIES lqr_with_integrator_control
+  CATKIN_DEPENDS roscpp rospy std_msgs rocket_utils
   #  DEPENDS system_lib
 )
 
@@ -128,13 +132,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  # include
+  include
+  ../drone_optimal_control/submodule/polympc/src
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/lqr_guidance.cpp
+#   src/${PROJECT_NAME}/lqr_with_integrator_control.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -145,22 +150,18 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/lqr_guidance_node.cpp)
 
-## Rename C++ executable without prefix
-## The above recommended prefix causes long target names, the following renames the
-## target back to the shorter version for ease of user use
-## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+add_library(drone_model_3 include/drone_model.hpp)
+set_target_properties(drone_model_3 PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(drone_model_3 Eigen3::Eigen)
 
-## Add cmake target dependencies of the executable
-## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_library(mpc_utils_3 src/mpc_utils.cpp)
+set_target_properties(mpc_utils_3 PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(mpc_utils_3 drone_model_3 Eigen3::Eigen)
 
-## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+add_executable(lqr_with_integrator_control_node src/lqr_with_integrator_control_node.cpp)
+target_link_libraries(lqr_with_integrator_control_node Eigen3::Eigen ${catkin_LIBRARIES} yaml-cpp drone_model_3 mpc_utils_3)
+add_dependencies(lqr_with_integrator_control_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 #############
 ## Install ##
@@ -209,7 +210,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_lqr_guidance.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_lqr_with_integrator_control.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

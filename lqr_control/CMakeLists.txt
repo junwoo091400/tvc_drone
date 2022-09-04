@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(pid_fsm)
+project(lqr_control)
 
 set(CMAKE_MODULE_PATH /usr/local/share/cmake/Modules/)
 
@@ -25,7 +25,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   rocket_utils
+  drone_optimal_control
   )
+find_package(yaml-cpp REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -117,9 +119,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-  #  LIBRARIES pid_navigation
-  CATKIN_DEPENDS roscpp rospy std_msgs rocket_utils
+  INCLUDE_DIRS include
+  #  LIBRARIES lqr_control
+  CATKIN_DEPENDS roscpp rospy std_msgs rocket_utils drone_optimal_control
   #  DEPENDS system_lib
 )
 
@@ -130,13 +132,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
+  ../drone_optimal_control/submodule/polympc/src
   include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/pid_navigation.cpp
+#   src/${PROJECT_NAME}/lqr_control.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -147,10 +150,17 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
+add_library(drone_model_2 include/drone_model.hpp)
+set_target_properties(drone_model_2 PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(drone_model_2 Eigen3::Eigen)
 
-add_executable(pid_fsm_node src/pid_fsm_node.cpp)
-target_link_libraries(pid_fsm_node Eigen3::Eigen ${catkin_LIBRARIES})
-add_dependencies(pid_fsm_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_library(mpc_utils_2 src/mpc_utils.cpp)
+set_target_properties(mpc_utils_2 PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(mpc_utils_2 drone_model_2 Eigen3::Eigen)
+
+add_executable(lqr_control_node src/lqr_control_node.cpp )
+target_link_libraries(lqr_control_node Eigen3::Eigen ${catkin_LIBRARIES} yaml-cpp drone_model_2 mpc_utils_2 )
+add_dependencies(lqr_control_node  ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 #############
 ## Install ##
@@ -199,7 +209,7 @@ add_dependencies(pid_fsm_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPOR
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_pid_navigation.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_lqr_control.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
