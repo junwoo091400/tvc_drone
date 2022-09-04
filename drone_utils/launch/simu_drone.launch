@@ -3,6 +3,7 @@
     <arg name="use_tracking_controller" default="NONE"/>
     <arg name="tracking_type" default="state"/>
     <arg name="main_controller" default="lqr"/>
+    <arg name="controller_frequency" default="20.0"/>
     
     <!-- Use true simulator value ('ground truth') or Kalman e-stimate -->
     <arg name="use_ground_truth_state" default="true"/>

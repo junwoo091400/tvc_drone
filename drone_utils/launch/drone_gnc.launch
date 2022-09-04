@@ -3,6 +3,7 @@
     <arg name="use_tracking_controller" default="NONE"/>
     <arg name="tracking_type" default="state"/>
     <arg name="main_controller" default="lqr"/>
+    <arg name="controller_frequency" default="20.0"/>
     
     <!-- Use true simulator value ('ground truth') or Kalman e-stimate -->
     <arg name="use_ground_truth_state" default="true"/>
@@ -29,12 +30,14 @@
 
     <node name="$(arg main_controller)_control" pkg="$(arg main_controller)_control" type="$(arg main_controller)_control_node" output ="screen" required="true"  if="$(eval arg('main_controller')!='MPC')">
         <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>
+        <param name="frequency" value="$(arg controller_frequency)"/>
         <param name="track_mpc" value="false"/>
     </node>
 
     <node name="$(arg use_tracking_controller)_control" pkg="$(arg use_tracking_controller)_control" type="$(arg use_tracking_controller)_control_node" output ="screen" required="true"  if="$(eval (arg('use_tracking_controller')!='NONE'))">
         <param name="track_mpc" value="true"/>
         <param name="tracking_type" value="$(arg tracking_type)"/>
+        <param name="frequency" value="$(arg controller_frequency)"/>
         <param name="use_ground_truth_state" value="$(arg use_ground_truth_state)"/>
     </node>
 
