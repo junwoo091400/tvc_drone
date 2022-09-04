@@ -1,4 +1,17 @@
 /**
+ * @file pid_template.hpp
+ * @author Sven Becker (sven.becker@epfl.ch)
+ * @brief Basic implementation of general purpos  but output-limited PID with anti-windup on integrator
+ * @version 1.0
+ * @date 2022-09-04
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+
+
+/**
  * @brief Generic PID controller with gains and local integrator state (s.t. anti-windup)
  * 
  */

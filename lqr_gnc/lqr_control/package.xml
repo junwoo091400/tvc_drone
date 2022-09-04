@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>lqr_control</name>
-  <version>0.0.0</version>
-  <description>The lqr_control package</description>
+  <version>1.0.0</version>
+  <description>LQR controller for the drone vehicle or rocket</description>
 
-  <maintainer email="albericlajarte@gmail.com">alberic</maintainer>
+  <maintainer email="sven.becker@epfl.ch">Sven Becker</maintainer>
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->

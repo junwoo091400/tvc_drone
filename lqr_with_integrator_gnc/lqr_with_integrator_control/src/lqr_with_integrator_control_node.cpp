@@ -1,21 +1,13 @@
-/*
-* Node to send control commands to the rocket engine.
-* Can also be used by the simulation for SIL and PIL tests.
-*
-* Inputs:
-*   - Finite state machine from the lqr_fsm :	    /gnc_fsm_pub
-*   - Estimated state from lqr_navigation:		      /kalman_rocket_state
-*
-* Important parameters:
-*   - Rocket model: 		  /config/rocket_parameters.yaml
-*   - Environment model: 	/config/environment_parameters.yaml
-*	  - P gain: 		        P_control()
-*   - Control loop period control_thread()
-*
-* Outputs:
-*   - Commanded angles and thrust for the rocket gimbal:  /gimbal_command_0
-*
-*/
+/**
+ * @file lqr_with_integrator_control_node.cpp
+ * @author Sven Becker (sven.becker@epfl.ch)
+ * @brief Implementation of chapter 5.3.3 of https://drive.google.com/file/d/1psKMbYIDg3n1MyOD7myFiBktjy46THxa/view?usp=sharing
+ * @version 1.0
+ * @date 2022-09-04
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 
 #include "ros/ros.h"
 

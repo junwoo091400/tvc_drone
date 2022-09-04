@@ -1,3 +1,14 @@
+/**
+ * @file lqr_control.hpp
+ * @brief Implementation of chapter 5.3.2 of https://drive.google.com/file/d/1psKMbYIDg3n1MyOD7myFiBktjy46THxa/view?usp=sharing
+ * @author Sven Becker (sven.becker@epfl.ch)
+ * @version 1.0
+ * @date 2022-09-04
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #pragma once
 
 #include "rocket_types/rocket_types.h"
