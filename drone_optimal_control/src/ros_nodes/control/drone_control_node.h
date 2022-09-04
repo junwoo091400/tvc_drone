@@ -47,8 +47,7 @@ public:
     // Callback function to store last received state
     void stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state);
 
-    // Callback function to store last received state
-    void targetCallback(const geometry_msgs::Vector3 &target);
+    void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg);
 
     void computeControl();
 
@@ -78,7 +77,7 @@ private:
 
     bool received_state = false;
     drone_optimal_control::DroneExtendedState current_state;
-    geometry_msgs::Vector3 target_apogee;
+    rocket_utils::State target_set_point;
     double time_compute_start;
     bool track_guidance;
 

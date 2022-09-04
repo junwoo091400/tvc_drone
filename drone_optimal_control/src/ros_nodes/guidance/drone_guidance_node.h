@@ -41,7 +41,7 @@ public:
 
     void stateCallback(const drone_optimal_control::DroneExtendedState::ConstPtr &rocket_state);
 
-    void targetCallback(const geometry_msgs::Vector3 &target);
+    void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg);
 
     void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm);
 

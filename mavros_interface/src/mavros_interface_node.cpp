@@ -118,12 +118,12 @@ int main(int argc, char **argv) {
 //    ros::Subscriber drone_control_sub = nh.subscribe("/drone_control", 1, updateCurrentControl);
 
     // Subscribe to drone control
-    ros::Subscriber target_apogee_sub = nh.subscribe("/target_apogee", 1, targetCallback);
+    ros::Subscriber target_apogee_sub = nh.subscribe("/set_point", 1, targetCallback);
 
     // Create control publisher
     pixhawk_control_pub = nh.advertise<mavros_msgs::ActuatorControl>("/mavros/actuator_control", 10);
 
-    target_apogee_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
+    target_apogee_pub = nh.advertise<geometry_msgs::Vector3>("/set_point", 10);
 
 
     // Subscribe to drone control

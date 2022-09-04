@@ -37,7 +37,7 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     nh.param<bool>("/control/track_guidance", control_track_guidance, false);
     nh.param<bool>("/control/use_simulation_state", use_simulation_state, true);
     if (control_track_guidance) {
-        target_sub = nh.subscribe("/target_apogee", 1, &DroneGuidanceNode::targetCallback, this);
+        target_sub = nh.subscribe("/set_point", 1, &DroneGuidanceNode::setPointCallback, this);
     }
     if (use_simulation_state) {
         state_sub = nh.subscribe("/rocket_state", 1, &DroneGuidanceNode::simulationStateCallback, this);
@@ -113,9 +113,10 @@ void DroneGuidanceNode::stateCallback(const drone_optimal_control::DroneExtended
     received_state = true;
 }
 
-void DroneGuidanceNode::targetCallback(const geometry_msgs::Vector3 &target) {
+void DroneGuidanceNode::setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg) {
     Drone::state new_target_state;
-    new_target_state << target.x, target.y, target.z,
+    //TODO
+    new_target_state << set_point_msg->pose.position.x, set_point_msg->pose.position.y, set_point_msg->pose.position.z,
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;

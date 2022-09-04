@@ -30,12 +30,11 @@ private:
     ros::Subscriber extended_state_sub;
 
     ros::Publisher fsm_pub;
-    ros::Publisher target_pub;
 
     double time_zero;
     RocketState current_state;
     bool is_calibration_done = false;
-    Vector3 target_apogee;
+    RocketState target_set_point = RocketState::Zero();
 
     bool land_after_apogee;
 
@@ -51,17 +50,15 @@ public:
         fsm_pub = nh.advertise<rocket_utils::FSM>("/gnc_fsm_pub", 10);
 
         command_sub = nh.subscribe("/commands", 10, &FsmNode::processCommand, this);
-        target_sub = nh.subscribe("/target_apogee", 1, &FsmNode::targetCallback, this);
-        target_pub = nh.advertise<geometry_msgs::Vector3>("/target_apogee", 10);
+        target_sub = nh.subscribe("/set_point", 1, &FsmNode::setPointCallback, this);
 
         std::vector<double> initial_target_apogee;
         if (nh.getParam("/guidance/target_apogee", initial_target_apogee) ||
             nh.getParam("/control/target_apogee", initial_target_apogee)) {
-            target_apogee.x = initial_target_apogee.at(0);
-            target_apogee.y = initial_target_apogee.at(1);
-            target_apogee.z = initial_target_apogee.at(2);
+          target_set_point.position.x = initial_target_apogee.at(0);
+          target_set_point.position.y = initial_target_apogee.at(1);
+          target_set_point.position.z = initial_target_apogee.at(2);
         }
-
 
         // Subscribe to commands
         extended_state_sub = nh.subscribe("/extended_kalman_rocket_state", 1, &FsmNode::extendedStateCallback, this);
@@ -82,7 +79,7 @@ public:
             case ASCENT: {
                 if (land_after_apogee &&
                     current_state.position.z > 1 &&
-                    (current_state.velocity.z <= 0 || current_state.position.z >= target_apogee.z)) {
+                    (current_state.velocity.z <= 0 || current_state.position.z >= target_set_point.position.z)) {
                     current_fsm = RocketFSMState::LANDING;
                 }
                 break;
@@ -114,8 +111,8 @@ private:
         is_calibration_done = extended_rocket_state->is_calibrated;
     }
 
-    void targetCallback(const geometry_msgs::Vector3::ConstPtr &target) {
-        target_apogee = fromROS(*target);
+    void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg) {
+      target_set_point = fromROS(*set_point_msg);
     }
 
     void processCommand(const std_msgs::String &command) {

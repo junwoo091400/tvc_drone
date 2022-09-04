@@ -16,9 +16,9 @@ DroneControlNode::DroneControlNode(ros::NodeHandle &nh, Drone *drone) :
 
     std::vector<double> initial_target_apogee;
     nh.getParam("target_apogee", initial_target_apogee);
-    target_apogee.x = initial_target_apogee.at(0);
-    target_apogee.y = initial_target_apogee.at(1);
-    target_apogee.z = initial_target_apogee.at(2);
+    target_set_point.pose.position.x = initial_target_apogee.at(0);
+    target_set_point.pose.position.y = initial_target_apogee.at(1);
+    target_set_point.pose.position.z = initial_target_apogee.at(2);
 
     nh.param("track_guidance", track_guidance, false);
     
@@ -41,7 +41,7 @@ void DroneControlNode::initTopics(ros::NodeHandle &nh) {
         drone_state_sub = nh.subscribe("/extended_kalman_rocket_state", 1, &DroneControlNode::stateCallback, this,
                                        ros::TransportHints().tcpNoDelay());
     }
-    target_sub = nh.subscribe("/target_apogee", 1, &DroneControlNode::targetCallback, this);
+    target_sub = nh.subscribe("/set_point", 1, &DroneControlNode::setPointCallback, this);
     target_traj_sub = nh.subscribe("/guidance/horizon", 1, &DroneControlNode::targetTrajectoryCallback, this,
                                    ros::TransportHints().tcpNoDelay());
     fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &DroneControlNode::fsmCallback, this);
@@ -120,9 +120,9 @@ void DroneControlNode::stateCallback(const drone_optimal_control::DroneExtendedS
 }
 
 // Callback function to store last received state
-void DroneControlNode::targetCallback(const geometry_msgs::Vector3 &target) {
+void DroneControlNode::setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg) {
 //    const std::lock_guard<std::mutex> lock(target_mutex);
-    target_apogee = target;
+    target_set_point = *set_point_msg;
 }
 
 
@@ -353,7 +353,8 @@ void DroneControlNode::fetchNewTarget() {
     Drone::control target_control;
 
 //    target_mutex.lock();
-    target_state << target_apogee.x, target_apogee.y, target_apogee.z,
+    // TODO
+    target_state << target_set_point.pose.position.x, target_set_point.pose.position.y, target_set_point.pose.position.z,
             0, 0, 0,
             0, 0, 0, 1,
             0, 0, 0;
