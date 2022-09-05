@@ -7,7 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#include "drone_control_node.h"
+#include "drone_optimal_control_ros/drone_control_node.h"
 
 DroneControlNode::DroneControlNode(ros::NodeHandle& nh, Drone* drone)
   : drone(drone), drone_mpc(drone, (mpc_settings = loadMPCSettings(nh), mpc_settings))

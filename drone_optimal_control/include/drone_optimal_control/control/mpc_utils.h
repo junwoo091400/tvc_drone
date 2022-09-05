@@ -22,8 +22,8 @@
 #include "unsupported/Eigen/Polynomials"
 #include "unsupported/Eigen/MatrixFunctions"
 
-#include <autodiff/AutoDiffScalar.h>
-#include <drone_model.hpp>
+#include "autodiff/AutoDiffScalar.h"
+#include "../drone_model.hpp"
 #include <memory>
 
 static const int NX = Drone::NX;

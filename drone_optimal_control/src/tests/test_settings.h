@@ -1,8 +1,8 @@
 #pragma once
 
-#include "drone_model.hpp"
-#include "drone_guidance_settings.hpp"
-#include "drone_mpc_settings.hpp"
+#include "drone_optimal_control/drone_model.hpp"
+#include "drone_optimal_control/guidance/drone_guidance_settings.hpp"
+#include "drone_optimal_control/control/drone_mpc_settings.hpp"
 
 // TODO load from yaml without ROS?
 

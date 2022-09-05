@@ -7,7 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#include "drone_guidance.h"
+#include "drone_optimal_control/guidance/drone_guidance.h"
 
 DroneGuidance::DroneGuidance(Drone* drone, GuidanceSettings<double>& guidance_settings)
   : drone(drone), guidance_settings(guidance_settings)

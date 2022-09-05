@@ -33,10 +33,6 @@ install(
   EXPORT install_targets
 )
 
-include_directories(../control)
-include_directories(../guidance)
-include_directories(../models)
-
 add_executable(control_mpc_test control_mpc_test.cpp)
 target_link_libraries(control_mpc_test drone_mpc Eigen3::Eigen OsqpEigen::OsqpEigen ${PYTHON_LIBRARIES} matplotlib_cpp)
 
@@ -44,10 +40,10 @@ add_executable(control_mpc_simulation_test control_mpc_simulation_test.cpp)
 target_link_libraries(control_mpc_simulation_test drone_mpc Eigen3::Eigen OsqpEigen::OsqpEigen ${PYTHON_LIBRARIES})
 
 add_executable(guidance_test guidance_test.cpp)
-target_link_libraries(guidance_test drone_guidance_lib Eigen3::Eigen OsqpEigen::OsqpEigen matplotlib_cpp)
+target_link_libraries(guidance_test drone_guidance Eigen3::Eigen OsqpEigen::OsqpEigen matplotlib_cpp)
 
 add_executable(terminal_cost_test terminal_cost_test.cpp)
 target_link_libraries(terminal_cost_test mpc_utils Eigen3::Eigen OsqpEigen::OsqpEigen)
 
 add_executable(full_trajectory_tracking_test full_trajectory_tracking_test.cpp)
-target_link_libraries(full_trajectory_tracking_test drone_mpc drone_guidance_lib Eigen3::Eigen OsqpEigen::OsqpEigen)
+target_link_libraries(full_trajectory_tracking_test drone_mpc drone_guidance Eigen3::Eigen OsqpEigen::OsqpEigen)

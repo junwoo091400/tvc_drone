@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ros/ros.h>
-#include "../control/drone_mpc_settings.hpp"
+#include "../../../../../../../opt/ros/noetic/include/ros/ros.h"
+#include "../drone_optimal_control/control/drone_mpc_settings.hpp"
 
 ControlMPCSettings<double> loadMPCSettings(ros::NodeHandle& nh)
 {

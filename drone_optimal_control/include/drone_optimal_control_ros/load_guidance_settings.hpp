@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ros/ros.h>
-#include "../guidance/drone_guidance_settings.hpp"
+#include "../../../../../../../opt/ros/noetic/include/ros/ros.h"
+#include "../drone_optimal_control/guidance/drone_guidance_settings.hpp"
 
 GuidanceSettings<double> loadGuidanceSettings(ros::NodeHandle& nh)
 {

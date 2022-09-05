@@ -7,7 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#include "drone_guidance_node.h"
+#include "drone_optimal_control_ros/drone_guidance_node.h"
 
 DroneGuidanceNode::DroneGuidanceNode(ros::NodeHandle& nh, Drone* drone)
   : drone(drone), drone_guidance(drone, (guidance_settings = loadGuidanceSettings(nh), guidance_settings))

@@ -7,7 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#include "drone_mpc.h"
+#include "drone_optimal_control/control/drone_mpc.h"
 
 DroneMPC::DroneMPC(Drone* drone, ControlMPCSettings<double>& mpc_settings) : drone(drone)
 {

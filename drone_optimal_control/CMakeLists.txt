@@ -62,6 +62,7 @@ endif ()
 # find_package(Boost REQUIRED COMPONENTS system)
 
 find_package(Eigen3 REQUIRED)
+find_package(OsqpEigen REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -158,7 +159,7 @@ endif ()
 if (BUILD_ROS)
   catkin_package(
     CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs rocket_utils drone_fsm
-    INCLUDE_DIRS src/ros_nodes src/models src/ros_nodes/utils src/control src/guidance
+    INCLUDE_DIRS include
     #LIBRARIES ${PROJECT_NAME}
     #  DEPENDS system_lib
   )
@@ -205,16 +206,11 @@ endif ()
 #   ${catkin_LIBRARIES}
 # )
 
-include_directories(src/utils src/control src/models src/navigation src/guidance submodule/polympc/src src/ros_nodes
-  ${catkin_INCLUDE_DIRS}
-  ${VRPN_INCLUDE_DIR})
+include_directories(include
+  submodule/polympc/src
+  ${catkin_INCLUDE_DIRS})
 
-add_subdirectory(src/control)
-add_subdirectory(src/guidance)
-add_subdirectory(src/models)
-if (BUILD_ROS)
-  add_subdirectory(src/ros_nodes)
-endif ()
+add_subdirectory(src)
 if (BUILD_TESTS)
   add_subdirectory(src/tests)
 endif ()

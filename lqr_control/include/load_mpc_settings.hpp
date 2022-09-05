@@ -2,7 +2,7 @@
 #define DRONE_GNC_LOAD_MPC_SETTINGS_HPP
 
 #include <ros/ros.h>
-#include "../control/drone_mpc_settings.hpp"
+#include "../../drone_optimal_control/include/drone_optimal_control/control/drone_mpc_settings.hpp"
 
 ControlMPCSettings<double> loadMPCSettings(ros::NodeHandle& nh)
 {

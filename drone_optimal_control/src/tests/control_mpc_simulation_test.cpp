@@ -5,7 +5,7 @@
 #include <utility>
 #include <fstream>
 
-#include "drone_mpc.h"
+#include "drone_optimal_control/control/drone_mpc.h"
 #include "test_settings.h"
 
 using namespace Eigen;

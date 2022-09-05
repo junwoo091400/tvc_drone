@@ -7,7 +7,7 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#include "mpc_utils.h"
+#include "drone_optimal_control/control/mpc_utils.h"
 
 void computeLinearizedModel(Drone* drone, Matrix<double, NX, NX>& A, Matrix<double, NX, NU>& B)
 {

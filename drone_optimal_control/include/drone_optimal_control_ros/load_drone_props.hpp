@@ -1,8 +1,8 @@
 #pragma once
 
-#include <ros/ros.h>
+#include "../../../../../../../opt/ros/noetic/include/ros/ros.h"
 
-#include "drone_model.hpp"
+#include "../drone_optimal_control/drone_model.hpp"
 
 DroneProps<double> loadDroneProps(ros::NodeHandle& nh)
 {

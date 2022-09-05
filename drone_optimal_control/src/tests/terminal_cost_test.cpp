@@ -10,8 +10,8 @@
 #include <iostream>
 
 #include "Eigen/Core"
-#include "drone_model.hpp"
-#include "mpc_utils.h"
+#include "drone_optimal_control/drone_model.hpp"
+#include "drone_optimal_control/control/mpc_utils.h"
 #include "test_settings.h"
 
 int main(int argc, char** argv)

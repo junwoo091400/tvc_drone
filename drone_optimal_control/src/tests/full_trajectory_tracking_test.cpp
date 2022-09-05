@@ -6,8 +6,8 @@
 #include <Eigen/Dense>
 #include <fstream>
 
-#include "drone_mpc.h"
-#include "drone_guidance.h"
+#include "drone_optimal_control/control/drone_mpc.h"
+#include "drone_optimal_control/guidance/drone_guidance.h"
 #include "test_settings.h"
 
 using namespace Eigen;

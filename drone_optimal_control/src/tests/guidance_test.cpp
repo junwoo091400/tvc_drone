@@ -7,7 +7,7 @@
 #include <fstream>
 #include "matplotlibcpp.h"
 
-#include "drone_guidance.h"
+#include "drone_optimal_control/guidance/drone_guidance.h"
 #include "test_settings.h"
 
 using namespace Eigen;
