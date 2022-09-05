@@ -3,7 +3,7 @@
 ROS workspace containing the packages and tools for EPFL Rocket Team's "drone", a thrust-vector-controlled electric
 small-scale rocket prototype.
 
-<img src="docs/overview.jpg" alt="drawing" height="300"/><img src="docs/pid_demo.gif" alt="drawing" height="300"/>
+<img src="docs/overview.jpg" alt="drawing" height="300"/><img src="docs/pid_demo.gif" alt="drawing" height="300"/>[2]<img src="docs/draw_mpc_simu_demo.gif" alt="drawing" height="250"/>
 [1]
 
 ## Description
