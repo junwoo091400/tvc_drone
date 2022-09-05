@@ -1,24 +1,25 @@
 <launch>
-	<arg name="machine" default="localhost"/>
+    <arg name="machine" default="localhost"/>
 
-	<machine name="localhost" address="localhost"/>
+    <machine name="localhost" address="localhost"/>
 
-	<node pkg="mavros" type="mavros_node" name="mavros" clear_params="true" output="screen" respawn="false" machine="$(arg machine)">
-		<param name="fcu_url" value="/dev/ttyS0:921600" />
-		<param name="gcs_url" value="" />
-		<param name="target_system_id" value="1" />
-		<param name="target_component_id" value="1" />
-		<param name="fcu_protocol" value="v2.0" />
+    <node pkg="mavros" type="mavros_node" name="mavros" clear_params="true" output="screen" respawn="false"
+          machine="$(arg machine)">
+        <param name="fcu_url" value="/dev/ttyS0:921600"/>
+        <param name="gcs_url" value=""/>
+        <param name="target_system_id" value="1"/>
+        <param name="target_component_id" value="1"/>
+        <param name="fcu_protocol" value="v2.0"/>
 
-		<rosparam command="load" file="$(find mavros)/launch/px4_pluginlists.yaml" />
-		<rosparam command="load" file="$(find mavros)/launch/px4_config.yaml" />
-	</node>
+        <rosparam command="load" file="$(find mavros)/launch/px4_pluginlists.yaml"/>
+        <rosparam command="load" file="$(find mavros)/launch/px4_config.yaml"/>
+    </node>
 
     <node name="mavros_interface" pkg="mavros_interface" type="mavros_interface_node" machine="$(arg machine)">
-		<param name="enable_rc_control" value="false"/>
-		<rosparam param="servo1_offset">43</rosparam>
-		<rosparam param="servo2_offset">1</rosparam>
-	</node>
+        <param name="enable_rc_control" value="false"/>
+        <rosparam param="servo1_offset">43</rosparam>
+        <rosparam param="servo2_offset">1</rosparam>
+    </node>
 </launch>
 
 

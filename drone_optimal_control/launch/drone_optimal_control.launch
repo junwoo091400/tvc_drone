@@ -21,7 +21,7 @@
         <rosparam file="$(find drone_optimal_control)/config/guidance_config.yaml"/>
     </group>
 
-<!--    valgrind &#45;&#45;track-origins=yes &#45;&#45;leak-check=full-->
+    <!--    valgrind &#45;&#45;track-origins=yes &#45;&#45;leak-check=full-->
 
     <group if="$(arg use_guidance)">
         <node name="guidance" pkg="drone_optimal_control" type="drone_guidance" output="screen"

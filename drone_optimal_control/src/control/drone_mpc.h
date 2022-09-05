@@ -11,58 +11,60 @@
 
 #include "control_solver.hpp"
 
-class DroneMPC : private MPC<DroneControlOCP, ControlSolver> {
-
+class DroneMPC : private MPC<DroneControlOCP, ControlSolver>
+{
 public:
-    using ocp_state = state_t;
-    using ocp_control = control_t;
-    using ocp_constraint = constraint_t;
+  using ocp_state = state_t;
+  using ocp_control = control_t;
+  using ocp_constraint = constraint_t;
 
-    using MPC::num_nodes;
+  using MPC::num_nodes;
 
-    double period;
-    double horizon_length;
+  double period;
+  double horizon_length;
 
-    DroneMPC(Drone *drone, ControlMPCSettings<scalar_t> &mpc_settings);
+  DroneMPC(Drone* drone, ControlMPCSettings<scalar_t>& mpc_settings);
 
-    void solve(Drone::state &x0, bool constrain_servo_rate_between_iterations=true);
+  void solve(Drone::state& x0, bool constrain_servo_rate_between_iterations = true);
 
-    Drone::state solution_x_at(double t);
+  Drone::state solution_x_at(double t);
 
-    Drone::control solution_u_at(double t);
+  Drone::control solution_u_at(double t);
 
-    Drone::state solution_x_at(int t);
+  Drone::state solution_x_at(int t);
 
-    Drone::control solution_u_at(int t);
+  Drone::control solution_u_at(int t);
 
-    inline void state_bounds(const Eigen::Ref<const state_t> &xlb, const Eigen::Ref<const state_t> &xub) {
-        MPC::state_bounds(xlb.cwiseProduct(ocp().x_scaling_vec), xub.cwiseProduct(ocp().x_scaling_vec));
-    }
+  inline void state_bounds(const Eigen::Ref<const state_t>& xlb, const Eigen::Ref<const state_t>& xub)
+  {
+    MPC::state_bounds(xlb.cwiseProduct(ocp().x_scaling_vec), xub.cwiseProduct(ocp().x_scaling_vec));
+  }
 
-    inline void control_bounds(const Eigen::Ref<const control_t> &lb, const Eigen::Ref<const control_t> &ub) {
-        MPC::control_bounds(lb.cwiseProduct(ocp().u_scaling_vec), ub.cwiseProduct(ocp().u_scaling_vec));
-    }
+  inline void control_bounds(const Eigen::Ref<const control_t>& lb, const Eigen::Ref<const control_t>& ub)
+  {
+    MPC::control_bounds(lb.cwiseProduct(ocp().u_scaling_vec), ub.cwiseProduct(ocp().u_scaling_vec));
+  }
 
-    void setMaximumHorizonLength(double horizon_length);
+  void setMaximumHorizonLength(double horizon_length);
 
-    double getMaximumHorizonLength();
+  double getMaximumHorizonLength();
 
-    double node_time(int i);
+  double node_time(int i);
 
-    using MPC::info;
+  using MPC::info;
 
-    void reset();
+  void reset();
 
-    void integrateX0(const Drone::state x0, Drone::state &new_x0);
+  void integrateX0(const Drone::state x0, Drone::state& new_x0);
 
-    void setTargetStateTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> target_state_trajectory);
+  void setTargetStateTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> target_state_trajectory);
 
-    void setTargetControlTrajectory(Matrix<double, Drone::NU, DroneMPC::num_nodes> target_control_trajectory);
+  void setTargetControlTrajectory(Matrix<double, Drone::NU, DroneMPC::num_nodes> target_control_trajectory);
 
-    void setTargetState(Drone::state target_state);
+  void setTargetState(Drone::state target_state);
 
-    void setTargetControl(Drone::control target_control);
+  void setTargetControl(Drone::control target_control);
 
 private:
-    Drone *drone;
+  Drone* drone;
 };

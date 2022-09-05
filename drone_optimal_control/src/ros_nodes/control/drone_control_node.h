@@ -30,89 +30,90 @@
 #include "load_mpc_settings.hpp"
 #include "load_drone_props.hpp"
 
-class DroneControlNode {
+class DroneControlNode
+{
 public:
-    double period;
+  double period;
 
-    DroneControlNode(ros::NodeHandle &nh, Drone *drone_ptr);
+  DroneControlNode(ros::NodeHandle& nh, Drone* drone_ptr);
 
-    void initTopics(ros::NodeHandle &nh);
+  void initTopics(ros::NodeHandle& nh);
 
-    void run();
+  void run();
 
-    void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm);
+  void fsmCallback(const rocket_utils::FSM::ConstPtr& fsm);
 
-    void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
+  void simulationStateCallback(const rocket_utils::State::ConstPtr& rocket_state);
 
-    // Callback function to store last received state
-    void stateCallback(const rocket_utils::ExtendedState::ConstPtr &rocket_state);
+  // Callback function to store last received state
+  void stateCallback(const rocket_utils::ExtendedState::ConstPtr& rocket_state);
 
-    void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg);
+  void setPointCallback(const rocket_utils::State::ConstPtr& set_point_msg);
 
-    void computeControl();
+  void computeControl();
 
-    void toROS(const Drone::control &control, rocket_utils::DroneGimbalControl &gimbal_control);
+  void toROS(const Drone::control& control, rocket_utils::DroneGimbalControl& gimbal_control);
 
-    void publishControl(Drone::control &control);
+  void publishControl(Drone::control& control);
 
-    void publishTrajectory();
+  void publishTrajectory();
 
-    void fetchNewTarget();
+  void fetchNewTarget();
 
-    void targetTrajectoryCallback(const drone_optimal_control::DroneTrajectory::ConstPtr &target);
+  void targetTrajectoryCallback(const drone_optimal_control::DroneTrajectory::ConstPtr& target);
 
-    void sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
-                                Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj);
+  void sampleTargetTrajectory(Matrix<double, Drone::NX, DroneMPC::num_nodes>& mpc_target_state_traj,
+                              Matrix<double, Drone::NU, DroneMPC::num_nodes>& mpc_target_control_traj);
 
-    void sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes> &mpc_target_state_traj,
-                                      Matrix<double, Drone::NU, DroneMPC::num_nodes> &mpc_target_control_traj);
+  void sampleTargetTrajectoryLinear(Matrix<double, Drone::NX, DroneMPC::num_nodes>& mpc_target_state_traj,
+                                    Matrix<double, Drone::NU, DroneMPC::num_nodes>& mpc_target_control_traj);
 
-    void publishDebugInfo();
+  void publishDebugInfo();
 
 private:
-    Drone *drone;
+  Drone* drone;
 
-    DroneMPC drone_mpc;
-    ControlMPCSettings<double> mpc_settings;
+  DroneMPC drone_mpc;
+  ControlMPCSettings<double> mpc_settings;
 
-    bool received_state = false;
-    rocket_utils::ExtendedState current_state;
-    rocket_utils::State target_set_point;
-    double time_compute_start;
-    bool track_guidance;
+  bool received_state = false;
+  rocket_utils::ExtendedState current_state;
+  rocket_utils::State target_set_point;
+  double time_compute_start;
+  bool track_guidance;
 
-    rocket_utils::FSM current_fsm;
-    double emergency_stop = false;
+  rocket_utils::FSM current_fsm;
+  double emergency_stop = false;
 
-    ros::Timer fsm_update_thread;
+  ros::Timer fsm_update_thread;
 
-    //guidance trajectory variables
-    int GUIDANCE_POLY_ORDER;
-    int GUIDANCE_NUM_SEG;
-    int GUIDANCE_NUM_NODE;
-    MatrixXd guidance_state_trajectory;
-    MatrixXd guidance_control_trajectory;
-    MatrixXd m_basis;
-    bool received_trajectory = false;
-    double guidance_t0;
-    double guidance_tf;
-    double start_time = 0;
-    double computation_time = 0;
+  // guidance trajectory variables
+  int GUIDANCE_POLY_ORDER;
+  int GUIDANCE_NUM_SEG;
+  int GUIDANCE_NUM_NODE;
+  MatrixXd guidance_state_trajectory;
+  MatrixXd guidance_control_trajectory;
+  MatrixXd m_basis;
+  bool received_trajectory = false;
+  double guidance_t0;
+  double guidance_tf;
+  double start_time = 0;
+  double computation_time = 0;
 
-    double SEG_LENGTH;
+  double SEG_LENGTH;
 
-    ros::Subscriber drone_state_sub;
-    ros::Subscriber target_sub;
-    ros::Subscriber target_traj_sub;
+  ros::Subscriber drone_state_sub;
+  ros::Subscriber target_sub;
+  ros::Subscriber target_traj_sub;
 
-    // Publishers
-    ros::Publisher horizon_viz_pub;
-    ros::Publisher gimbal_control_pub, roll_control_pub;
-    ros::Subscriber fsm_sub;
+  // Publishers
+  ros::Publisher horizon_viz_pub;
+  ros::Publisher gimbal_control_pub, roll_control_pub;
+  ros::Subscriber fsm_sub;
 
-    // Debug
-    ros::Publisher sqp_iter_pub;
-    ros::Publisher qp_iter_pub;
-    ros::Publisher horizon_pub;
-    ros::Publisher computation_time_pub;
+  // Debug
+  ros::Publisher sqp_iter_pub;
+  ros::Publisher qp_iter_pub;
+  ros::Publisher horizon_pub;
+  ros::Publisher computation_time_pub;
 };

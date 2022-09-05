@@ -1,6 +1,6 @@
 #include "vrpn/simple_vrpn_client.h"
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   ros::init(argc, argv, "optitrack_client");
   ros::NodeHandle nh, private_nh("~");

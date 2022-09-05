@@ -29,61 +29,61 @@
 #include "load_guidance_settings.hpp"
 #include "load_drone_props.hpp"
 
-class DroneGuidanceNode {
+class DroneGuidanceNode
+{
 public:
-    DroneGuidanceNode(ros::NodeHandle &nh, Drone *drone);
+  DroneGuidanceNode(ros::NodeHandle& nh, Drone* drone);
 
-    void initTopics(ros::NodeHandle &nh);
+  void initTopics(ros::NodeHandle& nh);
 
-    void run();
+  void run();
 
-    void simulationStateCallback(const rocket_utils::State::ConstPtr &rocket_state);
+  void simulationStateCallback(const rocket_utils::State::ConstPtr& rocket_state);
 
-    void stateCallback(const rocket_utils::ExtendedState::ConstPtr &rocket_state);
+  void stateCallback(const rocket_utils::ExtendedState::ConstPtr& rocket_state);
 
-    void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg);
+  void setPointCallback(const rocket_utils::State::ConstPtr& set_point_msg);
 
-    void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm);
+  void fsmCallback(const rocket_utils::FSM::ConstPtr& fsm);
 
-    void computeTrajectory();
+  void computeTrajectory();
 
-    void publishTrajectory();
+  void publishTrajectory();
 
-    void publishDebugInfo();
+  void publishDebugInfo();
 
-    void startDescent();
-
+  void startDescent();
 
 private:
-    Drone *drone;
+  Drone* drone;
 
-    GuidanceSettings<double> guidance_settings;
-    DroneGuidance drone_guidance;
+  GuidanceSettings<double> guidance_settings;
+  DroneGuidance drone_guidance;
 
-    bool received_state = false;
-    rocket_utils::ExtendedState current_state;
-    rocket_utils::FSM current_fsm;
-    Drone::state target_state;
-    Drone::control target_control;
-    Drone::state x0;
-    bool started_descent = false;
-    double descent_trigger_time;
-    double last_computation_time;
+  bool received_state = false;
+  rocket_utils::ExtendedState current_state;
+  rocket_utils::FSM current_fsm;
+  Drone::state target_state;
+  Drone::control target_control;
+  Drone::state x0;
+  bool started_descent = false;
+  double descent_trigger_time;
+  double last_computation_time;
 
-    // Subscribers
-    ros::Subscriber state_sub;
-    ros::Subscriber target_sub;
-    ros::Subscriber fsm_sub;
+  // Subscribers
+  ros::Subscriber state_sub;
+  ros::Subscriber target_sub;
+  ros::Subscriber fsm_sub;
 
-    // Publishers
-    ros::Publisher horizon_viz_pub;
+  // Publishers
+  ros::Publisher horizon_viz_pub;
 
-    // Debug
-    ros::Publisher sqp_iter_pub;
-    ros::Publisher qp_iter_pub;
-    ros::Publisher horizon_pub;
-    ros::Publisher computation_time_pub;
+  // Debug
+  ros::Publisher sqp_iter_pub;
+  ros::Publisher qp_iter_pub;
+  ros::Publisher horizon_pub;
+  ros::Publisher computation_time_pub;
 
-    // Variables to track performance over whole simulation
-    ros::Time time_compute_start;
+  // Variables to track performance over whole simulation
+  ros::Time time_compute_start;
 };

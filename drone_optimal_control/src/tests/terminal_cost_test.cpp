@@ -14,19 +14,17 @@
 #include "mpc_utils.h"
 #include "test_settings.h"
 
-int main(int argc, char **argv) {
-    DroneProps<double> drone_props = getDroneProps();
-    Drone drone(drone_props);
+int main(int argc, char** argv)
+{
+  DroneProps<double> drone_props = getDroneProps();
+  Drone drone(drone_props);
 
-    Matrix<double, 11, 1> Q;
-    Matrix<double, Drone::NU, 1> R;
-    Q << 1, 1, 5,
-            0.1, 0.1, 0.5,
-            2, 2,
-            2, 2, 5;
-    R << 5, 5, 0.01, 0.01;
+  Matrix<double, 11, 1> Q;
+  Matrix<double, Drone::NU, 1> R;
+  Q << 1, 1, 5, 0.1, 0.1, 0.5, 2, 2, 2, 2, 5;
+  R << 5, 5, 0.01, 0.01;
 
-    Matrix<double, NX - 2, NX - 2> QN;
-    QN = computeLQRTerminalCost(&drone, Q, R);
-    std::cout << "QN\n" << QN << std::endl;
+  Matrix<double, NX - 2, NX - 2> QN;
+  QN = computeLQRTerminalCost(&drone, Q, R);
+  std::cout << "QN\n" << QN << std::endl;
 }

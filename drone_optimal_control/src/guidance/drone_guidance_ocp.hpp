@@ -28,75 +28,77 @@ using namespace Eigen;
 using namespace std;
 
 #define POLY_ORDER_G 7
-#define NUM_SEG_G    2
+#define NUM_SEG_G 2
 
 /** benchmark the new collocation class */
 using PolynomialG = polympc::Chebyshev<POLY_ORDER_G, polympc::GAUSS_LOBATTO, double>;
 using ApproximationG = polympc::Spline<PolynomialG, NUM_SEG_G>;
 
-POLYMPC_FORWARD_DECLARATION(/*Name*/ DroneGuidanceOCP, /*NX*/ 6, /*NU*/ 3, /*NP*/ 1, /*ND*/ 0, /*NG*/0, /*TYPE*/ double)
+POLYMPC_FORWARD_DECLARATION(/*Name*/ DroneGuidanceOCP, /*NX*/ 6, /*NU*/ 3, /*NP*/ 1, /*ND*/ 0, /*NG*/ 0,
+                            /*TYPE*/ double)
 
-class DroneGuidanceOCP : public ContinuousOCP<DroneGuidanceOCP, ApproximationG, SPARSE> {
+class DroneGuidanceOCP : public ContinuousOCP<DroneGuidanceOCP, ApproximationG, SPARSE>
+{
 public:
-    ~DroneGuidanceOCP() = default;
+  ~DroneGuidanceOCP() = default;
 
-    Matrix<scalar_t, NX, 1> xs;
+  Matrix<scalar_t, NX, 1> xs;
 
-    Drone *drone;
+  Drone* drone;
 
-    GuidanceSettings<scalar_t> settings;
+  GuidanceSettings<scalar_t> settings;
 
-    void init(Drone *drone_, GuidanceSettings<scalar_t> settings_) {
-        drone = drone_;
-        settings = settings_;
-    }
+  void init(Drone* drone_, GuidanceSettings<scalar_t> settings_)
+  {
+    drone = drone_;
+    settings = settings_;
+  }
 
-    template<typename T>
-    inline void dynamics_impl(const Ref<const state_t <T>> x,
-                              const Ref<const control_t <T>> u,
-                              const Ref<const parameter_t <T>> p,
-                              const Ref<const static_parameter_t> &d,
-                              const T &t, Ref<state_t <T>> xdot) const noexcept {
-        T prop_av = u(0);
-        T phi = u(1);
-        T theta = u(2);
+  template <typename T>
+  inline void dynamics_impl(const Ref<const state_t<T>> x, const Ref<const control_t<T>> u,
+                            const Ref<const parameter_t<T>> p, const Ref<const static_parameter_t>& d, const T& t,
+                            Ref<state_t<T>> xdot) const noexcept
+  {
+    T prop_av = u(0);
+    T phi = u(1);
+    T theta = u(2);
 
-        T thrust = drone->getThrust(prop_av) * drone->props.thrust_scaling;
+    T thrust = drone->getThrust(prop_av) * drone->props.thrust_scaling;
 
-        Eigen::Matrix<T, 3, 1> thrust_vector;
-        thrust_vector << thrust * sin(phi) * sin(theta),
-                -thrust * cos(phi) * sin(theta),
-                thrust * cos(theta);
+    Eigen::Matrix<T, 3, 1> thrust_vector;
+    thrust_vector << thrust * sin(phi) * sin(theta), -thrust * cos(phi) * sin(theta), thrust * cos(theta);
 
-        Eigen::Matrix<T, 3, 1> gravity;
-        gravity << (T) 0, (T) 0, (T) -9.81;
+    Eigen::Matrix<T, 3, 1> gravity;
+    gravity << (T)0, (T)0, (T)-9.81;
 
-        xdot.head(3) = x.segment(3, 3);
-        xdot.segment(3, 3) = thrust_vector * (T) drone->props.dry_mass_inv + gravity;
+    xdot.head(3) = x.segment(3, 3);
+    xdot.segment(3, 3) = thrust_vector * (T)drone->props.dry_mass_inv + gravity;
 
-        //minimal time
-        xdot *= p(0);
-    }
+    // minimal time
+    xdot *= p(0);
+  }
 
-    template<typename T>
-    EIGEN_STRONG_INLINE void
-    inequality_constraints_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
-                                const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
-                                const scalar_t &t, Ref<constraint_t <T>> g) const noexcept {
-    }
+  template <typename T>
+  EIGEN_STRONG_INLINE void inequality_constraints_impl(const Ref<const state_t<T>> x, const Ref<const control_t<T>> u,
+                                                       const Ref<const parameter_t<T>> p,
+                                                       const Ref<const static_parameter_t> d, const scalar_t& t,
+                                                       Ref<constraint_t<T>> g) const noexcept
+  {
+  }
 
-    template<typename T>
-    inline void lagrange_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
-                                   const Ref<const parameter_t <T>> p,
-                                   const Ref<const static_parameter_t> d,
-                                   const scalar_t &t, T &lagrange) noexcept {
-        lagrange = p(0) * u(0) * u(0);
-    }
+  template <typename T>
+  inline void lagrange_term_impl(const Ref<const state_t<T>> x, const Ref<const control_t<T>> u,
+                                 const Ref<const parameter_t<T>> p, const Ref<const static_parameter_t> d,
+                                 const scalar_t& t, T& lagrange) noexcept
+  {
+    lagrange = p(0) * u(0) * u(0);
+  }
 
-    template<typename T>
-    inline void mayer_term_impl(const Ref<const state_t <T>> x, const Ref<const control_t <T>> u,
-                                const Ref<const parameter_t <T>> p, const Ref<const static_parameter_t> d,
-                                const scalar_t &t, T &mayer) noexcept {
-        mayer = settings.horizontal_slack * ((x(0) - xs(0)) * (x(0) - xs(0)) + (x(1) - xs(1)) * (x(1) - xs(1)));
-    }
+  template <typename T>
+  inline void mayer_term_impl(const Ref<const state_t<T>> x, const Ref<const control_t<T>> u,
+                              const Ref<const parameter_t<T>> p, const Ref<const static_parameter_t> d,
+                              const scalar_t& t, T& mayer) noexcept
+  {
+    mayer = settings.horizontal_slack * ((x(0) - xs(0)) * (x(0) - xs(0)) + (x(1) - xs(1)) * (x(1) - xs(1)));
+  }
 };

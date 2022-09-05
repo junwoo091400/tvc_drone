@@ -30,7 +30,7 @@ TOP_SEQUENCE = [0, 0] + list(range(20, 96, 5))
 BOTTOM_SEQUENCE = [0, 0] + list(range(20, 96, 5))
 # TOP_SEQUENCE = [0, 0, 20, 90]
 # BOTTOM_SEQUENCE = [0, 0, 20, 90]
-TIME_SEQUENCE = (len(BOTTOM_SEQUENCE))*[2]
+TIME_SEQUENCE = (len(BOTTOM_SEQUENCE)) * [2]
 
 # AVERAGE_SEQ = range(30, 81, 5)
 
@@ -45,7 +45,6 @@ TIME_SEQUENCE = (len(BOTTOM_SEQUENCE))*[2]
 # TIME_SEQUENCE = [5] + (len(TOP_SEQUENCE))*[2]
 
 
-
 # TIME_SEQUENCE = [3, 1000]
 
 # TOP_SEQUENCE = [20, 20]
@@ -57,15 +56,18 @@ current_state = DroneState()
 roll_speed = 0
 previous_roll_speed = 0
 
+
 def stateCallback(state):
     global current_state, previous_state
     previous_state = current_state
     current_state = state
 
+
 def sensorsCallback(sensor_data):
     global roll_speed, previous_roll_speed
     previous_roll_speed = roll_speed
     roll_speed = sensor_data.IMU_gyro.z
+
 
 if __name__ == '__main__':
 
@@ -113,11 +115,11 @@ if __name__ == '__main__':
                 kd = 0
                 # previous_roll_speed = previous_state.twist.angular.z
                 dt = rospy.get_rostime().to_sec() - previous_t
-                pd_control = -roll_speed * kp - (roll_speed - previous_roll_speed)/dt * kd
+                pd_control = -roll_speed * kp - (roll_speed - previous_roll_speed) / dt * kd
 
                 pd_control = max(min(pd_control, 35), -35)
                 rospy.loginfo(str(pd_control))
-                print("acc_roll", (roll_speed - previous_roll_speed)/dt)
+                print("acc_roll", (roll_speed - previous_roll_speed) / dt)
             else:
                 info_pub.publish("starting")
                 print(seq_idx)
@@ -130,8 +132,10 @@ if __name__ == '__main__':
                         seq_idx = -10
                         coast_command = String("Coast")
                         continue
-        control_law.servo1 = (SERVO1_SEQUENCE[seq_idx] if seq_idx < len(SERVO1_SEQUENCE) else SERVO1_SEQUENCE[0]) * np.pi / 180
-        control_law.servo2 = (SERVO2_SEQUENCE[seq_idx] if seq_idx < len(SERVO2_SEQUENCE) else SERVO2_SEQUENCE[0]) * np.pi / 180
+        control_law.servo1 = (SERVO1_SEQUENCE[seq_idx] if seq_idx < len(SERVO1_SEQUENCE) else SERVO1_SEQUENCE[
+            0]) * np.pi / 180
+        control_law.servo2 = (SERVO2_SEQUENCE[seq_idx] if seq_idx < len(SERVO2_SEQUENCE) else SERVO2_SEQUENCE[
+            0]) * np.pi / 180
         control_law.top = (TOP_SEQUENCE[seq_idx] if seq_idx < len(TOP_SEQUENCE) else 0)
         control_law.bottom = (BOTTOM_SEQUENCE[seq_idx] if seq_idx < len(BOTTOM_SEQUENCE) else 0)
         print(control_law.bottom, control_law.top, control_law.servo1, control_law.servo2)

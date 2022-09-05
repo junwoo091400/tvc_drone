@@ -11,19 +11,20 @@
 
 #include <vector>
 
-template<typename scalar>
-struct GuidanceSettings {
-    scalar min_z;
-    scalar min_dz;
-    scalar max_dz;
-    scalar horizontal_slack, max_attitude_angle, descent_min_propeller_speed;
-    scalar max_horizon_length;
+template <typename scalar>
+struct GuidanceSettings
+{
+  scalar min_z;
+  scalar min_dz;
+  scalar max_dz;
+  scalar horizontal_slack, max_attitude_angle, descent_min_propeller_speed;
+  scalar max_horizon_length;
 
-    int max_sqp_iter, max_qp_iter, max_line_search_iter;
-    std::vector<scalar> target_apogee_vec;
-    std::vector<scalar> target_land_vec;
+  int max_sqp_iter, max_qp_iter, max_line_search_iter;
+  std::vector<scalar> target_apogee_vec;
+  std::vector<scalar> target_land_vec;
 
-    GuidanceSettings() : target_apogee_vec(3, 0.0), target_land_vec(3, 0.0) {
-    }
-
+  GuidanceSettings() : target_apogee_vec(3, 0.0), target_land_vec(3, 0.0)
+  {
+  }
 };

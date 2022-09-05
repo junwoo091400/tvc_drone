@@ -12,29 +12,29 @@ set(CMAKE_VERBOSE_MAKEFILE “ON”)
 
 option(BUILD_RELEASE "Build release version w/o debugging symbols" ON)
 if (BUILD_RELEASE)
-    set(CMAKE_BUILD_TYPE "Release")
+  set(CMAKE_BUILD_TYPE "Release")
 else ()
-    set(CMAKE_BUILD_TYPE "Debug")
+  set(CMAKE_BUILD_TYPE "Debug")
 endif ()
 
 # Check if ROS is setup
 find_package(roscpp QUIET)
 set(BUILD_ROS ${roscpp_FOUND})
 
-if("$ENV{BUILD_TVC_DRONE_TESTS}" STREQUAL "")
-    # Build tests by default
-    set(BUILD_TESTS True)
-else()
-    set(BUILD_TESTS $ENV{BUILD_TVC_DRONE_TESTS})
-endif()
+if ("$ENV{BUILD_TVC_DRONE_TESTS}" STREQUAL "")
+  # Build tests by default
+  set(BUILD_TESTS True)
+else ()
+  set(BUILD_TESTS $ENV{BUILD_TVC_DRONE_TESTS})
+endif ()
 
-if(BUILD_TESTS)
-    message(STATUS "Building tests. Can be disabled using 'export BUILD_TVC_DRONE_TESTS=False'.")
-endif()
+if (BUILD_TESTS)
+  message(STATUS "Building tests. Can be disabled using 'export BUILD_TVC_DRONE_TESTS=False'.")
+endif ()
 
-if(NOT BUILD_ROS)
-    message(STATUS "Could not find roscpp, so not building ROS-specific functionality. Did you source the ROS setup.sh file?")
-endif()
+if (NOT BUILD_ROS)
+  message(STATUS "Could not find roscpp, so not building ROS-specific functionality. Did you source the ROS setup.sh file?")
+endif ()
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -42,21 +42,21 @@ endif()
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-if(BUILD_ROS)
-    find_package(catkin REQUIRED COMPONENTS
-        roscpp
-        rospy
-        roslib
-        std_msgs
-        message_generation
-        geometry_msgs
-        genmsg
-        visualization_msgs
-        tf2_ros
-        rocket_utils
-        drone_fsm
-        )
-endif()
+if (BUILD_ROS)
+  find_package(catkin REQUIRED COMPONENTS
+    roscpp
+    rospy
+    roslib
+    std_msgs
+    message_generation
+    geometry_msgs
+    genmsg
+    visualization_msgs
+    tf2_ros
+    rocket_utils
+    drone_fsm
+    )
+endif ()
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -93,38 +93,38 @@ find_package(Eigen3 REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-if(BUILD_ROS)
-    add_message_files(
-            FILES
-            Waypoint.msg
-            Trajectory.msg
-            DroneWaypointStamped.msg
-            DroneTrajectory.msg
-    )
+if (BUILD_ROS)
+  add_message_files(
+    FILES
+    Waypoint.msg
+    Trajectory.msg
+    DroneWaypointStamped.msg
+    DroneTrajectory.msg
+  )
 
-    ## Generate services in the 'srv' folder
-    # add_service_files(
-    #         FILES
-    #         SetFSM.srv
-    # )
-    ## Generate actions in the 'action' folder
-    # add_action_files(
-    #   FILES
-    #   Action1.action
-    #   Action2.action
-    # )
+  ## Generate services in the 'srv' folder
+  # add_service_files(
+  #         FILES
+  #         SetFSM.srv
+  # )
+  ## Generate actions in the 'action' folder
+  # add_action_files(
+  #   FILES
+  #   Action1.action
+  #   Action2.action
+  # )
 
 
-    ## Generate added messages and services with any dependencies listed here
-    generate_messages(
-            DEPENDENCIES
-            std_msgs
-            geometry_msgs
-            rocket_utils
-            ${MESSAGE_DEPENDENCIES}
-    )
+  ## Generate added messages and services with any dependencies listed here
+  generate_messages(
+    DEPENDENCIES
+    std_msgs
+    geometry_msgs
+    rocket_utils
+    ${MESSAGE_DEPENDENCIES}
+  )
 
-endif()
+endif ()
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -155,14 +155,14 @@ endif()
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-if(BUILD_ROS)
-    catkin_package(
-            CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs rocket_utils drone_fsm
-            INCLUDE_DIRS src/ros_nodes src/models src/ros_nodes/utils src/control src/guidance
-            #LIBRARIES ${PROJECT_NAME}
-            #  DEPENDS system_lib
-    )
-endif()
+if (BUILD_ROS)
+  catkin_package(
+    CATKIN_DEPENDS roscpp rospy std_msgs message_runtime geometry_msgs rocket_utils drone_fsm
+    INCLUDE_DIRS src/ros_nodes src/models src/ros_nodes/utils src/control src/guidance
+    #LIBRARIES ${PROJECT_NAME}
+    #  DEPENDS system_lib
+  )
+endif ()
 
 ###########
 ## Build ##
@@ -206,18 +206,18 @@ endif()
 # )
 
 include_directories(src/utils src/control src/models src/navigation src/guidance submodule/polympc/src src/ros_nodes
-        ${catkin_INCLUDE_DIRS}
-        ${VRPN_INCLUDE_DIR})
+  ${catkin_INCLUDE_DIRS}
+  ${VRPN_INCLUDE_DIR})
 
 add_subdirectory(src/control)
 add_subdirectory(src/guidance)
 add_subdirectory(src/models)
-if(BUILD_ROS)
-    add_subdirectory(src/ros_nodes)
-endif()
-if(BUILD_TESTS)
-    add_subdirectory(src/tests)
-endif()
+if (BUILD_ROS)
+  add_subdirectory(src/ros_nodes)
+endif ()
+if (BUILD_TESTS)
+  add_subdirectory(src/tests)
+endif ()
 
 
 #set_source_files_properties(

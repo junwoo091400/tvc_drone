@@ -4,7 +4,7 @@
     </group>
 
     <group ns="actuator">
-        <rosparam file="$(find drone_utils)/config/drone_actuator_parameters.yaml" />
+        <rosparam file="$(find drone_utils)/config/drone_actuator_parameters.yaml"/>
     </group>
 
     <group ns="environment">
@@ -16,10 +16,10 @@
     </group>
 
     <group ns="visualization">
-        <rosparam file="$(find drone_utils)/config/visualization_parameters.yaml" />
+        <rosparam file="$(find drone_utils)/config/visualization_parameters.yaml"/>
     </group>
 
-    <node name="integrator" pkg="real_time_simulator" type="integrator" output ="screen">
+    <node name="integrator" pkg="real_time_simulator" type="integrator" output="screen">
     </node>
 </launch>
 

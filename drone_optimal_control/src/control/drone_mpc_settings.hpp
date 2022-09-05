@@ -9,16 +9,17 @@
 
 #pragma once
 
-template<typename scalar>
-struct ControlMPCSettings {
-    scalar x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
-    scalar weight_scaling;
+template <typename scalar>
+struct ControlMPCSettings
+{
+  scalar x_cost, dx_cost, z_cost, dz_cost, att_cost, datt_cost, servo_cost, thrust_cost, torque_cost, droll_cost;
+  scalar weight_scaling;
 
-    scalar max_attitude_angle, min_z, min_dz, max_dx, max_dz, max_datt, scaling_x, scaling_z;
+  scalar max_attitude_angle, min_z, min_dz, max_dx, max_dz, max_datt, scaling_x, scaling_z;
 
-    scalar horizon_length;
+  scalar horizon_length;
 
-    int max_sqp_iter, max_qp_iter, max_line_search_iter;
+  int max_sqp_iter, max_qp_iter, max_line_search_iter;
 
-    scalar period;
+  scalar period;
 };

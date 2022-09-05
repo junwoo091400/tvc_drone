@@ -13,54 +13,53 @@
 
 #include "guidance_solver.hpp"
 
-
-class DroneGuidance : private MPC<DroneGuidanceOCP, GuidanceSolver> {
-
+class DroneGuidance : private MPC<DroneGuidanceOCP, GuidanceSolver>
+{
 public:
-    using ocp_state = state_t;
-    using ocp_control = control_t;
-    using ocp_constraint = constraint_t;
+  using ocp_state = state_t;
+  using ocp_control = control_t;
+  using ocp_constraint = constraint_t;
 
-    Drone::state target_apogee;
-    Drone::state target_land;
+  Drone::state target_apogee;
+  Drone::state target_land;
 
-    using MPC::num_nodes;
+  using MPC::num_nodes;
 
-    DroneGuidance(Drone *drone, GuidanceSettings<double> &guidance_settings);
+  DroneGuidance(Drone* drone, GuidanceSettings<double>& guidance_settings);
 
-    void solve(Drone::state &x0);
+  void solve(Drone::state& x0);
 
-    void initGuess(Drone::state &x0, Drone::state &target);
+  void initGuess(Drone::state& x0, Drone::state& target);
 
-    void setTargetState(Drone::state &target_state);
+  void setTargetState(Drone::state& target_state);
 
-    Drone::state solution_x_at(int t);
+  Drone::state solution_x_at(int t);
 
-    Drone::control solution_u_at(int t);
+  Drone::control solution_u_at(int t);
 
-    Drone::state solution_x_at(double t);
+  Drone::state solution_x_at(double t);
 
-    Drone::control solution_u_at(double t);
+  Drone::control solution_u_at(double t);
 
-    using MPC::solution_p;
+  using MPC::solution_p;
 
-    void setDescentConstraints();
+  void setDescentConstraints();
 
-    double node_time(int i);
+  double node_time(int i);
 
-    void precomputeDescent();
+  void precomputeDescent();
 
-    void warmStartDescent(Drone::state x0);
+  void warmStartDescent(Drone::state x0);
 
-    using MPC::info;
+  using MPC::info;
 
 private:
-    Drone *drone;
+  Drone* drone;
 
-    GuidanceSettings<double> guidance_settings;
+  GuidanceSettings<double> guidance_settings;
 
-    traj_control_t descent_control_sol;
-    traj_state_t descent_state_sol;
-    dual_var_t descent_dual_sol;
-    parameter_t descent_p_sol;
+  traj_control_t descent_control_sol;
+  traj_state_t descent_state_sol;
+  dual_var_t descent_dual_sol;
+  parameter_t descent_p_sol;
 };

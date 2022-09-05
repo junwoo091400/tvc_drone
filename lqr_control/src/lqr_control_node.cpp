@@ -1,12 +1,13 @@
 /**
  * @file lqr_control_node.cpp
- * @brief Implementation of chapter 5.3.2 of https://drive.google.com/file/d/1psKMbYIDg3n1MyOD7myFiBktjy46THxa/view?usp=sharing
+ * @brief Implementation of chapter 5.3.2 of
+ * https://drive.google.com/file/d/1psKMbYIDg3n1MyOD7myFiBktjy46THxa/view?usp=sharing
  * @author Sven Becker (sven.becker@epfl.ch)
  * @version 1.0
  * @date 2022-09-04
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #include "ros/ros.h"
@@ -20,190 +21,211 @@
 #include "drone_optimal_control/DroneTrajectory.h"
 #include "rocket_utils/ExtendedState.h"
 
-
-
-class RocketControlNode {
+class RocketControlNode
+{
 public:
-    double frequency = 50;
+  double frequency = 50;
 
-    RocketControlNode() :
-            rocket_fsm(RocketFSMState::IDLE) {
-        ros::NodeHandle nh("~");
+  RocketControlNode() : rocket_fsm(RocketFSMState::IDLE)
+  {
+    ros::NodeHandle nh("~");
 
-        // Load the rocket properties from the ROS parameter server
-        DroneProps<double> drone_props = loadDroneProps(nh);
+    // Load the rocket properties from the ROS parameter server
+    DroneProps<double> drone_props = loadDroneProps(nh);
 
-        // Instantiate the controller
-         std::stringstream QR_file_path;
-        QR_file_path << ros::package::getPath("lqr_control") << "/config/QR.yaml";
-        nh.param("frequency", frequency, 20.0);
-        controller = std::unique_ptr<LqrController>(new LqrController(drone_props, 1.0/frequency, QR_file_path.str()));
-        
-        set_point.orientation.w = 1.0;
-        nh.param("track_mpc", track_mpc, false);
+    // Instantiate the controller
+    std::stringstream QR_file_path;
+    QR_file_path << ros::package::getPath("lqr_control") << "/config/QR.yaml";
+    nh.param("frequency", frequency, 20.0);
+    controller = std::unique_ptr<LqrController>(new LqrController(drone_props, 1.0 / frequency, QR_file_path.str()));
 
-        std::string tracking_type;
-        nh.getParam("tracking_type", tracking_type);
-        if(tracking_type == "state") track_state = true;
-        else track_state = false;
-        // Initialize publishers and subscribers
-        initTopics(nh);
+    set_point.orientation.w = 1.0;
+    nh.param("track_mpc", track_mpc, false);
+
+    std::string tracking_type;
+    nh.getParam("tracking_type", tracking_type);
+    if (tracking_type == "state")
+      track_state = true;
+    else
+      track_state = false;
+    // Initialize publishers and subscribers
+    initTopics(nh);
+  }
+
+  void initTopics(ros::NodeHandle& nh)
+  {
+    // Create control publishers
+    gimbal_command_pub = nh.advertise<rocket_utils::DroneGimbalControl>("/drone_gimbal_command_0", 10);
+
+    // Subscribe to state message from basic_gnc
+    bool use_ground_truth_state;
+    nh.param<bool>("use_ground_truth_state", use_ground_truth_state, true);
+    if (use_ground_truth_state)
+    {
+      rocket_state_sub = nh.subscribe("/rocket_state", 1, &RocketControlNode::rocketStateCallback, this);
+    }
+    else
+    {
+      rocket_state_sub =
+          nh.subscribe("/extended_kalman_rocket_state", 1, &RocketControlNode::kalmanStateCallback, this);
     }
 
-    void initTopics(ros::NodeHandle &nh) {
-        // Create control publishers
-        gimbal_command_pub = nh.advertise<rocket_utils::DroneGimbalControl>("/drone_gimbal_command_0", 10);
-   
+    // Subscribe to state message from basic_gnc
+    if (track_mpc)
+      set_point_sub = nh.subscribe("/control/debug/horizon", 1, &RocketControlNode::setPointMPCCallback, this);
+    else
+      set_point_sub = nh.subscribe("/set_point", 1, &RocketControlNode::setPointCallback, this);
 
-        // Subscribe to state message from basic_gnc
-        bool use_ground_truth_state;
-        nh.param<bool>("use_ground_truth_state", use_ground_truth_state, true);
-        if (use_ground_truth_state) {
-            rocket_state_sub = nh.subscribe("/rocket_state", 1, &RocketControlNode::rocketStateCallback, this);
-        } else {
-            rocket_state_sub = nh.subscribe("/extended_kalman_rocket_state", 1, &RocketControlNode::kalmanStateCallback, this);
+    // Subscribe to fsm time_keeper
+    fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &RocketControlNode::fsmCallback, this);
+  }
+
+  void run()
+  {
+    ros::Time time_now = ros::Time::now();
+    switch (rocket_fsm)
+    {
+      case IDLE:
+        break;
+      case RAIL:
+      case ASCENT:
+      // Compute roll control and send control message
+      // in both LAUNCH and COAST mode
+      case LAUNCH: {
+        rocket_utils::DroneGimbalControl gimbal_ctrl;
+        // Track higher level (MP-)controller
+        if (track_mpc)
+        {
+          double time_diff(1e99), now(ros::Time::now().toSec());
+          size_t i = 0;
+          // MPC horizon = List of stamped states and control inputs
+          // -> Extract index of list where stamp is closest to current time
+          for (; i < set_point_trajectory.trajectory.size(); i++)
+          {
+            double local_time_diff = fabs(set_point_trajectory.trajectory[i].header.stamp.toSec() - now);
+
+            if (local_time_diff <= time_diff)
+              time_diff = local_time_diff;
+            else if (local_time_diff >= time_diff)
+              break;
+          }
+          if (i == 0)
+          {
+            ROS_WARN_THROTTLE(1.0, "MPC has not yet issued a set-point. Skipping...");
+            break;
+          }
+          set_point = fromROS(set_point_trajectory.trajectory[i].state.state);
+
+          if (track_state)
+            gimbal_ctrl = toROS(controller->control(rocket_state, set_point));
+          else
+          {
+            Eigen::Matrix<double, 4, 1> u;
+            u << set_point_trajectory.trajectory[i].gimbal_control.outer_angle,
+                set_point_trajectory.trajectory[i].gimbal_control.inner_angle,
+                set_point_trajectory.trajectory[i].gimbal_control.thrust,
+                set_point_trajectory.trajectory[i].gimbal_control.torque;
+            gimbal_ctrl = toROS(controller->control(rocket_state, set_point, u));
+          }
         }
+        // Standard case
+        else
+          gimbal_ctrl = toROS(controller->control(rocket_state, set_point));
+        gimbal_ctrl.header.stamp = ros::Time::now();
+        gimbal_command_pub.publish(gimbal_ctrl);
+        break;
+      }
 
-        // Subscribe to state message from basic_gnc
-        if(track_mpc) set_point_sub = nh.subscribe("/control/debug/horizon", 1, &RocketControlNode::setPointMPCCallback, this);
-        else set_point_sub = nh.subscribe("/set_point", 1, &RocketControlNode::setPointCallback, this);
+      case COAST: {
+        break;
+      }
 
-        // Subscribe to fsm time_keeper
-        fsm_sub = nh.subscribe("/gnc_fsm_pub", 1, &RocketControlNode::fsmCallback, this);
+      case STOP: {
+        // Do nothing
+        break;
+      }
     }
-
-    void run() {
-        ros::Time time_now = ros::Time::now();
-        switch (rocket_fsm) {
-            case IDLE: break;
-            case RAIL:
-            case ASCENT:
-            // Compute roll control and send control message
-            // in both LAUNCH and COAST mode
-            case LAUNCH:{
-                rocket_utils::DroneGimbalControl gimbal_ctrl;
-                // Track higher level (MP-)controller
-                if(track_mpc){
-                    double time_diff(1e99), now(ros::Time::now().toSec());
-                    size_t i=0;
-                    // MPC horizon = List of stamped states and control inputs
-                    // -> Extract index of list where stamp is closest to current time
-                    for(; i < set_point_trajectory.trajectory.size(); i++){
-                        double local_time_diff = fabs(set_point_trajectory.trajectory[i].header.stamp.toSec() - now);
-                        
-                        if(local_time_diff <= time_diff ) time_diff = local_time_diff;
-                        else if (local_time_diff >= time_diff) break;
-                    }
-                    if(i == 0){
-                        ROS_WARN_THROTTLE(1.0, "MPC has not yet issued a set-point. Skipping...");
-                        break;
-                    }
-                    set_point = fromROS(set_point_trajectory.trajectory[i].state.state);
-
-                    if(track_state) gimbal_ctrl = toROS(controller->control(rocket_state, set_point));
-                    else{
-                        Eigen::Matrix<double,4,1> u;
-                        u <<    set_point_trajectory.trajectory[i].gimbal_control.outer_angle, 
-                                set_point_trajectory.trajectory[i].gimbal_control.inner_angle,
-                                set_point_trajectory.trajectory[i].gimbal_control.thrust,
-                                set_point_trajectory.trajectory[i].gimbal_control.torque;
-                        gimbal_ctrl = toROS(controller->control(rocket_state, set_point, u));
-                    }
-                }
-                // Standard case
-                else gimbal_ctrl = toROS(controller->control(rocket_state, set_point));
-                gimbal_ctrl.header.stamp = ros::Time::now();
-                gimbal_command_pub.publish(gimbal_ctrl);
-                break;
-            }
-
-            case COAST: {
-                
-                break;
-            }
-
-            case STOP: {
-                // Do nothing
-                break;
-            }
-        }
-    }
+  }
 
 private:
-    std::unique_ptr<LqrController> controller;
+  std::unique_ptr<LqrController> controller;
 
-    // Last received rocket state
-    RocketState rocket_state{}, set_point{};
-    bool track_mpc;
-    bool track_state;
-    drone_optimal_control::DroneTrajectory set_point_trajectory;
+  // Last received rocket state
+  RocketState rocket_state{}, set_point{};
+  bool track_mpc;
+  bool track_state;
+  drone_optimal_control::DroneTrajectory set_point_trajectory;
 
+  // Last requested fsm
+  RocketFSMState rocket_fsm;
 
+  // List of subscribers and publishers
+  ros::Publisher gimbal_command_pub;
+  ros::Publisher gmc_command_pub;
 
-    // Last requested fsm
-    RocketFSMState rocket_fsm;
+  ros::Subscriber rocket_state_sub;
+  ros::Subscriber set_point_sub;
 
-    // List of subscribers and publishers
-    ros::Publisher gimbal_command_pub;
-    ros::Publisher gmc_command_pub;
+  ros::Subscriber fsm_sub;
 
-    ros::Subscriber rocket_state_sub;
-    ros::Subscriber set_point_sub;
+  ros::Time launch_time;
 
-    ros::Subscriber fsm_sub;
+  /* ------------ Callbacks functions ------------ */
 
-    ros::Time launch_time;
+  // Callback function to store last received fsm
+  void fsmCallback(const rocket_utils::FSM::ConstPtr& fsm)
+  {
+    rocket_fsm = fromROS(*fsm);
+    launch_time = fsm->launch_time;
+  }
+  // Callback function to store last received state
+  void rocketStateCallback(const rocket_utils::State::ConstPtr rocket_state_msg)
+  {
+    rocket_state = fromROS(*rocket_state_msg);
+  }
 
-    /* ------------ Callbacks functions ------------ */
+  void kalmanStateCallback(const rocket_utils::ExtendedState::ConstPtr rocket_state_msg)
+  {
+    rocket_state = fromROS(rocket_state_msg->state);
+  }
 
-    // Callback function to store last received fsm
-    void fsmCallback(const rocket_utils::FSM::ConstPtr &fsm) {
-        rocket_fsm = fromROS(*fsm);
-        launch_time = fsm->launch_time;
+  // Callback function to store last received state
+  void setPointCallback(const rocket_utils::State::ConstPtr& set_point_msg)
+  {
+    set_point = fromROS(*set_point_msg);
+    Eigen::Vector4d quat;
+    quat << set_point.orientation.x, set_point.orientation.y, set_point.orientation.z, set_point.orientation.w;
+    // Check if target attitude is orientation-quaternion
+    if (fabs(quat.norm() - 1.0) > 1e-3)
+    {
+      ROS_WARN_STREAM("Received set-point contains orientation '"
+                      << quat << "' that is not quaternion. \nUsing unrotated quaternion (0,0,0,1) instead...");
+      set_point.orientation.x = 0.;
+      set_point.orientation.y = 0.;
+      set_point.orientation.z = 0.;
+      set_point.orientation.w = 1.;
     }
-    // Callback function to store last received state
-    void rocketStateCallback(const rocket_utils::State::ConstPtr rocket_state_msg) {
-        
-        rocket_state = fromROS(*rocket_state_msg);
-        
-    }
-
-    void kalmanStateCallback(const rocket_utils::ExtendedState::ConstPtr rocket_state_msg) {
-        rocket_state = fromROS(rocket_state_msg->state);
-    }
-
-    // Callback function to store last received state
-    void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg) {
-        set_point = fromROS(*set_point_msg);
-        Eigen::Vector4d quat;
-        quat << set_point.orientation.x, set_point.orientation.y, set_point.orientation.z, set_point.orientation.w;
-        // Check if target attitude is orientation-quaternion
-        if(fabs(quat.norm() - 1.0) > 1e-3) 
-        {
-            ROS_WARN_STREAM("Received set-point contains orientation '" << quat << "' that is not quaternion. \nUsing unrotated quaternion (0,0,0,1) instead...");
-            set_point.orientation.x = 0.;
-            set_point.orientation.y = 0.;
-            set_point.orientation.z = 0.;
-            set_point.orientation.w = 1.;
-        }
-    }
-    void setPointMPCCallback(const drone_optimal_control::DroneTrajectory::ConstPtr &target_trajectory) {
-        this->set_point_trajectory = *target_trajectory;
-    }
+  }
+  void setPointMPCCallback(const drone_optimal_control::DroneTrajectory::ConstPtr& target_trajectory)
+  {
+    this->set_point_trajectory = *target_trajectory;
+  }
 };
 
-int main(int argc, char **argv) {
-    // Init ROS control node
-    ros::init(argc, argv, "control");
+int main(int argc, char** argv)
+{
+  // Init ROS control node
+  ros::init(argc, argv, "control");
 
-    RocketControlNode control_node;
+  RocketControlNode control_node;
 
-    ros::Rate loop_rate(control_node.frequency);
+  ros::Rate loop_rate(control_node.frequency);
 
-    while (ros::ok()) {
-        ros::spinOnce();
-        control_node.run();
+  while (ros::ok())
+  {
+    ros::spinOnce();
+    control_node.run();
 
-        loop_rate.sleep();
-    }
+    loop_rate.sleep();
+  }
 }

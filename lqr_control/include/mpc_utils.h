@@ -15,7 +15,6 @@
 #include <iostream>
 #include <chrono>
 
-
 #include "Eigen/Core"
 #include "Eigen/Geometry"
 
@@ -35,28 +34,22 @@ using namespace Eigen;
 using namespace std;
 
 // Autodiff dor state
-template<typename scalar_t>
+template <typename scalar_t>
 using state_t = Matrix<scalar_t, NX, 1>;
 using state = state_t<double>;
 
-template<typename scalar_t>
+template <typename scalar_t>
 using control_t = Matrix<scalar_t, NU, 1>;
 using control = control_t<double>;
 
 using ad_state = AutoDiffScalar<state>;
 using ad_control = AutoDiffScalar<control>;
 
-void computeLinearizedModel(DroneEuler *drone,
-                            Matrix<double, NX, NX> &A,
-                            Matrix<double, NX, NU> &B,
-                            state x_bar,
+void computeLinearizedModel(DroneEuler* drone, Matrix<double, NX, NX>& A, Matrix<double, NX, NU>& B, state x_bar,
                             control u_bar);
 
-bool solveRiccatiIterationC(const Eigen::MatrixXd &A, const Eigen::MatrixXd &B,
-                            const Eigen::MatrixXd &Q, const Eigen::MatrixXd &R,
-                            Eigen::MatrixXd &P, const double dt,
-                            const double &tolerance,
+bool solveRiccatiIterationC(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& Q,
+                            const Eigen::MatrixXd& R, Eigen::MatrixXd& P, const double dt, const double& tolerance,
                             const uint iter_max);
-
 
 #endif
