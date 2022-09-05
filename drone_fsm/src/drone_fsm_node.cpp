@@ -25,7 +25,7 @@ private:
     RocketFSMState current_fsm;
 
     ros::Subscriber command_sub;
-    ros::Subscriber target_sub;
+    ros::Subscriber guidance_set_point_sub;
     ros::Subscriber state_sub;
     ros::Subscriber extended_state_sub;
 
@@ -50,7 +50,7 @@ public:
         fsm_pub = nh.advertise<rocket_utils::FSM>("/gnc_fsm_pub", 10);
 
         command_sub = nh.subscribe("/commands", 10, &FsmNode::processCommand, this);
-        target_sub = nh.subscribe("/set_point", 1, &FsmNode::setPointCallback, this);
+        guidance_set_point_sub = nh.subscribe("/guidance/set_point", 1, &FsmNode::guidanceSetPointCallback, this);
 
         std::vector<double> initial_target_apogee;
         if (nh.getParam("/guidance/target_apogee", initial_target_apogee) ||
@@ -111,7 +111,7 @@ private:
         is_calibration_done = extended_rocket_state->is_calibrated;
     }
 
-    void setPointCallback(const rocket_utils::State::ConstPtr &set_point_msg) {
+    void guidanceSetPointCallback(const rocket_utils::State::ConstPtr &set_point_msg) {
       target_set_point = fromROS(*set_point_msg);
     }
 

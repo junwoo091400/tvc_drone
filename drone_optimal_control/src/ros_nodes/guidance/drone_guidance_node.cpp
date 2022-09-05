@@ -37,7 +37,7 @@ void DroneGuidanceNode::initTopics(ros::NodeHandle &nh) {
     nh.param<bool>("/control/track_guidance", control_track_guidance, false);
     nh.param<bool>("/control/use_simulation_state", use_simulation_state, true);
     if (control_track_guidance) {
-        target_sub = nh.subscribe("/set_point", 1, &DroneGuidanceNode::setPointCallback, this);
+        target_sub = nh.subscribe("/guidance/set_point", 1, &DroneGuidanceNode::setPointCallback, this);
     }
     if (use_simulation_state) {
         state_sub = nh.subscribe("/rocket_state", 1, &DroneGuidanceNode::simulationStateCallback, this);
