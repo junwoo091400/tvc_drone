@@ -7,25 +7,25 @@
  * with this file, You can obtain one at http://mozilla.org/MPL/2.0/
  */
 
-#include "../../../../../../../opt/ros/noetic/include/ros/ros.h"
+#include <ros/ros.h>
 
-#include "../../../../devel/include/rocket_utils/FSM.h"
-#include "../../../../devel/include/rocket_utils/ExtendedState.h"
-#include "../../../../devel/include/drone_optimal_control/DroneWaypointStamped.h"
-#include "../../../../devel/include/drone_optimal_control/Waypoint.h"
-#include "../../../../devel/include/rocket_utils/Trajectory.h"
-#include "../../../../devel/include/drone_optimal_control/DroneTrajectory.h"
+#include <rocket_utils/FSM.h>
+#include <rocket_utils/ExtendedState.h>
+#include <drone_optimal_control/DroneWaypointStamped.h>
+#include <drone_optimal_control/Waypoint.h>
+#include <rocket_utils/Trajectory.h>
+#include <drone_optimal_control/DroneTrajectory.h>
 
-#include "../../../../devel/include/rocket_utils/DroneGimbalControl.h"
-#include "../../../../../../../opt/ros/noetic/include/geometry_msgs/Vector3.h"
+#include <rocket_utils/DroneGimbalControl.h>
+#include <geometry_msgs/Vector3.h>
 
-#include "../../../../../../../opt/ros/noetic/include/std_msgs/Int32.h"
-#include "../../../../../../../opt/ros/noetic/include/std_msgs/Float64.h"
+#include <std_msgs/Int32.h>
+#include <std_msgs/Float64.h>
 
-#include "../../../../../../../usr/include/time.h"
+#include <time.h>
 
-#include "../../../../../../../usr/include/c++/9/iostream"
-#include "../drone_optimal_control/guidance/drone_guidance.h"
+#include <iostream>
+#include "drone_optimal_control/guidance/drone_guidance.h"
 #include "load_guidance_settings.hpp"
 #include "load_drone_props.hpp"
 

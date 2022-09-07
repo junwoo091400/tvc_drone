@@ -21,7 +21,7 @@
 #include "solvers/sqp_base.hpp"
 #include "solvers/osqp_interface.hpp"
 #include "control/mpc_wrapper.hpp"
-#include "../drone_model.hpp"
+#include "drone_optimal_control/drone_model.hpp"
 #include "drone_guidance_settings.hpp"
 
 using namespace Eigen;

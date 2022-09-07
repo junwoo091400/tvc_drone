@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "../drone_model.hpp"
+#include "drone_optimal_control/drone_model.hpp"
 
 #include "guidance_solver.hpp"
 

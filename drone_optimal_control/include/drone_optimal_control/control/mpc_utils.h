@@ -23,7 +23,7 @@
 #include "unsupported/Eigen/MatrixFunctions"
 
 #include "autodiff/AutoDiffScalar.h"
-#include "../drone_model.hpp"
+#include "drone_optimal_control/drone_model.hpp"
 #include <memory>
 
 static const int NX = Drone::NX;
